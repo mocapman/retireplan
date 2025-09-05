@@ -726,18 +726,6 @@ files = [
 diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
-name = "pysimplegui"
-version = "5.0.8.3"
-description = "PySimpleGUI is now located on a private PyPI server.  Please add to your pip command: --extra-index-url https://PySimpleGUI.net/install"
-optional = false
-python-versions = ">=3.6"
-groups = ["main"]
-files = [
-    {file = "pysimplegui-5.0.8.3-py3-none-any.whl", hash = "sha256:67e35ad6dd76e9369051261114f4711308e87815a0488f7fa28b37c29a546f8b"},
-    {file = "pysimplegui-5.0.8.3.tar.gz", hash = "sha256:4c77436f527b6ee5c6e097a07028c83d85dc2513bcb51b78c9bfcc1b55123bd1"},
-]
-
-[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -840,6 +828,20 @@ files = [
 ]
 
 [[package]]
+name = "ttkbootstrap"
+version = "1.12.1"
+description = "A supercharged theme extension for tkinter that enables on-demand modern flat style themes inspired by Bootstrap."
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "ttkbootstrap-1.12.1.tar.gz", hash = "sha256:7f599f8d52ba7f2ef48bd48359962de3682c7131b80b4e26bb9456f3c66dfee9"},
+]
+
+[package.dependencies]
+pillow = ">=9.5"
+
+[[package]]
 name = "tzdata"
 version = "2025.2"
 description = "Provider of IANA time zone data"
@@ -854,4 +856,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "e7e82242baf902d0ee818a2833de425596c752af181caab28e6407e298a7b4cb"
+content-hash = "d1c1bca1a05df99e703d0908ce3dcf8c9ef7b3f4f5b0e5baf668a7e1eef37652"

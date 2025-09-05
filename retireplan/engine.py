@@ -13,7 +13,9 @@ def _infl_factor(rate: float, idx: int) -> float:
     return (1.0 + rate) ** idx
 
 
-def _withdraw_local(b: float, r: float, i: float, need: float, order: Tuple[str, str, str]):
+def _withdraw_local(
+    b: float, r: float, i: float, need: float, order: Tuple[str, str, str]
+):
     """Pure, local withdraw in given order; returns draws and remaining balances."""
     remaining = max(0.0, need)
     draws = {"Brokerage": 0.0, "Roth": 0.0, "IRA": 0.0}
@@ -65,7 +67,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         infl = _infl_factor(cfg.inflation, idx)
         std_ded = cfg.standard_deduction_base * infl
         target_magi = (
-            cfg.magi_target_base * infl if (yc.you_alive and yc.age_you < cfg.aca_end_age) else 0.0
+            cfg.magi_target_base * infl
+            if (yc.you_alive and yc.age_you < cfg.aca_end_age)
+            else 0.0
         )
         filing_this_year = (
             "MFJ" if (cfg.filing_status == "MFJ" and yc.living == "Joint") else "Single"
@@ -83,28 +87,34 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             living=yc.living,
         )
 
-        # Social Security (only if alive)
-        ss_you = (
-            ss_for_year(
-                yc.age_you, cfg.ss_you_start_age, cfg.ss_you_annual_at_start, idx, cfg.inflation
-            )
-            if yc.you_alive
-            else 0.0
+        # --- Social Security ---
+        # Scheduled benefits for this calendar year (as if both were alive)
+        ss_sched_you = ss_for_year(
+            yc.age_you,
+            cfg.ss_you_start_age,
+            cfg.ss_you_annual_at_start,
+            idx,
+            cfg.inflation,
         )
-        ss_sp = (
-            ss_for_year(
-                yc.age_spouse,
-                cfg.ss_spouse_start_age,
-                cfg.ss_spouse_annual_at_start,
-                idx,
-                cfg.inflation,
-            )
-            if (cfg.birth_year_spouse and yc.spouse_alive)
-            else 0.0
+        ss_sched_sp = ss_for_year(
+            yc.age_spouse,
+            cfg.ss_spouse_start_age,
+            cfg.ss_spouse_annual_at_start,
+            idx,
+            cfg.inflation,
         )
-        ss_inc = ss_you + ss_sp
 
-        # Events (cash only in v2)
+        if yc.you_alive and yc.spouse_alive:
+            ss_inc = ss_sched_you + ss_sched_sp
+        elif yc.you_alive and not yc.spouse_alive:
+            # Survivor receives the higher of the two scheduled checks
+            ss_inc = max(ss_sched_you, ss_sched_sp)
+        elif (not yc.you_alive) and yc.spouse_alive:
+            ss_inc = max(ss_sched_you, ss_sched_sp)
+        else:
+            ss_inc = 0.0
+
+        # Events (cash only in this version)
         ev_amt = 0.0
         for e in ev_by_year.get(yc.year, []):
             ev_amt += float(e.get("amount", 0.0))
@@ -125,7 +135,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             need_pre_tax = max(0.0, (spend + ev_amt) - ss_inc - rmd)
 
             # Pass 1: without taxes
-            d_b1, d_r1, d_i1, b1, r1, i1, _ = _withdraw_local(b0, r0, i0 - rmd, need_pre_tax, order)
+            d_b1, d_r1, d_i1, b1, r1, i1, _ = _withdraw_local(
+                b0, r0, i0 - rmd, need_pre_tax, order
+            )
             # Taxes/MAGI from ordinary income = RMD + IRA-draw + conversion
             tax1, _ss_tax1, _taxable1, magi1 = compute_tax_magi(
                 ira_ordinary=(rmd + d_i1),
