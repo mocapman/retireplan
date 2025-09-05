@@ -69,7 +69,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         std_ded = cfg.standard_deduction_base * infl
 
         # Filing for this year is MFJ only if elected MFJ and both alive (Joint); else Single
-        filing_this_year = (
+        filing_status = (
             "MFJ" if (cfg.filing_status == "MFJ" and yc.living == "Joint") else "Single"
         )
 
@@ -81,7 +81,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         )
 
         # Annual budget (includes taxes and events), inflation + survivor adjust
-        budget = spend_target(
+        total_spend = spend_target(
             phase=yc.phase,
             year_index=idx,
             infl=cfg.inflation,
@@ -127,25 +127,25 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             rmd = ira_end / rmd_factor(yc.age_you)
 
         # Cash needed to meet the budget (taxes are inside the budget)
-        need_for_budget = max(0.0, budget - ss_income - rmd)
+        need_for_budget = max(0.0, total_spend - ss_income - rmd)
 
         # Withdraw to meet budget; IRA reduced by RMD before draws
-        d_b, d_r, d_i, b1, r1, i1, unmet = _withdraw_local(
+        draw_broke, draw_roth, draw_ira, b1, r1, i1, unmet = _withdraw_local(
             brokerage_end, roth_end, ira_end - rmd, need_for_budget, order
         )
 
         # Provided cash and shortfall against budget
-        provided_cash = ss_income + rmd + d_b + d_r + d_i
-        shortfall = max(0.0, budget - provided_cash)
+        provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
+        shortfall = max(0.0, total_spend - provided_cash)
 
         # Taxes/MAGI for composition; conversions next
         def tax_and_magi(conv: float) -> tuple[float, float]:
             tax, _ss_tax, _taxable, magi = compute_tax_magi(
-                ira_ordinary=(rmd + d_i),
+                ira_ordinary=(rmd + draw_ira),
                 roth_conversion=conv,
                 ss_total=ss_income,
                 std_deduction=std_ded,
-                filing=filing_this_year,
+                filing=filing_status,
             )
             return tax, magi
 
@@ -167,25 +167,25 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         tax, magi = tax_and_magi(conv)
 
         # Apply conversion (IRA -> Roth)
-        conv_eff = min(conv, max(0.0, i1))
-        i1 -= conv_eff
-        r1 += conv_eff
+        roth_conv = min(conv, max(0.0, i1))
+        i1 -= roth_conv
+        r1 += roth_conv
 
         # Sweep ONLY RMD surplus (no SS sweep)
-        need_after_ss = max(0.0, budget - ss_income)
+        need_after_ss = max(0.0, total_spend - ss_income)
         rmd_surplus = max(0.0, rmd - need_after_ss)
         b1 += rmd_surplus
 
         # Year-end growth
-        b_out = b1 * (1.0 + cfg.brokerage_growth)
-        r_out = r1 * (1.0 + cfg.roth_growth)
-        i_out = i1 * (1.0 + cfg.ira_growth)
+        broke_bal = b1 * (1.0 + cfg.brokerage_growth)
+        roth_bal = r1 * (1.0 + cfg.roth_growth)
+        ira_bal = i1 * (1.0 + cfg.ira_growth)
 
         # Commit running balances
-        brokerage_end, roth_end, ira_end = b_out, r_out, i_out
+        brokerage_end, roth_end, ira_end = broke_bal, roth_bal, ira_bal
 
         # Discretionary inside the gross budget
-        base_spend = max(0.0, budget - tax - events_cash)
+        base_spend = max(0.0, total_spend - tax - events_cash)
 
         # Emit canon-aligned row
         rows.append(
@@ -195,26 +195,26 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Your_Age": yc.age_you,
                 "Spouse_Age": yc.age_spouse,
                 "Lifestyle": yc.phase,
-                "Filing": filing_this_year,
+                "Filing": filing_status,
                 # Budgeting
-                "Total_Spend": round(budget),
+                "Total_Spend": round(total_spend),
                 "Taxes_Due": round(tax),
                 "Cash_Events": round(events_cash),
                 "Base_Spend": round(base_spend),
                 # Flows
                 "Social_Security": round(ss_income),
-                "IRA_Draw": round(d_i),  # excludes RMD
-                "Brokerage_Draw": round(d_b),
-                "Roth_Draw": round(d_r),
-                "Roth_Conversion": round(conv_eff),
+                "IRA_Draw": round(draw_ira),  # excludes RMD
+                "Brokerage_Draw": round(draw_broke),
+                "Roth_Draw": round(draw_roth),
+                "Roth_Conversion": round(roth_conv),
                 "RMD": round(rmd),
                 "MAGI": round(magi),
                 "Std_Deduction": round(std_ded),
                 # Balances
-                "IRA_Balance": round(i_out),
-                "Brokerage_Balance": round(b_out),
-                "Roth_Balance": round(r_out),
-                "Total_Assets": round(b_out + r_out + i_out),
+                "IRA_Balance": round(ira_bal),
+                "Brokerage_Balance": round(broke_bal),
+                "Roth_Balance": round(roth_bal),
+                "Total_Assets": round(broke_bal + roth_bal + ira_bal),
                 # Shortfall
                 "Shortfall": round(shortfall),
             }
