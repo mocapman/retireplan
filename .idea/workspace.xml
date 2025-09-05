@@ -5,9 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="feat: project skeleton with GUI stub and tooling">
-      <change afterPath="$PROJECT_DIR$/retireplan/doctor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_env.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/test_inputs.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/sample_events.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/examples/sample_events.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/sample_inputs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/examples/sample_inputs.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/gui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/inputs.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/inputs.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,7 +83,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757042587135</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="feat: project skeleton with GUI stub and tooling">
+      <option name="closed" value="true" />
+      <created>1757047443930</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1757047443930</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

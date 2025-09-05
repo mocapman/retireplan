@@ -1,0 +1,33 @@
+birth_year_you: 1967
+birth_year_spouse: 1969
+final_age_you: 75
+final_age_spouse: 85
+filing_status: MFJ
+start_year: 2025
+balances:
+  brokerage: 512000
+  roth: 114000
+  ira: 940000
+spending:
+  gogo_annual: 120000
+  slow_annual: 100000
+  nogo_annual: 85000
+  gogo_years: 5
+  slow_years: 10
+  survivor_percent: 70
+social_security:
+  you_start_age: 62
+  you_annual_at_start: 32500
+  spouse_start_age: 62
+  spouse_annual_at_start: 7000
+rates:
+  inflation: 0.035
+  brokerage_growth: 0.04
+  roth_growth: 0.05
+  ira_growth: 0.06
+tax_health:
+  magi_target_base: 42500
+  standard_deduction_base: 30000
+  rmd_start_age: 73
+  aca_end_age: 65
+  aca_subsidy_annual: null

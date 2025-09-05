@@ -1,0 +1,11 @@
+- year: 2026
+  label: Wedding
+  amount: 15000
+  tax_treatment: nontax
+  repeat: once
+
+- year: 2025
+  label: Capital gains tax
+  amount: 40000
+  tax_treatment: state_federal_tax
+  repeat: once
