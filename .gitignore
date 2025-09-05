@@ -1,0 +1,12 @@
+﻿.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.idea/
+*.egg-info/
+dist/
+build/
+.env
+.DS_Store
+projections.csv
