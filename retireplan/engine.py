@@ -16,7 +16,7 @@ def _infl_factor(rate: float, idx: int) -> float:
 def _withdraw_local(
     b: float, r: float, i: float, need: float, order: Tuple[str, str, str]
 ):
-    """Pure, local withdraw in given order; returns draws and remaining balances."""
+    """Withdraw in the given order; returns draws, end balances, and remaining unmet need."""
     remaining = max(0.0, need)
     draws = {"Brokerage": 0.0, "Roth": 0.0, "IRA": 0.0}
     for leg in order:
@@ -36,7 +36,7 @@ def _withdraw_local(
 
 
 def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
-    # Events by year (amount >0 = extra spend; <0 = inflow). Tax treatment later.
+    # Events by year (amount >0 = extra spend category; <0 = inflow). Cash-only.
     ev_by_year: dict[int, list[dict]] = {}
     for e in events or []:
         ev_by_year.setdefault(int(e["year"]), []).append(e)
@@ -75,8 +75,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "MFJ" if (cfg.filing_status == "MFJ" and yc.living == "Joint") else "Single"
         )
 
-        # Spend target (inflation + survivor adjustment)
-        spend = spend_target(
+        # Annual budget (includes taxes and events), inflation + survivor adjust
+        budget = spend_target(
             phase=yc.phase,
             year_index=idx,
             infl=cfg.inflation,
@@ -87,131 +87,95 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             living=yc.living,
         )
 
-        # --- Social Security ---
-        # Scheduled benefits for this calendar year (as if both were alive)
-        ss_sched_you = ss_for_year(
+        # Social Security with survivor step-up
+        you_sched = ss_for_year(
             yc.age_you,
             cfg.ss_you_start_age,
             cfg.ss_you_annual_at_start,
             idx,
             cfg.inflation,
         )
-        ss_sched_sp = ss_for_year(
+        sp_sched = ss_for_year(
             yc.age_spouse,
             cfg.ss_spouse_start_age,
             cfg.ss_spouse_annual_at_start,
             idx,
             cfg.inflation,
         )
-
         if yc.you_alive and yc.spouse_alive:
-            ss_inc = ss_sched_you + ss_sched_sp
+            ss_inc = you_sched + sp_sched
         elif yc.you_alive and not yc.spouse_alive:
-            # Survivor receives the higher of the two scheduled checks
-            ss_inc = max(ss_sched_you, ss_sched_sp)
+            ss_inc = max(you_sched, sp_sched)
         elif (not yc.you_alive) and yc.spouse_alive:
-            ss_inc = max(ss_sched_you, ss_sched_sp)
+            ss_inc = max(you_sched, sp_sched)
         else:
             ss_inc = 0.0
 
-        # Events (cash only in this version)
-        ev_amt = 0.0
-        for e in ev_by_year.get(yc.year, []):
-            ev_amt += float(e.get("amount", 0.0))
+        # Events (inside the budget; they reduce discretionary)
+        ev_amt = sum(float(e.get("amount", 0.0)) for e in ev_by_year.get(yc.year, []))
 
-        # RMD if owner alive and at/over start age, based on IRA start-of-year
+        # RMD if owner alive and ≥ start age
         rmd = 0.0
         if yc.you_alive and yc.age_you >= cfg.rmd_start_age and i_end > 0.0:
             rmd = i_end / rmd_factor(yc.age_you)
 
-        # Solver for conversions to hit MAGI target (until ACA age). Conversions cannot include RMD.
+        # Cash needed to meet the budget (taxes are inside the budget)
+        need_for_budget = max(0.0, budget - ss_inc - rmd)
+
+        # Withdraw to meet budget; IRA reduced by RMD before draws
+        d_b, d_r, d_i, b1, r1, i1, unmet = _withdraw_local(
+            b_end, r_end, i_end - rmd, need_for_budget, order
+        )
+
+        # Provided cash and shortfall against budget
+        provided_cash = ss_inc + rmd + d_b + d_r + d_i
+        shortfall = max(0.0, budget - provided_cash)
+
+        # Taxes/MAGI for composition; conversions next
+        def tax_and_magi(conv: float):
+            tax, _ss_tax, _taxable, magi = compute_tax_magi(
+                ira_ordinary=(rmd + d_i),
+                roth_conversion=conv,
+                ss_total=ss_inc,
+                std_deduction=std_ded,
+                filing=filing_this_year,
+            )
+            return tax, magi
+
+        # Fill conversions up to MAGI target (pre-Medicare), limited by post-draw IRA capacity
         conv = 0.0
-
-        def simulate(c: float):
-            # Start-of-year balances
-            b0, r0, i0 = b_end, r_end, i_end
-
-            # RMD reduces IRA balance; it also covers part of cash need up to its amount.
-            need_pre_tax = max(0.0, (spend + ev_amt) - ss_inc - rmd)
-
-            # Pass 1: without taxes
-            d_b1, d_r1, d_i1, b1, r1, i1, _ = _withdraw_local(
-                b0, r0, i0 - rmd, need_pre_tax, order
-            )
-            # Taxes/MAGI from ordinary income = RMD + IRA-draw + conversion
-            tax1, _ss_tax1, _taxable1, magi1 = compute_tax_magi(
-                ira_ordinary=(rmd + d_i1),
-                roth_conversion=c,
-                ss_total=ss_inc,
-                std_deduction=std_ded,
-                filing=filing_this_year,
-            )
-
-            # Pass 2: include taxes in cash need
-            need_with_tax = max(0.0, (spend + ev_amt + tax1) - ss_inc - rmd)
-            d_b2, d_r2, d_i2, b2, r2, i2, _ = _withdraw_local(
-                b0, r0, i0 - rmd, need_with_tax, order
-            )
-            tax2, _ss_tax2, _taxable2, magi2 = compute_tax_magi(
-                ira_ordinary=(rmd + d_i2),
-                roth_conversion=c,
-                ss_total=ss_inc,
-                std_deduction=std_ded,
-                filing=filing_this_year,
-            )
-
-            # RMD surplus if RMD alone exceeds total need
-            total_need = max(0.0, (spend + ev_amt + tax2) - ss_inc)
-            rmd_surplus = max(0.0, rmd - total_need)
-
-            # Apply conversion (IRA -> Roth). RMD itself cannot be converted.
-            c_cap = max(0.0, i2)  # remaining IRA after cash draws
-            c_eff = min(c, c_cap)
-            i2 -= c_eff
-            r2 += c_eff
-
-            # Sweep any RMD surplus to Brokerage (cannot be converted by law)
-            b2 += rmd_surplus
-
-            # Year-end growth
-            b_out = b2 * (1.0 + cfg.brokerage_growth)
-            r_out = r2 * (1.0 + cfg.roth_growth)
-            i_out = i2 * (1.0 + cfg.ira_growth)
-
-            # Shortfall calculation
-            provided = ss_inc + rmd + d_b2 + d_r2 + d_i2
-            shortfall = max(0.0, (spend + ev_amt + tax2) - provided)
-
-            return {
-                "d_b": d_b2,
-                "d_r": d_r2,
-                "d_i": d_i2,
-                "tax": tax2,
-                "magi": magi2,
-                "shortfall": shortfall,
-                "b_out": b_out,
-                "r_out": r_out,
-                "i_out": i_out,
-                "c_eff": c_eff,
-                "rmd_surplus": rmd_surplus,
-                "i_cap_after_draws": c_cap,
-            }
-
-        # Fill conversions up to MAGI target with a few fixed-point steps
         for _ in range(8):
-            res = simulate(conv)
+            tax0, magi0 = tax_and_magi(conv)
             if target_magi <= 0.0 or not yc.you_alive or yc.age_you >= cfg.aca_end_age:
                 break
-            gap = target_magi - res["magi"]
-            if gap <= 1.0 or res["i_cap_after_draws"] <= 1.0:
+            gap = target_magi - magi0
+            if gap <= 1.0:
                 break
-            conv += min(gap, res["i_cap_after_draws"])
+            cap = max(0.0, i1)
+            step = min(gap, cap - conv)
+            if step <= 1.0:
+                break
+            conv += step
 
-        # Final run with settled conversion
-        res = simulate(conv)
+        tax, magi = tax_and_magi(conv)
 
-        # Commit end-of-year balances for next loop
-        b_end, r_end, i_end = res["b_out"], res["r_out"], res["i_out"]
+        # Apply conversion (IRA -> Roth)
+        conv_eff = min(conv, max(0.0, i1))
+        i1 -= conv_eff
+        r1 += conv_eff
+
+        # Sweep ONLY RMD surplus (no SS sweep)
+        need_after_ss = max(0.0, budget - ss_inc)
+        rmd_surplus = max(0.0, rmd - need_after_ss)
+        b1 += rmd_surplus
+
+        # Year-end growth
+        b_out = b1 * (1.0 + cfg.brokerage_growth)
+        r_out = r1 * (1.0 + cfg.roth_growth)
+        i_out = i1 * (1.0 + cfg.ira_growth)
+
+        # Commit
+        b_end, r_end, i_end = b_out, r_out, i_out
 
         rows.append(
             {
@@ -220,23 +184,29 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Age_Spouse": yc.age_spouse,
                 "Phase": yc.phase,
                 "Living": yc.living,
-                "Spend_Target": round(spend),
-                "Taxes": round(res["tax"]),
+                # Budgeting
+                "Spend_Target": round(
+                    budget
+                ),  # total annual budget incl. taxes and events
+                "Taxes": round(tax),
                 "Events_Cash": round(ev_amt),
-                "Total_Spend": round(spend + ev_amt + res["tax"]),
+                "Total_Spend": round(budget),  # equals budget by definition
+                # Flows
                 "SS_Income": round(ss_inc),
-                "Draw_Brokerage": round(res["d_b"]),
-                "Draw_Roth": round(res["d_r"]),
-                "Draw_IRA": round(res["d_i"]),  # excludes RMD
-                "Roth_Conversion": round(res["c_eff"]),
+                "Draw_Brokerage": round(d_b),
+                "Draw_Roth": round(d_r),
+                "Draw_IRA": round(d_i),  # excludes RMD
+                "Roth_Conversion": round(conv_eff),
                 "RMD": round(rmd),
-                "MAGI": round(res["magi"]),
+                "MAGI": round(magi),
                 "Std_Deduction": round(std_ded),
-                "End_Bal_Brokerage": round(b_end),
-                "End_Bal_Roth": round(r_end),
-                "End_Bal_IRA": round(i_end),
-                "Total_Assets": round(b_end + r_end + i_end),
-                "Shortfall": round(res["shortfall"]),
+                # Balances
+                "End_Bal_Brokerage": round(b_out),
+                "End_Bal_Roth": round(r_out),
+                "End_Bal_IRA": round(i_out),
+                "Total_Assets": round(b_out + r_out + i_out),
+                # Shortfall
+                "Shortfall": round(shortfall),
             }
         )
 

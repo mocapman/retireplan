@@ -5,9 +5,9 @@ final_age_spouse: 85
 filing_status: MFJ
 start_year: 2025
 balances:
-  brokerage: 512000
+  brokerage: 495000
   roth: 114000
-  ira: 940000
+  ira: 1030000
 spending:
   gogo_annual: 120000
   slow_annual: 100000
@@ -23,11 +23,11 @@ social_security:
 rates:
   inflation: 0.035
   brokerage_growth: 0.04
-  roth_growth: 0.05
+  roth_growth: 0.075
   ira_growth: 0.06
 tax_health:
   magi_target_base: 42500
-  standard_deduction_base: 30000
+  standard_deduction_base: 31500
   rmd_start_age: 73
   aca_end_age: 65
   aca_subsidy_annual: null
