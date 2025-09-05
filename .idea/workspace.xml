@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="feat: project skeleton with GUI stub and tooling">
-      <change afterPath="$PROJECT_DIR$/tests/test_inputs.py" afterDir="false" />
+    <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="first engine and projections output">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/sample_events.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/examples/sample_events.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/sample_inputs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/examples/sample_inputs.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/retireplan/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/gui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/accounts.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/accounts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/engine.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/retireplan/inputs.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/inputs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/timeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/timeline.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,11 +91,20 @@
       <option name="project" value="LOCAL" />
       <updated>1757047443930</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="first engine and projections output">
+      <option name="closed" value="true" />
+      <created>1757048253463</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1757048253463</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="feat: project skeleton with GUI stub and tooling" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: project skeleton with GUI stub and tooling" />
+    <MESSAGE value="first engine and projections output" />
+    <option name="LAST_COMMIT_MESSAGE" value="first engine and projections output" />
   </component>
 </project>

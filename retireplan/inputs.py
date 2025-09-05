@@ -1,49 +1,58 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Optional, Dict, Any
+from typing import Optional, Literal
 
 import yaml
 
 Filing = Literal["MFJ", "Single"]
+DrawOrder = Literal["IRA, Brokerage, Roth", "Brokerage, Roth, IRA"]
 
 
 @dataclass
 class Inputs:
+    # Personal
     birth_year_you: int
     birth_year_spouse: Optional[int]
     final_age_you: int
     final_age_spouse: Optional[int]
     filing_status: Filing
     start_year: int
+
+    # Balances
     balances_brokerage: float
     balances_roth: float
     balances_ira: float
+
+    # Spending phases
     gogo_annual: float
     slow_annual: float
     nogo_annual: float
     gogo_years: int
     slow_years: int
     survivor_percent: float
+
+    # Social Security (annual at start age, today’s $)
     ss_you_start_age: int
     ss_you_annual_at_start: float
     ss_spouse_start_age: Optional[int]
     ss_spouse_annual_at_start: Optional[float]
+
+    # Rates
     inflation: float
     brokerage_growth: float
     roth_growth: float
     ira_growth: float
+
+    # Tax/health
     magi_target_base: float
     standard_deduction_base: float
     rmd_start_age: int
     aca_end_age: int
-    aca_subsidy_annual: Optional[float] = None
+    aca_subsidy_annual: Optional[float]
 
-
-def _req(d: Dict[str, Any], path: str):
-    for key in path.split("."):
-        d = d[key]
-    return d
+    # Strategy
+    draw_order: DrawOrder
 
 
 def load_yaml(path: str) -> Inputs:
@@ -85,35 +94,54 @@ def load_yaml(path: str) -> Inputs:
         rmd_start_age=th["rmd_start_age"],
         aca_end_age=th["aca_end_age"],
         aca_subsidy_annual=th.get("aca_subsidy_annual"),
+        draw_order=raw.get("draw_order", "IRA, Brokerage, Roth"),
     )
     validate(i)
     return i
 
 
 def validate(i: Inputs) -> None:
-    def rng(name, val, lo, hi):
+    def rng(name: str, val: float, lo: float, hi: float) -> None:
         if not (lo <= val <= hi):
             raise ValueError(f"{name} out of range [{lo},{hi}]: {val}")
 
-    for y in (i.birth_year_you, i.start_year):
-        rng("year", y, 1900, 2100)
+    # Years
+    for name, y in (("birth_year_you", i.birth_year_you), ("start_year", i.start_year)):
+        rng(name, y, 1900, 2100)
     if i.birth_year_spouse is not None:
         rng("birth_year_spouse", i.birth_year_spouse, 1900, 2100)
 
-    for age in (i.final_age_you,):
-        rng("final_age_you", age, 60, 105)
+    # Ages
+    rng("final_age_you", i.final_age_you, 60, 105)
     if i.final_age_spouse is not None:
         rng("final_age_spouse", i.final_age_spouse, 60, 105)
 
+    # Filing
     if i.filing_status not in ("MFJ", "Single"):
         raise ValueError("filing_status must be MFJ or Single")
 
-    for p in (i.inflation, i.brokerage_growth, i.roth_growth, i.ira_growth):
-        rng("rate", p, -0.2, 0.2)
+    # Rates
+    for name, p in (
+        ("inflation", i.inflation),
+        ("brokerage_growth", i.brokerage_growth),
+        ("roth_growth", i.roth_growth),
+        ("ira_growth", i.ira_growth),
+    ):
+        rng(name, p, -0.2, 0.2)
 
+    # Social Security ages
     rng("ss_you_start_age", i.ss_you_start_age, 62, 70)
     if i.ss_spouse_start_age is not None:
         rng("ss_spouse_start_age", i.ss_spouse_start_age, 62, 70)
 
+    # Survivor %
     rng("survivor_percent", i.survivor_percent, 50, 100)
+
+    # RMD start
     rng("rmd_start_age", i.rmd_start_age, 70, 80)
+
+    # Draw order
+    if i.draw_order not in ("IRA, Brokerage, Roth", "Brokerage, Roth, IRA"):
+        raise ValueError(
+            "draw_order must be one of: 'IRA, Brokerage, Roth' | 'Brokerage, Roth, IRA'"
+        )

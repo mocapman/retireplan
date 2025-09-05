@@ -31,3 +31,5 @@ tax_health:
   rmd_start_age: 73
   aca_end_age: 65
   aca_subsidy_annual: null
+
+draw_order: "IRA, Brokerage, Roth"   # options: "IRA, Brokerage, Roth" or "Brokerage, Roth, IRA"

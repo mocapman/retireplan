@@ -10,6 +10,7 @@ COLUMNS = [
     "Living",
     "Spend_Target",
     "Taxes",
+    "Events_Cash",
     "Total_Spend",
     "SS_Income",
     "Draw_Brokerage",
@@ -23,9 +24,9 @@ COLUMNS = [
     "End_Bal_Roth",
     "End_Bal_IRA",
     "Total_Assets",
+    "Shortfall",
 ]
 
 
 def to_dataframe(rows: list[dict]) -> pd.DataFrame:
-    df = pd.DataFrame(rows, columns=COLUMNS)
-    return df
+    return pd.DataFrame(rows, columns=COLUMNS)
