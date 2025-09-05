@@ -1,198 +1,82 @@
 from __future__ import annotations
 
-import argparse
-from copy import deepcopy
-from dataclasses import dataclass
 from pathlib import Path
+from typing import List, Dict, Any
+import csv
 
-import pandas as pd
-
-from retireplan import inputs, projections
+from retireplan import inputs, schema
 from retireplan.engine import run_plan
 
-KEYS = [
-    "Year",
-    "Age_You",
-    "Age_Spouse",
-    "Phase",
-    "Living",
-    "Spend_Target",
-    "Taxes",
-    "SS_Income",
-    "Draw_IRA",
-    "Draw_Brokerage",
-    "Draw_Roth",
-    "Roth_Conversion",
-    "RMD",
-    "MAGI",
-    "Shortfall",
-    "End_Bal_IRA",
-    "End_Bal_Brokerage",
-    "End_Bal_Roth",
-    "Total_Assets",
-]
 
-
-@dataclass
-class Pick:
-    name: str
-    predicate: callable
-
-
-def first(rows):
-    return rows[0] if rows else None
-
-
-def first_pre_medicare(rows, aca_age):
-    for r in rows:
-        if r["Age_You"] < aca_age:
-            return r
-    return None
-
-
-def first_post_medicare(rows, aca_age):
-    for r in rows:
-        if r["Age_You"] >= aca_age:
-            return r
-    return None
-
-
-def first_rmd(rows):
-    for r in rows:
-        if r["RMD"] > 0:
-            return r
-    return None
-
-
-def summarize_rows(rows, picks: list[Pick]) -> pd.DataFrame:
-    out = []
-    for p in picks:
-        row = p.predicate(rows)
-        if row is None:
-            out.append({"View": p.name, "Note": "N/A"})
-        else:
-            d = {k: row.get(k, None) for k in KEYS}
-            d["View"] = p.name
-            out.append(d)
-    return pd.DataFrame(out)
-
-
-def run_scenario(name: str, cfg, outdir: Path, picks: list[Pick]) -> pd.DataFrame:
-    rows = run_plan(cfg)
-    df = projections.to_dataframe(rows)
-    (outdir / f"{name}.csv").write_text(df.to_csv(index=False), encoding="utf-8")
-
-    summary = summarize_rows(
-        rows,
-        picks,
-    )
-    (outdir / f"{name}__summary.csv").write_text(
-        summary.to_csv(index=False), encoding="utf-8"
-    )
-    return summary
-
-
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Run RetirePlan scenario sweep.")
-    ap.add_argument("--cfg", default="examples/sample_inputs.yaml", help="Inputs YAML.")
-    ap.add_argument("--out", default="out", help="Output directory.")
-    ap.add_argument("--verbose", action="store_true", help="Print summaries.")
-    args = ap.parse_args(argv)
-
-    cfg_base = inputs.load_yaml(args.cfg)
-    outdir = Path(args.out)
-    outdir.mkdir(parents=True, exist_ok=True)
-
-    picks = [
-        Pick("Start", first),
-        Pick(
-            "PreMedicare", lambda rows: first_pre_medicare(rows, cfg_base.aca_end_age)
-        ),
-        Pick(
-            "PostMedicare", lambda rows: first_post_medicare(rows, cfg_base.aca_end_age)
-        ),
-        Pick("FirstRMD", first_rmd),
+def _print_cut(rows: List[Dict[str, Any]], note: str | None = None) -> None:
+    hdr = [
+        "Year",
+        "Your_Age",
+        "Spouse_Age",
+        "Lifestyle",
+        "Filing",
+        "Total_Spend",
+        "Taxes_Due",
+        "Social_Security",
+        "IRA_Draw",
+        "Brokerage_Draw",
+        "Roth_Draw",
+        "Roth_Conversion",
+        "RMD",
+        "MAGI",
+        "Shortfall",
+        "IRA_Balance",
+        "Brokerage_Balance",
+        "Roth_Balance",
+        "Total_Assets",
+        "View",
+        "Note",
     ]
+    print("  " + "  ".join(hdr))
+    for r in rows:
+        print(
+            f"{r['Year']:<6} {r['Your_Age']:<8} {r['Spouse_Age']:<11} "
+            f"{r['Lifestyle']:<5} {r['Filing']:<5}  "
+            f"{r['Total_Spend']:<12} {r['Taxes_Due']:<5} {r['Social_Security']:<9} "
+            f"{r['IRA_Draw']:<8} {r['Brokerage_Draw']:<14} {r['Roth_Draw']:<9} "
+            f"{r['Roth_Conversion']:<15} {r['RMD']:<5} {r['MAGI']:<6} "
+            f"{r['Shortfall']:<9} {r['IRA_Balance']:<11} {r['Brokerage_Balance']:<16} "
+            f"{r['Roth_Balance']:<11} {r['Total_Assets']:<12} "
+            f"{r.get('View',''):<12} {note or r.get('Note','')}"
+        )
 
-    summaries: list[tuple[str, pd.DataFrame]] = []
 
-    # 1) Baseline: IRA -> Brokerage -> Roth
-    cfg1 = deepcopy(cfg_base)
-    cfg1.draw_order = "IRA, Brokerage, Roth"
-    summaries.append(
-        ("baseline_ira_first", run_scenario("baseline_ira_first", cfg1, outdir, picks))
-    )
+def _write_csv(rows: List[Dict[str, Any]], path: Path) -> None:
+    keys = schema.keys()
+    headers = schema.labels()
+    with path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+        w.writerow(headers)
+        for r in rows:
+            w.writerow([r.get(k, None) for k in keys])
 
-    # 2) Alternate draw order
-    cfg2 = deepcopy(cfg_base)
+
+def main() -> None:
+    cfg = inputs.load_yaml("examples/sample_inputs.yaml")
+    out_dir = Path("out")
+    out_dir.mkdir(exist_ok=True)
+
+    # Baseline
+    print("=== baseline_ira_first ===")
+    rows = run_plan(cfg)
+    _print_cut(rows, note=None)
+    _write_csv(rows, out_dir / "baseline_ira_first.csv")
+
+    # Alternate
+    print("\n=== alt_brokerage_first ===")
+    cfg2 = inputs.load_yaml("examples/sample_inputs.yaml")
     cfg2.draw_order = "Brokerage, Roth, IRA"
-    summaries.append(
-        (
-            "alt_brokerage_first",
-            run_scenario("alt_brokerage_first", cfg2, outdir, picks),
-        )
-    )
+    rows2 = run_plan(cfg2)
+    _print_cut(rows2, note=None)
+    _write_csv(rows2, out_dir / "alt_brokerage_first.csv")
 
-    # 3) Headroom for conversions (lower spends + more brokerage)
-    cfg3 = deepcopy(cfg_base)
-    cfg3.draw_order = "Brokerage, Roth, IRA"
-    cfg3.gogo_annual = 30000
-    cfg3.slow_annual = 30000
-    cfg3.nogo_annual = 30000
-    cfg3.balances_brokerage = max(cfg3.balances_brokerage, 200_000)
-    cfg3.balances_ira = max(50_000, cfg3.balances_ira)
-    summaries.append(
-        (
-            "pre_medicare_magi_fill",
-            run_scenario("pre_medicare_magi_fill", cfg3, outdir, picks),
-        )
-    )
-
-    # 4) Post-Medicare scenario (no conversions)
-    cfg4 = deepcopy(cfg_base)
-    years_to_bump = (cfg_base.aca_end_age + 1) - (
-        cfg_base.start_year - cfg_base.birth_year_you
-    )
-    cfg4.start_year += max(0, years_to_bump)
-    summaries.append(
-        ("post_medicare", run_scenario("post_medicare", cfg4, outdir, picks))
-    )
-
-    # 5) Force RMD early
-    cfg5 = deepcopy(cfg_base)
-    years_to_rmd = (cfg_base.rmd_start_age + 1) - (
-        cfg_base.start_year - cfg_base.birth_year_you
-    )
-    cfg5.start_year += max(0, years_to_rmd)
-    cfg5.gogo_annual = 20000
-    cfg5.slow_annual = 20000
-    cfg5.nogo_annual = 20000
-    summaries.append(("rmd_forced", run_scenario("rmd_forced", cfg5, outdir, picks)))
-
-    # 6) Large event expense to test cash logic
-    cfg6 = deepcopy(cfg_base)
-    # Engine currently treats events via API; here we emulate by bumping spend target using inputs:
-    cfg6.gogo_annual = cfg6.gogo_annual + 50_000
-    summaries.append(("large_event", run_scenario("large_event", cfg6, outdir, picks)))
-
-    # Print combined summary
-    if args.verbose:
-        for name, df in summaries:
-            print(f"=== {name} ===")
-            print(df.to_string(index=False))
-            print()
-
-    # Also write a combined CSV
-    combined = pd.concat(
-        [df.assign(Scenario=name) for name, df in summaries], ignore_index=True
-    )
-    (outdir / "combined_summary.csv").write_text(
-        combined.to_csv(index=False), encoding="utf-8"
-    )
-
-    print(f"Wrote scenario CSVs and summaries to: {outdir.resolve()}")
-    return 0
+    print("\nWrote scenario CSVs and summaries to:", out_dir)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

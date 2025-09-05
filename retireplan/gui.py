@@ -10,13 +10,12 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.widgets import DateEntry
 from tksheet import Sheet
 
-from retireplan import inputs
+from retireplan import inputs, schema
 from retireplan.engine import run_plan
-from retireplan.projections import to_dataframe
 from retireplan.theme import apply_theme, sheet_options, DEFAULT_THEME
+from retireplan.projections import to_2d_for_table
 
 APP_TITLE = "RetirePlan"
-HIDDEN_COLS = {"MAGI", "Std_Deduction", "Shortfall"}
 
 
 class App:
@@ -25,7 +24,7 @@ class App:
         self.theme_name = DEFAULT_THEME
         self.style = apply_theme(self.root, self.theme_name)
 
-        self.cur_df = None
+        self.cur_rows: List[dict] = []
         self.start_dt = date.today()
         self._row_h = 24
         self._hdr_h = 28
@@ -93,6 +92,7 @@ class App:
             )
         )
 
+        # Apply autoresize at first paint
         self.root.after(75, self._autosize)
 
     def _style_sheet(self) -> None:
@@ -126,10 +126,16 @@ class App:
         self._load_rows(rows)
 
     def _export_csv(self) -> None:
-        if self.cur_df is None or self.cur_df.empty:
+        if not self.cur_rows:
             return
         out = Path("projections.csv")
-        self.cur_df.to_csv(out, index=False, quoting=csv.QUOTE_MINIMAL)
+        keys = schema.keys()
+        headers = schema.labels()
+        with out.open("w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+            w.writerow(headers)
+            for r in self.cur_rows:
+                w.writerow([r.get(k, None) for k in keys])
 
     def _populate_table_initial(self) -> None:
         cfg = inputs.load_yaml("examples/sample_inputs.yaml")
@@ -139,21 +145,16 @@ class App:
         self._load_rows(rows)
 
     def _load_rows(self, rows: List[dict]) -> None:
-        df = to_dataframe(rows)
-        headers = [c for c in df.columns if c not in HIDDEN_COLS]
-        data = df[headers].values.tolist()
-
+        headers, data = to_2d_for_table(rows)
         self.sheet.set_sheet_data(
             data, reset_col_positions=True, reset_row_positions=True, redraw=True
         )
         self.sheet.headers(headers)
-        self.cur_df = df
-
+        self.cur_rows = rows
         self._apply_zebra()
         self._autosize()
 
     def _apply_zebra(self) -> None:
-        """Explicit zebra stripes so appearance is consistent."""
         try:
             opts = sheet_options(self.theme_name)
             bg = opts["table_bg"]
@@ -166,21 +167,18 @@ class App:
                 return
             evens = tuple(range(0, total, 2))
             odds = tuple(range(1, total, 2))
-            # Even rows = base bg, odd rows = alt
             self.sheet.highlight_rows(evens, bg=bg, fg=fg, redraw=False)
             self.sheet.highlight_rows(odds, bg=alt, fg=fg, redraw=True)
         except Exception:
             pass
 
     def _autosize(self) -> None:
-        # 1) let tksheet auto-measure column contents
         try:
-            self.sheet.set_all_column_widths()  # respects content
+            self.sheet.set_all_column_widths()
         except Exception:
             for c in range(self.sheet.total_columns()):
                 self.sheet.column_width(column=c, width=110)
 
-        # 2) compute snug window size from actual widths/heights
         try:
             cols = self.sheet.total_columns()
             rows = self.sheet.total_rows()
@@ -196,9 +194,7 @@ class App:
             header_pad = 12
 
             w = col_sum + vertical_scrollbar + horizontal_padding
-            h = (
-                (self._hdr_h + header_pad) + rows * self._row_h + 90
-            )  # top controls + margins
+            h = (self._hdr_h + header_pad) + rows * self._row_h + 90
 
             sw = self.root.winfo_screenwidth()
             sh = self.root.winfo_screenheight()
