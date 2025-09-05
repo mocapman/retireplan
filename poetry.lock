@@ -828,6 +828,17 @@ files = [
 ]
 
 [[package]]
+name = "tksheet"
+version = "6.3.5"
+description = "Tkinter table / sheet widget"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "tksheet-6.3.5.tar.gz", hash = "sha256:15528f2152b40656b36481d81d3cb26d7702dd17934c072cbe2921d5e02f8003"},
+]
+
+[[package]]
 name = "ttkbootstrap"
 version = "1.12.1"
 description = "A supercharged theme extension for tkinter that enables on-demand modern flat style themes inspired by Bootstrap."
@@ -856,4 +867,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.12"
-content-hash = "d1c1bca1a05df99e703d0908ce3dcf8c9ef7b3f4f5b0e5baf668a7e1eef37652"
+content-hash = "0f7666e93216eab747eb988938b510d73409375568f8180bd093f688619dfa92"

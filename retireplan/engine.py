@@ -177,6 +177,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # Commit
         b_end, r_end, i_end = b_out, r_out, i_out
 
+        # Derived discretionary inside the gross budget
+        discretionary = max(0.0, budget - tax - ev_amt)
+
         rows.append(
             {
                 "Year": yc.year,
@@ -190,6 +193,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 ),  # total annual budget incl. taxes and events
                 "Taxes": round(tax),
                 "Events_Cash": round(ev_amt),
+                "Discretionary_Spend": round(discretionary),
                 "Total_Spend": round(budget),  # equals budget by definition
                 # Flows
                 "SS_Income": round(ss_inc),
