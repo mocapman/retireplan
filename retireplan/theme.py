@@ -1,4 +1,6 @@
 # retireplan/theme.py
+from __future__ import annotations
+
 import PySimpleGUI as sg
 from matplotlib import pyplot as plt
 
@@ -44,8 +46,13 @@ def apply():
         "COLOR_LIST": PALETTE,
         "HEADING": (COLORS["header_text"], COLORS["header_bg"]),
     }
-    sg.theme_add_new("RetirePlanDark", theme)
-    sg.theme("RetirePlanDark")
+    # Use custom theme if API exists; else fall back to a built-in dark theme
+    if hasattr(sg, "theme_add_new"):
+        sg.theme_add_new("RetirePlanDark", theme)
+        sg.theme("RetirePlanDark")
+    else:
+        sg.theme("DarkGrey13")
+
     sg.set_options(
         font=("Segoe UI", 11),
         input_elements_background_color=COLORS["input_bg"],

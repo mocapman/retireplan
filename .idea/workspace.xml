@@ -4,13 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="first engine and projections output">
+    <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="Next increment: Taxes/MAGI v1 so the plan reflects real federal tax and SS taxability, then feed those taxes back into draws.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/sample_inputs.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/examples/sample_inputs.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/retireplan/accounts.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/accounts.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/retireplan/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/engine.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/retireplan/inputs.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/inputs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/retireplan/timeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/timeline.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/.pre-commit-config.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/audit.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/audit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/pyproject.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/retireplan/theme.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/theme.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,12 +99,30 @@
       <option name="project" value="LOCAL" />
       <updated>1757048253463</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="updated engine, corrected Social Security adding to income, correct sequence of draw">
+      <option name="closed" value="true" />
+      <created>1757049390626</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1757049390626</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Next increment: Taxes/MAGI v1 so the plan reflects real federal tax and SS taxability, then feed those taxes back into draws.">
+      <option name="closed" value="true" />
+      <created>1757049542472</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1757049542472</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="feat: project skeleton with GUI stub and tooling" />
     <MESSAGE value="first engine and projections output" />
-    <option name="LAST_COMMIT_MESSAGE" value="first engine and projections output" />
+    <MESSAGE value="updated engine, corrected Social Security adding to income, correct sequence of draw" />
+    <MESSAGE value="Next increment: Taxes/MAGI v1 so the plan reflects real federal tax and SS taxability, then feed those taxes back into draws." />
+    <option name="LAST_COMMIT_MESSAGE" value="Next increment: Taxes/MAGI v1 so the plan reflects real federal tax and SS taxability, then feed those taxes back into draws." />
   </component>
 </project>
