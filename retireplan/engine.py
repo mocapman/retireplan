@@ -15,7 +15,7 @@ def _infl_factor(rate: float, idx: int) -> float:
 
 def _withdraw_local(
     b: float, r: float, i: float, need: float, order: Tuple[str, str, str]
-):
+) -> tuple[float, float, float, float, float, float, float]:
     """Withdraw in the given order; returns draws, end balances, and remaining unmet need."""
     remaining = max(0.0, need)
     draws = {"Brokerage": 0.0, "Roth": 0.0, "IRA": 0.0}
@@ -36,7 +36,7 @@ def _withdraw_local(
 
 
 def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
-    # Events by year (amount >0 = extra spend category; <0 = inflow). Cash-only.
+    # Events by year (amount >0 = extra spend; <0 = inflow). Cash-only.
     ev_by_year: dict[int, list[dict]] = {}
     for e in events or []:
         ev_by_year.setdefault(int(e["year"]), []).append(e)
@@ -52,27 +52,32 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
     )
 
     # Running end balances
-    b_end = float(cfg.balances_brokerage)
-    r_end = float(cfg.balances_roth)
-    i_end = float(cfg.balances_ira)
+    brokerage_end = float(cfg.balances_brokerage)
+    roth_end = float(cfg.balances_roth)
+    ira_end = float(cfg.balances_ira)
 
     order = (
         ("IRA", "Brokerage", "Roth")
         if cfg.draw_order == "IRA, Brokerage, Roth"
         else ("Brokerage", "Roth", "IRA")
     )
+
     rows: list[dict] = []
 
     for idx, yc in enumerate(years):
         infl = _infl_factor(cfg.inflation, idx)
         std_ded = cfg.standard_deduction_base * infl
+
+        # Filing for this year is MFJ only if elected MFJ and both alive (Joint); else Single
+        filing_this_year = (
+            "MFJ" if (cfg.filing_status == "MFJ" and yc.living == "Joint") else "Single"
+        )
+
+        # Pre-Medicare MAGI target inflates; otherwise zero
         target_magi = (
             cfg.magi_target_base * infl
             if (yc.you_alive and yc.age_you < cfg.aca_end_age)
             else 0.0
-        )
-        filing_this_year = (
-            "MFJ" if (cfg.filing_status == "MFJ" and yc.living == "Joint") else "Single"
         )
 
         # Annual budget (includes taxes and events), inflation + survivor adjust
@@ -88,14 +93,14 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         )
 
         # Social Security with survivor step-up
-        you_sched = ss_for_year(
+        ss_you = ss_for_year(
             yc.age_you,
             cfg.ss_you_start_age,
             cfg.ss_you_annual_at_start,
             idx,
             cfg.inflation,
         )
-        sp_sched = ss_for_year(
+        ss_sp = ss_for_year(
             yc.age_spouse,
             cfg.ss_spouse_start_age,
             cfg.ss_spouse_annual_at_start,
@@ -103,40 +108,42 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             cfg.inflation,
         )
         if yc.you_alive and yc.spouse_alive:
-            ss_inc = you_sched + sp_sched
+            ss_income = ss_you + ss_sp
         elif yc.you_alive and not yc.spouse_alive:
-            ss_inc = max(you_sched, sp_sched)
+            ss_income = max(ss_you, ss_sp)
         elif (not yc.you_alive) and yc.spouse_alive:
-            ss_inc = max(you_sched, sp_sched)
+            ss_income = max(ss_you, ss_sp)
         else:
-            ss_inc = 0.0
+            ss_income = 0.0
 
         # Events (inside the budget; they reduce discretionary)
-        ev_amt = sum(float(e.get("amount", 0.0)) for e in ev_by_year.get(yc.year, []))
+        events_cash = sum(
+            float(e.get("amount", 0.0)) for e in ev_by_year.get(yc.year, [])
+        )
 
         # RMD if owner alive and ≥ start age
         rmd = 0.0
-        if yc.you_alive and yc.age_you >= cfg.rmd_start_age and i_end > 0.0:
-            rmd = i_end / rmd_factor(yc.age_you)
+        if yc.you_alive and yc.age_you >= cfg.rmd_start_age and ira_end > 0.0:
+            rmd = ira_end / rmd_factor(yc.age_you)
 
         # Cash needed to meet the budget (taxes are inside the budget)
-        need_for_budget = max(0.0, budget - ss_inc - rmd)
+        need_for_budget = max(0.0, budget - ss_income - rmd)
 
         # Withdraw to meet budget; IRA reduced by RMD before draws
         d_b, d_r, d_i, b1, r1, i1, unmet = _withdraw_local(
-            b_end, r_end, i_end - rmd, need_for_budget, order
+            brokerage_end, roth_end, ira_end - rmd, need_for_budget, order
         )
 
         # Provided cash and shortfall against budget
-        provided_cash = ss_inc + rmd + d_b + d_r + d_i
+        provided_cash = ss_income + rmd + d_b + d_r + d_i
         shortfall = max(0.0, budget - provided_cash)
 
         # Taxes/MAGI for composition; conversions next
-        def tax_and_magi(conv: float):
+        def tax_and_magi(conv: float) -> tuple[float, float]:
             tax, _ss_tax, _taxable, magi = compute_tax_magi(
                 ira_ordinary=(rmd + d_i),
                 roth_conversion=conv,
-                ss_total=ss_inc,
+                ss_total=ss_income,
                 std_deduction=std_ded,
                 filing=filing_this_year,
             )
@@ -165,7 +172,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         r1 += conv_eff
 
         # Sweep ONLY RMD surplus (no SS sweep)
-        need_after_ss = max(0.0, budget - ss_inc)
+        need_after_ss = max(0.0, budget - ss_income)
         rmd_surplus = max(0.0, rmd - need_after_ss)
         b1 += rmd_surplus
 
@@ -174,40 +181,39 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         r_out = r1 * (1.0 + cfg.roth_growth)
         i_out = i1 * (1.0 + cfg.ira_growth)
 
-        # Commit
-        b_end, r_end, i_end = b_out, r_out, i_out
+        # Commit running balances
+        brokerage_end, roth_end, ira_end = b_out, r_out, i_out
 
-        # Derived discretionary inside the gross budget
-        discretionary = max(0.0, budget - tax - ev_amt)
+        # Discretionary inside the gross budget
+        base_spend = max(0.0, budget - tax - events_cash)
 
+        # Emit canon-aligned row
         rows.append(
             {
+                # Timeline
                 "Year": yc.year,
-                "Age_You": yc.age_you,
-                "Age_Spouse": yc.age_spouse,
-                "Phase": yc.phase,
-                "Living": yc.living,
+                "Your_Age": yc.age_you,
+                "Spouse_Age": yc.age_spouse,
+                "Lifestyle": yc.phase,
+                "Filing": filing_this_year,
                 # Budgeting
-                "Spend_Target": round(
-                    budget
-                ),  # total annual budget incl. taxes and events
-                "Taxes": round(tax),
-                "Events_Cash": round(ev_amt),
-                "Discretionary_Spend": round(discretionary),
-                "Total_Spend": round(budget),  # equals budget by definition
+                "Total_Spend": round(budget),
+                "Taxes_Due": round(tax),
+                "Cash_Events": round(events_cash),
+                "Base_Spend": round(base_spend),
                 # Flows
-                "SS_Income": round(ss_inc),
-                "Draw_Brokerage": round(d_b),
-                "Draw_Roth": round(d_r),
-                "Draw_IRA": round(d_i),  # excludes RMD
+                "Social_Security": round(ss_income),
+                "IRA_Draw": round(d_i),  # excludes RMD
+                "Brokerage_Draw": round(d_b),
+                "Roth_Draw": round(d_r),
                 "Roth_Conversion": round(conv_eff),
                 "RMD": round(rmd),
                 "MAGI": round(magi),
                 "Std_Deduction": round(std_ded),
                 # Balances
-                "End_Bal_Brokerage": round(b_out),
-                "End_Bal_Roth": round(r_out),
-                "End_Bal_IRA": round(i_out),
+                "IRA_Balance": round(i_out),
+                "Brokerage_Balance": round(b_out),
+                "Roth_Balance": round(r_out),
                 "Total_Assets": round(b_out + r_out + i_out),
                 # Shortfall
                 "Shortfall": round(shortfall),
