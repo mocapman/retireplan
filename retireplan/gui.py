@@ -3,13 +3,16 @@ from __future__ import annotations
 import csv
 import tkinter as tk
 import tkinter.font as tkfont
+from datetime import date, datetime
 from pathlib import Path
 from tkinter import ttk, filedialog, messagebox
 
 from tksheet import Sheet
 from ttkbootstrap import Style
+from ttkbootstrap.widgets import DateEntry
 
 from retireplan import inputs
+from retireplan import theme
 from retireplan.engine import run_plan
 
 DISPLAY_COLUMNS = [
@@ -19,7 +22,7 @@ DISPLAY_COLUMNS = [
     "Lifestyle",
     "Filing",
     "Total_Spend",
-    "Taxes_Due",
+    "Taxes Due",
     "Cash_Events",
     "Base_Spend",
     "Social_Security",
@@ -29,22 +32,22 @@ DISPLAY_COLUMNS = [
     "Roth_Conversion",
     "RMD",
     "MAGI",
-    "Std_Deduct",
+    "Sted_Deduction",
     "IRA_Balance",
     "Brokerage_Balance",
-    "Roth_Balance",
+    "Roth Balance",
     "Total_Assets",
     "Shortfall",
 ]
 
-HIDDEN_NAMES = {"MAGI", "Std_Deduct", "Shortfall"}
+HIDDEN_NAMES = {"MAGI", "Sted_Deduction", "Shortfall"}
 
 _DIRECT_MAP = {
     "Age_You": "Your_Age",
     "Age_Spouse": "Spouse_Age",
     "Phase": "Lifestyle",
     "Spend_Target": "Total_Spend",
-    "Taxes": "Taxes_Due",
+    "Taxes": "Taxes Due",
     "Events_Cash": "Cash_Events",
     "Discretionary_Spend": "Base_Spend",
     "SS_Income": "Social_Security",
@@ -54,10 +57,10 @@ _DIRECT_MAP = {
     "Roth_Conversion": "Roth_Conversion",
     "RMD": "RMD",
     "MAGI": "MAGI",
-    "Std_Deduction": "Std_Deduct",
+    "Std_Deduction": "Sted_Deduction",
     "End_Bal_IRA": "IRA_Balance",
     "End_Bal_Brokerage": "Brokerage_Balance",
-    "End_Bal_Roth": "Roth_Balance",
+    "End_Bal_Roth": "Roth Balance",
     "Total_Assets": "Total_Assets",
     "Shortfall": "Shortfall",
 }
@@ -102,15 +105,6 @@ def _autosize_columns(sheet: Sheet, headers: list[str], data: list[list]) -> lis
         except Exception:
             pass
     return widths
-
-
-def _apply_zebra(sheet: Sheet, nrows: int, *, mode: str):
-    try:
-        even_bg = "#f7f9fc" if mode == "Light" else "#202020"
-        sheet.dehighlight_all()
-        sheet.highlight_rows(rows=list(range(0, nrows, 2)), bg=even_bg, fg=None)
-    except Exception:
-        pass
 
 
 def _export_csv(path: Path, headers: list[str], data: list[list]):
@@ -177,7 +171,7 @@ def _fit_window_to_table(
     table_w = visible_width + index_w + vscroll_w + hpad
     row_h = 24
     header_h = 30
-    top_controls_h = 56
+    top_controls_h = 88
     vpad = 32
     table_h = header_h + row_h * nrows + vpad
     sw = root.winfo_screenwidth()
@@ -192,12 +186,24 @@ def _fit_window_to_table(
     root.minsize(int(win_w), int(win_h))
 
 
+def _set_dateentry(de: DateEntry, d: date, fmt: str = "%Y-%m-%d") -> None:
+    # ttkbootstrap DateEntry does not have .set_date(); write to the entry field
+    try:
+        de.entry.delete(0, "end")
+        de.entry.insert(0, d.strftime(fmt))
+    except Exception:
+        pass
+
+
 class App:
     def __init__(self):
-        # Light = Yeti, Dark = Darkly
-        self.style = Style("yeti")
+        # Centralized theme: default = theme.current_name() -> "Dark"
+        self.style = Style(theme.profile().ttk_theme)
+        theme.apply_to_style(self.style)
+
         self.root = self.style.master
         self.root.title("RetirePlan")
+
         self._build_ui()
         self._load_and_render()
         self.root.after_idle(self._autosize_now)
@@ -205,34 +211,41 @@ class App:
     def _build_ui(self):
         top = ttk.Frame(self.root)
         top.pack(fill="x", padx=8, pady=6)
+
+        ttk.Label(top, text="Start Date:").pack(side="left", padx=(0, 6))
+        self.start_date_var = tk.StringVar(value=date.today().isoformat())
+        self.start_date = DateEntry(top, dateformat="%Y-%m-%d", firstweekday=6)
+        _set_dateentry(self.start_date, date.today())
+        self.start_date.pack(side="left", padx=(0, 12))
+
         ttk.Label(top, text="Filter:").pack(side="left", padx=(0, 6))
         self.filter_var = tk.StringVar(value="")
-        ttk.Entry(top, textvariable=self.filter_var, width=32).pack(side="left")
+        ttk.Entry(top, textvariable=self.filter_var, width=28).pack(side="left")
+
         ttk.Label(top, text="Theme:").pack(side="left", padx=(14, 6))
-        self.theme_var = tk.StringVar(value="Dark")
+        self.theme_var = tk.StringVar(value=theme.current_name())
         self.theme_box = ttk.Combobox(
             top,
             textvariable=self.theme_var,
-            values=["Light", "Dark"],
+            values=list({"Light", "Dark"}),
             width=8,
             state="readonly",
         )
         self.theme_box.pack(side="left")
-        ttk.Button(
-            top, text="Refresh", command=self._refresh, bootstyle="secondary"
-        ).pack(side="left", padx=6)
-        ttk.Button(
-            top, text="Export CSV", command=self._export_csv, bootstyle="primary"
-        ).pack(side="left", padx=6)
-        ttk.Button(
-            top, text="Export XLSX", command=self._export_xlsx, bootstyle="info"
-        ).pack(side="left", padx=6)
-        ttk.Button(
-            top, text="Autosize", command=self._autosize_now, bootstyle="success"
-        ).pack(side="left", padx=6)
-        ttk.Button(
-            top, text="Quit", command=self.root.destroy, bootstyle="danger"
-        ).pack(side="left", padx=6)
+
+        ttk.Button(top, text="Refresh", command=self._refresh).pack(side="left", padx=6)
+        ttk.Button(top, text="Export CSV", command=self._export_csv).pack(
+            side="left", padx=6
+        )
+        ttk.Button(top, text="Export XLSX", command=self._export_xlsx).pack(
+            side="left", padx=6
+        )
+        ttk.Button(top, text="Autosize", command=self._autosize_now).pack(
+            side="left", padx=6
+        )
+        ttk.Button(top, text="Quit", command=self.root.destroy).pack(
+            side="left", padx=6
+        )
 
         frame = ttk.Frame(self.root)
         frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))
@@ -276,51 +289,23 @@ class App:
         )
         self.theme_box.bind("<<ComboboxSelected>>", self._on_theme_change)
 
-    def _apply_palette(self, mode: str):
-        # ttkbootstrap theme
-        self.style.theme_use("yeti" if mode == "Light" else "darkly")
-
-        # tksheet colors tuned to ttkbootstrap palettes
-        if mode == "Light":
-            opts = dict(
-                table_bg="#ffffff",
-                table_fg="#212529",
-                table_grid_fg="#cfd4da",
-                table_selected_cells_bg="#0d6efd",  # bootstrap primary
-                table_selected_cells_fg="#ffffff",
-                header_bg="#e9ecef",
-                header_fg="#212529",
-                index_bg="#f8f9fa",
-                index_fg="#212529",
-                top_left_bg="#e9ecef",
-                frame_bg="#ffffff",
-            )
-        else:  # Darkly
-            opts = dict(
-                table_bg="#222222",  # Darkly body-bg
-                table_fg="#eaeaea",  # light text
-                table_grid_fg="#3a3f44",  # border muted
-                table_selected_cells_bg="#375a7f",  # Darkly primary
-                table_selected_cells_fg="#ffffff",
-                header_bg="#2c2f33",  # panel/toolbar bg
-                header_fg="#eaeaea",
-                index_bg="#262a2e",
-                index_fg="#eaeaea",
-                top_left_bg="#2c2f33",
-                frame_bg="#222222",
-            )
-        try:
-            self.sheet.set_options(**opts)
-        except Exception:
-            pass
-        self._apply_zebra(mode)
-
-    def _apply_zebra(self, mode: str):
-        data = self.sheet.get_sheet_data()
-        _apply_zebra(self.sheet, len(data), mode=mode)
-
     def _load_and_render(self):
         cfg = inputs.load_yaml("examples/sample_inputs.yaml")
+
+        # Initialize Start Date from cfg if present
+        start_iso = getattr(cfg, "start_date", None)
+        try:
+            if start_iso:
+                y, m, d = map(int, str(start_iso).split("-"))
+                _set_dateentry(self.start_date, date(y, m, d))
+                self.start_date_var.set(f"{y:04d}-{m:02d}-{d:02d}")
+            else:
+                _set_dateentry(self.start_date, date.today())
+                self.start_date_var.set(date.today().isoformat())
+        except Exception:
+            _set_dateentry(self.start_date, date.today())
+            self.start_date_var.set(date.today().isoformat())
+
         rows = run_plan(cfg)
         display_rows = _rows_to_display(cfg, rows)
         data = _display_to_2d(display_rows)
@@ -328,7 +313,8 @@ class App:
 
         widths = _autosize_columns(self.sheet, DISPLAY_COLUMNS, data)
         hidden_idx = set(_hide_initial_columns(self.sheet, DISPLAY_COLUMNS))
-        self._apply_palette(self.theme_var.get())
+        theme.apply_to_style(self.style)
+        theme.apply_to_sheet(self.sheet)
         nrows = max(0, min(30, len(data)))
         _fit_window_to_table(self.root, self.sheet, widths, hidden_idx, nrows)
 
@@ -347,11 +333,18 @@ class App:
         self.sheet.set_sheet_data(data2, redraw=True)
         widths = _autosize_columns(self.sheet, DISPLAY_COLUMNS, data2)
         hidden_idx = set(_hide_initial_columns(self.sheet, DISPLAY_COLUMNS))
-        self._apply_zebra(self.theme_var.get())
+        theme.apply_to_sheet(self.sheet)
         nrows = max(0, min(30, len(data2)))
         _fit_window_to_table(self.root, self.sheet, widths, hidden_idx, nrows)
 
     def _refresh(self):
+        try:
+            dt = self.start_date.entry.get().strip()
+            parsed = datetime.strptime(dt, "%Y-%m-%d").date()
+            self.start_date_var.set(parsed.isoformat())
+        except Exception:
+            self.start_date_var.set(date.today().isoformat())
+
         self.filter_var.set("")
         self._load_and_render()
         self.root.after_idle(self._autosize_now)
@@ -394,7 +387,9 @@ class App:
             messagebox.showerror("Export failed", str(e))
 
     def _on_theme_change(self, _event):
-        self._apply_palette(self.theme_var.get())
+        theme.set_current(self.theme_var.get())
+        theme.apply_to_style(self.style)
+        theme.apply_to_sheet(self.sheet)
         self.root.after_idle(self._autosize_now)
 
 

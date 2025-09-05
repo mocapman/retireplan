@@ -1,76 +1,110 @@
 from __future__ import annotations
 
-from matplotlib import pyplot as plt
-from ttkbootstrap import Style
+from dataclasses import dataclass
+from typing import Dict, Optional
 
-COLORS = {
-    "bg": "#1E1E1E",
-    "text": "#D4D4D4",
-    "input_bg": "#252526",
-    "input_text": "#D4D4D4",
-    "scroll": "#3C3C3C",
-    "button_bg": "#3C3C3C",
-    "button_text": "#FFFFFF",
-    "header_bg": "#3C3C3C",
-    "header_text": "#FFFFFF",
-    "alt_row": "#252526",
-    "accent_blue": "#569CD6",
-    "accent_teal": "#4EC9B0",
-    "accent_lightblue": "#9CDCFE",
-    "accent_orange": "#CE9178",
+# External widgets are optional at import-time so unit tests don’t hard-depend
+try:
+    from ttkbootstrap import Style  # type: ignore
+except Exception:  # pragma: no cover
+    Style = object  # type: ignore
+
+try:
+    from tksheet import Sheet  # type: ignore
+except Exception:  # pragma: no cover
+    Sheet = object  # type: ignore
+
+
+@dataclass(frozen=True)
+class ThemeProfile:
+    name: str  # "Light" | "Dark"
+    ttk_theme: str  # ttkbootstrap theme key
+    sheet_options: Dict[str, str]
+    zebra_even_bg: str  # even-row background; odd rows use table_bg
+
+
+_THEMES: Dict[str, ThemeProfile] = {
+    "Light": ThemeProfile(
+        name="Light",
+        ttk_theme="yeti",
+        sheet_options={
+            "table_bg": "#ffffff",
+            "table_fg": "#212529",
+            "table_grid_fg": "#cfd4da",
+            "table_selected_cells_bg": "#0d6efd",
+            "table_selected_cells_fg": "#ffffff",
+            "header_bg": "#e9ecef",
+            "header_fg": "#212529",
+            "index_bg": "#f8f9fa",
+            "index_fg": "#212529",
+            "top_left_bg": "#e9ecef",
+            "frame_bg": "#ffffff",
+        },
+        zebra_even_bg="#f1f3f5",
+    ),
+    "Dark": ThemeProfile(
+        name="Dark",
+        ttk_theme="darkly",
+        sheet_options={
+            "table_bg": "#1f2327",
+            "table_fg": "#e6e6e6",
+            "table_grid_fg": "#343a40",
+            "table_selected_cells_bg": "#375a7f",
+            "table_selected_cells_fg": "#ffffff",
+            "header_bg": "#2c2f33",
+            "header_fg": "#e6e6e6",
+            "index_bg": "#262a2e",
+            "index_fg": "#e6e6e6",
+            "top_left_bg": "#2c2f33",
+            "frame_bg": "#1f2327",
+        },
+        # closer greys for subtle zebra
+        zebra_even_bg="#24282c",
+    ),
 }
 
-
-def apply_styles(root) -> Style:
-    style = Style()  # uses system theme as base
-    # Global
-    style.configure(".", background=COLORS["bg"], foreground=COLORS["text"])
-    # Frames and labels
-    style.configure("TFrame", background=COLORS["bg"])
-    style.configure("TLabel", background=COLORS["bg"], foreground=COLORS["text"])
-    # Buttons
-    style.configure(
-        "TButton",
-        background=COLORS["button_bg"],
-        foreground=COLORS["button_text"],
-        padding=6,
-    )
-    style.map(
-        "TButton",
-        background=[("active", COLORS["button_bg"])],
-        foreground=[("active", COLORS["button_text"])],
-    )
-    # Treeview (table)
-    style.configure(
-        "Treeview",
-        background=COLORS["bg"],
-        fieldbackground=COLORS["bg"],
-        foreground=COLORS["text"],
-        rowheight=22,
-        bordercolor=COLORS["bg"],
-        lightcolor=COLORS["bg"],
-        darkcolor=COLORS["bg"],
-    )
-    style.configure(
-        "Treeview.Heading",
-        background=COLORS["header_bg"],
-        foreground=COLORS["header_text"],
-    )
-    return style
+_current: str = "Dark"  # default you asked for
 
 
-def apply_matplotlib():
-    plt.rcParams.update(
-        {
-            "figure.facecolor": COLORS["bg"],
-            "axes.facecolor": COLORS["bg"],
-            "axes.edgecolor": COLORS["text"],
-            "axes.labelcolor": COLORS["text"],
-            "xtick.color": COLORS["text"],
-            "ytick.color": COLORS["text"],
-            "text.color": COLORS["text"],
-            "grid.color": COLORS["scroll"],
-            "savefig.facecolor": COLORS["bg"],
-            "savefig.edgecolor": COLORS["bg"],
-        }
-    )
+def current_name() -> str:
+    return _current
+
+
+def profile(name: Optional[str] = None) -> ThemeProfile:
+    key = name or _current
+    if key not in _THEMES:
+        key = "Dark"
+    return _THEMES[key]
+
+
+def set_current(name: str) -> None:
+    global _current
+    _current = name if name in _THEMES else "Dark"
+
+
+def apply_to_style(style: Style) -> None:
+    """Apply ttkbootstrap theme."""
+    style.theme_use(profile().ttk_theme)
+
+
+def apply_to_sheet(sheet: Sheet) -> None:
+    """Apply tksheet palette and zebra striping to an existing Sheet."""
+    p = profile()
+    try:
+        sheet.set_options(**p.sheet_options)
+    except Exception:
+        pass
+    _apply_zebra(sheet, even_bg=p.zebra_even_bg)
+
+
+def _apply_zebra(sheet: Sheet, *, even_bg: str) -> None:
+    """Even rows get even_bg; odd rows remain at table_bg defined in options."""
+    try:
+        data = sheet.get_sheet_data()
+        n = len(data)
+        sheet.dehighlight_all()
+        even_rows = list(range(0, n, 2))
+        if even_rows:
+            sheet.highlight_rows(rows=even_rows, bg=even_bg, fg=None)
+    except Exception:
+        pass
