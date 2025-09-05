@@ -1,0 +1,41 @@
+from copy import deepcopy
+
+from retireplan import inputs
+from retireplan.engine import run_plan
+
+
+def _first_pre_medicare(rows, aca_age):
+    for r in rows:
+        if r["Age_You"] < aca_age:
+            return r
+    return rows[0]
+
+
+def test_draw_order_changes_distribution():
+    cfg = inputs.load_yaml("examples/sample_inputs.yaml")
+
+    # Baseline: IRA -> Brokerage -> Roth
+    cfg1 = deepcopy(cfg)
+    cfg1.draw_order = "IRA, Brokerage, Roth"
+    rows1 = run_plan(cfg1)
+    y1 = _first_pre_medicare(rows1, cfg.aca_end_age)
+
+    # Alternate: Brokerage -> Roth -> IRA
+    cfg2 = deepcopy(cfg)
+    cfg2.draw_order = "Brokerage, Roth, IRA"
+    rows2 = run_plan(cfg2)
+    y2 = _first_pre_medicare(rows2, cfg.aca_end_age)
+
+    # Spend target should be identical
+    assert abs(y1["Spend_Target"] - y2["Spend_Target"]) <= 2
+
+    # Both plans should fund the target (no shortfall within rounding)
+    assert y1["Shortfall"] <= 2
+    assert y2["Shortfall"] <= 2
+
+    # Distribution changes as expected
+    assert y1["Draw_IRA"] > y2["Draw_IRA"]
+    assert y2["Draw_Brokerage"] > y1["Draw_Brokerage"]
+
+    # MAGI typically higher when IRA-first
+    assert y1["MAGI"] >= y2["MAGI"]

@@ -1,8 +1,7 @@
-# retireplan/theme.py
 from __future__ import annotations
 
-import PySimpleGUI as sg
 from matplotlib import pyplot as plt
+from ttkbootstrap import Style
 
 COLORS = {
     "bg": "#1E1E1E",
@@ -21,63 +20,43 @@ COLORS = {
     "accent_orange": "#CE9178",
 }
 
-PALETTE = [
-    COLORS["accent_blue"],
-    COLORS["accent_teal"],
-    COLORS["accent_lightblue"],
-    COLORS["accent_orange"],
-]
 
-
-def apply():
-    theme = {
-        "BACKGROUND": COLORS["bg"],
-        "TEXT": COLORS["text"],
-        "INPUT": COLORS["input_bg"],
-        "TEXT_INPUT": COLORS["input_text"],
-        "SCROLL": COLORS["scroll"],
-        "BUTTON": (COLORS["button_text"], COLORS["button_bg"]),
-        "PROGRESS": (COLORS["bg"], COLORS["accent_blue"]),
-        "BORDER": 1,
-        "SLIDER_DEPTH": 0,
-        "PROGRESS_DEPTH": 0,
-        "INPUT_ELEMENTS_BACKGROUND": COLORS["input_bg"],
-        "ELEMENT_BACKGROUND": COLORS["bg"],
-        "COLOR_LIST": PALETTE,
-        "HEADING": (COLORS["header_text"], COLORS["header_bg"]),
-    }
-    # Use custom theme if API exists; else fall back to a built-in dark theme
-    if hasattr(sg, "theme_add_new"):
-        sg.theme_add_new("RetirePlanDark", theme)
-        sg.theme("RetirePlanDark")
-    else:
-        sg.theme("DarkGrey13")
-
-    sg.set_options(
-        font=("Segoe UI", 11),
-        input_elements_background_color=COLORS["input_bg"],
-        input_text_color=COLORS["input_text"],
-        text_color=COLORS["text"],
-        background_color=COLORS["bg"],
-        button_color=(COLORS["button_text"], COLORS["button_bg"]),
-        element_padding=(6, 6),
-        slider_border_width=0,
-        border_width=1,
+def apply_styles(root) -> Style:
+    style = Style()  # uses system theme as base
+    # Global
+    style.configure(".", background=COLORS["bg"], foreground=COLORS["text"])
+    # Frames and labels
+    style.configure("TFrame", background=COLORS["bg"])
+    style.configure("TLabel", background=COLORS["bg"], foreground=COLORS["text"])
+    # Buttons
+    style.configure(
+        "TButton",
+        background=COLORS["button_bg"],
+        foreground=COLORS["button_text"],
+        padding=6,
     )
-
-
-def table_kwargs():
-    return dict(
-        background_color=COLORS["bg"],
-        text_color=COLORS["text"],
-        header_background_color=COLORS["header_bg"],
-        header_text_color=COLORS["header_text"],
-        alternating_row_color=COLORS["alt_row"],
-        num_rows=18,
-        auto_size_columns=True,
-        justification="left",
-        enable_events=True,
+    style.map(
+        "TButton",
+        background=[("active", COLORS["button_bg"])],
+        foreground=[("active", COLORS["button_text"])],
     )
+    # Treeview (table)
+    style.configure(
+        "Treeview",
+        background=COLORS["bg"],
+        fieldbackground=COLORS["bg"],
+        foreground=COLORS["text"],
+        rowheight=22,
+        bordercolor=COLORS["bg"],
+        lightcolor=COLORS["bg"],
+        darkcolor=COLORS["bg"],
+    )
+    style.configure(
+        "Treeview.Heading",
+        background=COLORS["header_bg"],
+        foreground=COLORS["header_text"],
+    )
+    return style
 
 
 def apply_matplotlib():

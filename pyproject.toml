@@ -4,12 +4,12 @@ version = "0.1.0"
 description = "Year-by-year retirement planner"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
-authors = [{ name = "Your Name" }]        # optional email: {name="Your Name", email="you@example.com"}
+authors = [{ name = "Your Name" }]
 
 dependencies = [
     "pandas>=2.3,<3.0",
     "numpy>=2.0,<3.0",
-    "PySimpleGUI>=5.0,<6.0",
+    "ttkbootstrap>=1.10,<2.0",
     "matplotlib>=3.10,<4.0",
     "openpyxl>=3.1,<4.0",
     "pyyaml>=6.0,<7.0",
@@ -21,23 +21,3 @@ retireplan-audit = "retireplan.audit:main"
 
 [tool.poetry]
 packages = [{ include = "retireplan" }]
-
-[tool.black]
-line-length = 100
-target-version = ["py311"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py311"
-select = ["E", "F", "I", "B", "UP"]
-fix = true
-
-[tool.mypy]
-python_version = "3.11"
-ignore_missing_imports = true
-strict = true
-
-[[tool.poetry.source]]
-name = "pysimplegui"
-url = "https://PySimpleGUI.net/install"
-priority = "supplemental"
