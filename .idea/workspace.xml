@@ -4,12 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="Implementing the gross-budget model exactly per your choices:&#10;Taxes are inside the annual budget.&#10;Events reduce discretionary spend.&#10;Always fill to MAGI target pre-Medicare.&#10;RMD surplus is auto-swept to Brokerage.">
+    <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="renamed and reordered output columns&#10;and updated to tksheets, new themes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/poetry.lock" beforeDir="false" afterPath="$PROJECT_DIR$/poetry.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/retireplan/diagnostics.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/diagnostics.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/retireplan/engine.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/engine.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/retireplan/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/gui.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -155,7 +151,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757059930147</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="renamed and reordered output columns&#10;and updated to tksheets, new themes">
+      <option name="closed" value="true" />
+      <created>1757062995769</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1757062995769</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -168,6 +172,7 @@
     <MESSAGE value="Switch to a free, stable GUI now. Drop PySimpleGUI. Use tkinter + ttkbootstrap. It avoids the private index, removes the repo warnings, and keeps a single-window table UI" />
     <MESSAGE value="created several tests to validate all functions and calculations" />
     <MESSAGE value="Implementing the gross-budget model exactly per your choices:&#10;Taxes are inside the annual budget.&#10;Events reduce discretionary spend.&#10;Always fill to MAGI target pre-Medicare.&#10;RMD surplus is auto-swept to Brokerage." />
-    <option name="LAST_COMMIT_MESSAGE" value="Implementing the gross-budget model exactly per your choices:&#10;Taxes are inside the annual budget.&#10;Events reduce discretionary spend.&#10;Always fill to MAGI target pre-Medicare.&#10;RMD surplus is auto-swept to Brokerage." />
+    <MESSAGE value="renamed and reordered output columns&#10;and updated to tksheets, new themes" />
+    <option name="LAST_COMMIT_MESSAGE" value="renamed and reordered output columns&#10;and updated to tksheets, new themes" />
   </component>
 </project>

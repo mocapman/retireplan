@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import ttk, filedialog, messagebox
 
@@ -11,7 +12,6 @@ from ttkbootstrap import Style
 from retireplan import inputs
 from retireplan.engine import run_plan
 
-# Column order for display
 DISPLAY_COLUMNS = [
     "Year",
     "Your_Age",
@@ -19,7 +19,7 @@ DISPLAY_COLUMNS = [
     "Lifestyle",
     "Filing",
     "Total_Spend",
-    "Taxes Due",
+    "Taxes_Due",
     "Cash_Events",
     "Base_Spend",
     "Social_Security",
@@ -29,24 +29,22 @@ DISPLAY_COLUMNS = [
     "Roth_Conversion",
     "RMD",
     "MAGI",
-    "Sted_Deduction",
+    "Std_Deduct",
     "IRA_Balance",
     "Brokerage_Balance",
-    "Roth Balance",
+    "Roth_Balance",
     "Total_Assets",
     "Shortfall",
 ]
 
-# Hide these by default
-HIDDEN_NAMES = {"MAGI", "Sted_Deduction", "Shortfall"}
+HIDDEN_NAMES = {"MAGI", "Std_Deduct", "Shortfall"}
 
-# Engine → Display mapping
 _DIRECT_MAP = {
     "Age_You": "Your_Age",
     "Age_Spouse": "Spouse_Age",
     "Phase": "Lifestyle",
     "Spend_Target": "Total_Spend",
-    "Taxes": "Taxes Due",
+    "Taxes": "Taxes_Due",
     "Events_Cash": "Cash_Events",
     "Discretionary_Spend": "Base_Spend",
     "SS_Income": "Social_Security",
@@ -56,10 +54,10 @@ _DIRECT_MAP = {
     "Roth_Conversion": "Roth_Conversion",
     "RMD": "RMD",
     "MAGI": "MAGI",
-    "Std_Deduction": "Sted_Deduction",
+    "Std_Deduction": "Std_Deduct",
     "End_Bal_IRA": "IRA_Balance",
     "End_Bal_Brokerage": "Brokerage_Balance",
-    "End_Bal_Roth": "Roth Balance",
+    "End_Bal_Roth": "Roth_Balance",
     "Total_Assets": "Total_Assets",
     "Shortfall": "Shortfall",
 }
@@ -91,15 +89,13 @@ def _display_to_2d(rows_display: list[dict]) -> list[list]:
 
 
 def _autosize_columns(sheet: Sheet, headers: list[str], data: list[list]) -> list[int]:
-    """Set column widths by content. Return pixel widths per column."""
+    f = tkfont.nametofont("TkDefaultFont")
     widths: list[int] = []
     for c, h in enumerate(headers):
-        maxlen = len(str(h))
+        max_px = f.measure(str(h))
         for row in data:
-            s = str(row[c])
-            if len(s) > maxlen:
-                maxlen = len(s)
-        px = max(80, min(260, 14 + maxlen * 7))  # heuristic
+            max_px = max(max_px, f.measure(str(row[c])))
+        px = max(64, min(220, max_px + 12))
         widths.append(px)
         try:
             sheet.column_width(c, width=px)
@@ -110,10 +106,9 @@ def _autosize_columns(sheet: Sheet, headers: list[str], data: list[list]) -> lis
 
 def _apply_zebra(sheet: Sheet, nrows: int, *, mode: str):
     try:
-        even_bg = "#f5f7fb" if mode == "Light" else "#1f2530"
-        even = list(range(0, nrows, 2))
+        even_bg = "#f7f9fc" if mode == "Light" else "#202020"
         sheet.dehighlight_all()
-        sheet.highlight_rows(rows=even, bg=even_bg, fg=None)
+        sheet.highlight_rows(rows=list(range(0, nrows, 2)), bg=even_bg, fg=None)
     except Exception:
         pass
 
@@ -137,11 +132,9 @@ def _export_xlsx(path: Path, headers: list[str], data: list[list]):
     ws.append(headers)
     for row in data:
         ws.append(row)
-
     for cell in ws[1]:
         cell.font = Font(bold=True)
         cell.alignment = Alignment(horizontal="right")
-
     for col_idx in range(1, len(headers) + 1):
         col_letter = get_column_letter(col_idx)
         hdr = str(headers[col_idx - 1])
@@ -150,8 +143,7 @@ def _export_xlsx(path: Path, headers: list[str], data: list[list]):
             if data
             else len(hdr)
         )
-        ws.column_dimensions[col_letter].width = max(10, min(34, int(maxlen * 0.95)))
-
+        ws.column_dimensions[col_letter].width = max(10, min(34, int(maxlen * 0.9)))
     last_row = ws.max_row
     last_col = ws.max_column
     tbl = Table(
@@ -162,12 +154,10 @@ def _export_xlsx(path: Path, headers: list[str], data: list[list]):
         name="TableStyleMedium2", showRowStripes=True, showColumnStripes=False
     )
     ws.add_table(tbl)
-
     wb.save(path)
 
 
 def _hide_initial_columns(sheet: Sheet, headers: list[str]) -> list[int]:
-    """Hide default columns. Return hidden indices."""
     idx = [i for i, h in enumerate(headers) if h in HIDDEN_NAMES]
     if idx:
         try:
@@ -180,29 +170,22 @@ def _hide_initial_columns(sheet: Sheet, headers: list[str]) -> list[int]:
 def _fit_window_to_table(
     root: tk.Tk, sheet: Sheet, widths: list[int], hidden_idx: set[int], nrows: int
 ):
-    """Resize sheet + window to show all columns and nrows rows."""
     visible_width = sum(w for i, w in enumerate(widths) if i not in hidden_idx)
-    index_w = 52  # tksheet index column
+    index_w = 48
     vscroll_w = 18
-    hpad = 40  # borders/margins
+    hpad = 32
     table_w = visible_width + index_w + vscroll_w + hpad
-
-    # Row/height model
     row_h = 24
     header_h = 30
     top_controls_h = 56
-    vpad = 40
+    vpad = 32
     table_h = header_h + row_h * nrows + vpad
-
-    # Screen clamp
     sw = root.winfo_screenwidth()
     sh = root.winfo_screenheight()
     win_w = min(table_w, sw - 40)
     win_h = min(top_controls_h + table_h, sh - 80)
-
-    # Apply
     try:
-        sheet.config(width=win_w - 16, height=win_h - top_controls_h - 16)
+        sheet.config(width=win_w - 12, height=win_h - top_controls_h - 12)
     except Exception:
         pass
     root.geometry(f"{int(win_w)}x{int(win_h)}")
@@ -211,24 +194,22 @@ def _fit_window_to_table(
 
 class App:
     def __init__(self):
-        self.style = Style("flatly")  # high-contrast light default
+        # Light = Yeti, Dark = Darkly
+        self.style = Style("yeti")
         self.root = self.style.master
         self.root.title("RetirePlan")
-
         self._build_ui()
         self._load_and_render()
+        self.root.after_idle(self._autosize_now)
 
     def _build_ui(self):
         top = ttk.Frame(self.root)
         top.pack(fill="x", padx=8, pady=6)
-
         ttk.Label(top, text="Filter:").pack(side="left", padx=(0, 6))
         self.filter_var = tk.StringVar(value="")
-        self.filter_entry = ttk.Entry(top, textvariable=self.filter_var, width=32)
-        self.filter_entry.pack(side="left")
-
+        ttk.Entry(top, textvariable=self.filter_var, width=32).pack(side="left")
         ttk.Label(top, text="Theme:").pack(side="left", padx=(14, 6))
-        self.theme_var = tk.StringVar(value="Light")
+        self.theme_var = tk.StringVar(value="Dark")
         self.theme_box = ttk.Combobox(
             top,
             textvariable=self.theme_var,
@@ -237,20 +218,21 @@ class App:
             state="readonly",
         )
         self.theme_box.pack(side="left")
-
-        self.btn_refresh = ttk.Button(top, text="Refresh", command=self._refresh)
-        self.btn_csv = ttk.Button(top, text="Export CSV", command=self._export_csv)
-        self.btn_xlsx = ttk.Button(top, text="Export XLSX", command=self._export_xlsx)
-        self.btn_autosize = ttk.Button(top, text="Autosize", command=self._autosize_now)
-        self.btn_quit = ttk.Button(top, text="Quit", command=self.root.destroy)
-        for b in (
-            self.btn_refresh,
-            self.btn_csv,
-            self.btn_xlsx,
-            self.btn_autosize,
-            self.btn_quit,
-        ):
-            b.pack(side="left", padx=6)
+        ttk.Button(
+            top, text="Refresh", command=self._refresh, bootstyle="secondary"
+        ).pack(side="left", padx=6)
+        ttk.Button(
+            top, text="Export CSV", command=self._export_csv, bootstyle="primary"
+        ).pack(side="left", padx=6)
+        ttk.Button(
+            top, text="Export XLSX", command=self._export_xlsx, bootstyle="info"
+        ).pack(side="left", padx=6)
+        ttk.Button(
+            top, text="Autosize", command=self._autosize_now, bootstyle="success"
+        ).pack(side="left", padx=6)
+        ttk.Button(
+            top, text="Quit", command=self.root.destroy, bootstyle="danger"
+        ).pack(side="left", padx=6)
 
         frame = ttk.Frame(self.root)
         frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))
@@ -267,7 +249,6 @@ class App:
             show_y_scrollbar=True,
         )
         self.sheet.grid(row=0, column=0, sticky="nsew")
-
         self.sheet.enable_bindings(
             (
                 "single_select",
@@ -285,7 +266,6 @@ class App:
                 "hide_columns",
             )
         )
-
         try:
             self.sheet.align(align="e")
         except Exception:
@@ -297,34 +277,38 @@ class App:
         self.theme_box.bind("<<ComboboxSelected>>", self._on_theme_change)
 
     def _apply_palette(self, mode: str):
-        self.style.theme_use("flatly" if mode == "Light" else "darkly")
-        opts_light = dict(
-            table_bg="#ffffff",
-            table_fg="#212529",
-            table_grid_fg="#cfd4da",
-            table_selected_cells_bg="#0d6efd",
-            table_selected_cells_fg="#ffffff",
-            header_bg="#e9ecef",
-            header_fg="#212529",
-            index_bg="#f8f9fa",
-            index_fg="#212529",
-            top_left_bg="#e9ecef",
-            frame_bg="#ffffff",
-        )
-        opts_dark = dict(
-            table_bg="#0f141b",
-            table_fg="#e6edf3",
-            table_grid_fg="#2b3441",
-            table_selected_cells_bg="#0d6efd",
-            table_selected_cells_fg="#ffffff",
-            header_bg="#1b2430",
-            header_fg="#e6edf3",
-            index_bg="#151b23",
-            index_fg="#e6edf3",
-            top_left_bg="#1b2430",
-            frame_bg="#0f141b",
-        )
-        opts = opts_light if mode == "Light" else opts_dark
+        # ttkbootstrap theme
+        self.style.theme_use("yeti" if mode == "Light" else "darkly")
+
+        # tksheet colors tuned to ttkbootstrap palettes
+        if mode == "Light":
+            opts = dict(
+                table_bg="#ffffff",
+                table_fg="#212529",
+                table_grid_fg="#cfd4da",
+                table_selected_cells_bg="#0d6efd",  # bootstrap primary
+                table_selected_cells_fg="#ffffff",
+                header_bg="#e9ecef",
+                header_fg="#212529",
+                index_bg="#f8f9fa",
+                index_fg="#212529",
+                top_left_bg="#e9ecef",
+                frame_bg="#ffffff",
+            )
+        else:  # Darkly
+            opts = dict(
+                table_bg="#222222",  # Darkly body-bg
+                table_fg="#eaeaea",  # light text
+                table_grid_fg="#3a3f44",  # border muted
+                table_selected_cells_bg="#375a7f",  # Darkly primary
+                table_selected_cells_fg="#ffffff",
+                header_bg="#2c2f33",  # panel/toolbar bg
+                header_fg="#eaeaea",
+                index_bg="#262a2e",
+                index_fg="#eaeaea",
+                top_left_bg="#2c2f33",
+                frame_bg="#222222",
+            )
         try:
             self.sheet.set_options(**opts)
         except Exception:
@@ -345,8 +329,6 @@ class App:
         widths = _autosize_columns(self.sheet, DISPLAY_COLUMNS, data)
         hidden_idx = set(_hide_initial_columns(self.sheet, DISPLAY_COLUMNS))
         self._apply_palette(self.theme_var.get())
-
-        # Fit window to all columns and all rows (cap at 30 rows shown)
         nrows = max(0, min(30, len(data)))
         _fit_window_to_table(self.root, self.sheet, widths, hidden_idx, nrows)
 
@@ -354,7 +336,6 @@ class App:
         cfg = inputs.load_yaml("examples/sample_inputs.yaml")
         rows = run_plan(cfg)
         display = _rows_to_display(cfg, rows)
-
         q = (filter_text or "").strip().lower()
         if q:
             display = [
@@ -362,25 +343,22 @@ class App:
                 for rd in display
                 if q in " ".join(str(rd.get(k, "")) for k in DISPLAY_COLUMNS).lower()
             ]
-
         data2 = _display_to_2d(display)
         self.sheet.set_sheet_data(data2, redraw=True)
-
         widths = _autosize_columns(self.sheet, DISPLAY_COLUMNS, data2)
         hidden_idx = set(_hide_initial_columns(self.sheet, DISPLAY_COLUMNS))
         self._apply_zebra(self.theme_var.get())
-
         nrows = max(0, min(30, len(data2)))
         _fit_window_to_table(self.root, self.sheet, widths, hidden_idx, nrows)
 
     def _refresh(self):
         self.filter_var.set("")
         self._load_and_render()
+        self.root.after_idle(self._autosize_now)
 
     def _autosize_now(self):
         data = self.sheet.get_sheet_data()
         widths = _autosize_columns(self.sheet, DISPLAY_COLUMNS, data)
-        # Keep existing hidden set
         hidden_idx = {i for i, h in enumerate(DISPLAY_COLUMNS) if h in HIDDEN_NAMES}
         nrows = max(0, min(30, len(data)))
         _fit_window_to_table(self.root, self.sheet, widths, hidden_idx, nrows)
@@ -417,6 +395,7 @@ class App:
 
     def _on_theme_change(self, _event):
         self._apply_palette(self.theme_var.get())
+        self.root.after_idle(self._autosize_now)
 
 
 def main() -> None:
