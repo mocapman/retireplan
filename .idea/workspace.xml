@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="renamed and reordered output columns&#10;and updated to tksheets, new themes">
+    <list default="true" id="c2bcba5a-ee0e-47de-b669-03219c567905" name="Changes" comment="fine tune some theme colors">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/retireplan/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/retireplan/gui.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,12 +27,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/mocapman/retireplan.git",
+    "accountId": "4fb4124e-86fd-4a8b-9b05-456abd3f06e7"
+  }
+}]]></component>
   <component name="OptimizeOnSaveOptions">
     <option name="myRunOnSave" value="true" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 8
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
   <component name="ProjectId" id="32GGBx5EjlF2cHWnlbErD6x4WiK" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="2" id="Add" />
@@ -40,13 +47,13 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "settings.editor.selected.configurable": "com.jetbrains.python.black.configuration.BlackFormatterConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.black.configuration.BlackFormatterConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -159,7 +166,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757062995769</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="fine tune some theme colors">
+      <option name="closed" value="true" />
+      <created>1757066412549</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1757066412549</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -173,6 +188,7 @@
     <MESSAGE value="created several tests to validate all functions and calculations" />
     <MESSAGE value="Implementing the gross-budget model exactly per your choices:&#10;Taxes are inside the annual budget.&#10;Events reduce discretionary spend.&#10;Always fill to MAGI target pre-Medicare.&#10;RMD surplus is auto-swept to Brokerage." />
     <MESSAGE value="renamed and reordered output columns&#10;and updated to tksheets, new themes" />
-    <option name="LAST_COMMIT_MESSAGE" value="renamed and reordered output columns&#10;and updated to tksheets, new themes" />
+    <MESSAGE value="fine tune some theme colors" />
+    <option name="LAST_COMMIT_MESSAGE" value="fine tune some theme colors" />
   </component>
 </project>
