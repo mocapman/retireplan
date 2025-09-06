@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Literal
-
+from typing import Optional, Literal, List, Dict, Any
 import yaml
 
 Filing = Literal["MFJ", "Single"]
@@ -13,6 +12,16 @@ DrawOrder = Literal[
     "Brokerage, IRA, Roth",
     "Roth, Brokerage, IRA",
 ]
+
+
+@dataclass
+class Year1Inputs:
+    spend: float
+    income: float
+    cash_events: List[Dict[str, Any]]
+    draws: Dict[str, float]  # keys: ira, brokerage, roth
+    taxes: float
+    roth_conversion: float
 
 
 @dataclass
@@ -60,6 +69,9 @@ class Inputs:
     # Strategy
     draw_order: DrawOrder
 
+    # Year 1 specific inputs
+    year1: Year1Inputs
+
 
 def load_yaml(path: str) -> Inputs:
     with open(path, "r", encoding="utf-8") as f:
@@ -70,6 +82,7 @@ def load_yaml(path: str) -> Inputs:
     ss = raw["social_security"]
     r = raw["rates"]
     th = raw["tax_health"]
+    y1 = raw["year1"]
 
     i = Inputs(
         birth_year_person1=raw["birth_year_person1"],
@@ -101,6 +114,14 @@ def load_yaml(path: str) -> Inputs:
         aca_end_age=th["aca_end_age"],
         aca_subsidy_annual=th.get("aca_subsidy_annual"),
         draw_order=raw.get("draw_order", "IRA, Brokerage, Roth"),
+        year1=Year1Inputs(
+            spend=y1["spend"],
+            income=y1["income"],
+            cash_events=y1.get("cash_events", []),
+            draws=y1["draws"],
+            taxes=y1["taxes"],
+            roth_conversion=y1["roth_conversion"],
+        ),
     )
     validate(i)
     return i
@@ -158,3 +179,35 @@ def validate(i: Inputs) -> None:
     ]
     if i.draw_order not in valid_orders:
         raise ValueError(f"draw_order must be one of: {valid_orders}")
+
+    # Year 1 validation
+    if i.year1.spend < 0:
+        raise ValueError("year1.spend must be non-negative")
+    if i.year1.income < 0:
+        raise ValueError("year1.income must be non-negative")
+    if i.year1.taxes < 0:
+        raise ValueError("year1.taxes must be non-negative")
+    if i.year1.roth_conversion < 0:
+        raise ValueError("year1.roth_conversion must be non-negative")
+
+    # Validate draws
+    for account, amount in i.year1.draws.items():
+        if account not in ["ira", "brokerage", "roth"]:
+            raise ValueError(
+                f"year1.draws key must be one of: ira, brokerage, roth. Got: {account}"
+            )
+        if amount < 0:
+            raise ValueError(f"year1.draws.{account} must be non-negative")
+
+    # Validate cash events
+    for event in i.year1.cash_events:
+        if "amount" not in event:
+            raise ValueError("year1.cash_events must have an 'amount' field")
+        if "from_account" in event and event["from_account"] not in [
+            "IRA",
+            "Brokerage",
+            "Roth",
+        ]:
+            raise ValueError(
+                "year1.cash_events.from_account must be one of: IRA, Brokerage, Roth"
+            )

@@ -74,6 +74,82 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
     rows: list[dict] = []
 
     for idx, yc in enumerate(years):
+        # Handle Year 1 specially
+        if idx == 0:
+            # Use user-provided values for Year 1
+            total_spend = Decimal(str(cfg.year1.spend))
+            ss_income = Decimal(str(cfg.year1.income))
+            tax = Decimal(str(cfg.year1.taxes))
+            roth_conv = Decimal(str(cfg.year1.roth_conversion))
+
+            # Apply user-specified draws
+            draw_ira = Decimal(str(cfg.year1.draws.get("ira", 0)))
+            draw_broke = Decimal(str(cfg.year1.draws.get("brokerage", 0)))
+            draw_roth = Decimal(str(cfg.year1.draws.get("roth", 0)))
+
+            # Apply cash events
+            events_cash = Decimal(0)
+            for event in cfg.year1.cash_events:
+                amount = Decimal(str(event["amount"]))
+                events_cash += amount
+                # Deduct from specified account
+                account = event.get("from_account", "").lower()
+                if account == "ira":
+                    ira_end += amount  # amount is negative for expenses
+                elif account == "brokerage":
+                    brokerage_end += amount
+                elif account == "roth":
+                    roth_end += amount
+
+            # Apply Roth conversion
+            ira_end -= roth_conv
+            roth_end += roth_conv
+
+            # Apply draws to accounts
+            ira_end -= draw_ira
+            brokerage_end -= draw_broke
+            roth_end -= draw_roth
+
+            # Apply growth
+            brokerage_end *= Decimal(1) + Decimal(str(cfg.brokerage_growth))
+            roth_end *= Decimal(1) + Decimal(str(cfg.roth_growth))
+            ira_end *= Decimal(1) + Decimal(str(cfg.ira_growth))
+
+            # Calculate base spend
+            base_spend = max(Decimal(0), total_spend - tax - events_cash)
+
+            # Create Year 1 row
+            row_data = {
+                "Year": round_year(yc.year),
+                "Person1_Age": round_year(yc.age_person1),
+                "Person2_Age": round_year(yc.age_person2),
+                "Lifestyle": yc.phase,
+                "Filing": (
+                    "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
+                ),
+                "Total_Spend": round_dollar(total_spend),
+                "Taxes_Due": round_dollar(tax),
+                "Cash_Events": round_dollar(events_cash),
+                "Base_Spend": round_dollar(base_spend),
+                "Social_Security": round_dollar(ss_income),
+                "IRA_Draw": round_dollar(draw_ira),
+                "Brokerage_Draw": round_dollar(draw_broke),
+                "Roth_Draw": round_dollar(draw_roth),
+                "Roth_Conversion": round_dollar(roth_conv),
+                "RMD": round_dollar(0),
+                "MAGI": round_dollar(0),  # Not calculated for Year 1
+                "Std_Deduction": round_dollar(0),  # Not calculated for Year 1
+                "IRA_Balance": round_dollar(ira_end),
+                "Brokerage_Balance": round_dollar(brokerage_end),
+                "Roth_Balance": round_dollar(roth_end),
+                "Total_Assets": round_dollar(brokerage_end + roth_end + ira_end),
+                "Shortfall": round_dollar(0),  # No shortfall calculation for Year 1
+            }
+
+            rows.append(row_data)
+            continue
+
+        # Normal processing for subsequent years
         infl = _infl_factor(cfg.inflation, idx)
         std_ded = Decimal(str(cfg.standard_deduction_base)) * infl
 

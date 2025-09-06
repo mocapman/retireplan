@@ -1,14 +1,14 @@
-# examples/sample_inputs.yaml
+# sample_inputs.yaml
+start_year: 2025
 birth_year_person1: 1967
 birth_year_person2: 1969
 final_age_person1: 75
 final_age_person2: 85
 filing_status: MFJ
-start_year: 2025
 
 balances:
   brokerage: 495000
-  roth: 104500
+  roth: 105000
   ira: 1030000
 
 spending:
@@ -20,23 +20,36 @@ spending:
   survivor_percent: 70
 
 social_security:
-  person1_start_age: 62
-  person1_annual_at_start: 32500
-  person2_start_age: 62
-  person2_annual_at_start: 7000
+  person1_start_age: 70
+  person1_annual_at_start: 40000
+  person2_start_age: 70
+  person2_annual_at_start: 30000
 
 rates:
   inflation: 0.035
   brokerage_growth: 0.04
-  roth_growth: 0.075
-  ira_growth: 0.06
+  roth_growth: 0.06
+  ira_growth: 0.07
 
 tax_health:
-  magi_target_base: 42500
+  magi_target_base: 85000
   standard_deduction_base: 31500
   rmd_start_age: 73
   aca_end_age: 65
-  aca_subsidy_annual: null
 
-draw_order: "IRA, Brokerage, Roth"
-# draw_order: "Brokerage, Roth, IRA"
+# draw_order: "IRA, Brokerage, Roth"
+draw_order: "Brokerage, Roth, IRA"
+
+year1:
+  spend: 40000
+  income: 0
+  cash_events:
+    - description: "Capital gains tax payment"
+      amount: -40000
+      from_account: "Brokerage"
+  draws:
+    ira: 0
+    brokerage: 80000
+    roth: 0
+  taxes: 0
+  roth_conversion: 0
