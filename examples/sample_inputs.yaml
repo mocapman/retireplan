@@ -39,3 +39,4 @@ tax_health:
   aca_subsidy_annual: null
 
 draw_order: "IRA, Brokerage, Roth"
+# draw_order: "Brokerage, Roth, IRA"

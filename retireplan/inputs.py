@@ -1,3 +1,4 @@
+# inputs.py
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,7 +7,12 @@ from typing import Optional, Literal
 import yaml
 
 Filing = Literal["MFJ", "Single"]
-DrawOrder = Literal["IRA, Brokerage, Roth", "Brokerage, Roth, IRA"]
+DrawOrder = Literal[
+    "IRA, Brokerage, Roth",
+    "Brokerage, Roth, IRA",
+    "Brokerage, IRA, Roth",
+    "Roth, Brokerage, IRA",
+]
 
 
 @dataclass
@@ -144,7 +150,11 @@ def validate(i: Inputs) -> None:
     rng("rmd_start_age", i.rmd_start_age, 70, 80)
 
     # Draw order
-    if i.draw_order not in ("IRA, Brokerage, Roth", "Brokerage, Roth, IRA"):
-        raise ValueError(
-            "draw_order must be one of: 'IRA, Brokerage, Roth' | 'Brokerage, Roth, IRA'"
-        )
+    valid_orders = [
+        "IRA, Brokerage, Roth",
+        "Brokerage, Roth, IRA",
+        "Brokerage, IRA, Roth",
+        "Roth, Brokerage, IRA",
+    ]
+    if i.draw_order not in valid_orders:
+        raise ValueError(f"draw_order must be one of: {valid_orders}")

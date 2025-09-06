@@ -41,25 +41,10 @@ def _withdraw_local(
     return draws["Brokerage"], draws["Roth"], draws["IRA"], b, r, i, remaining
 
 
-def _calculate_roth_conversion(
-    ira_balance: Decimal,
-    target_magi: Decimal,
-    current_magi: Decimal,
-    filing_status: str,
-    std_deduction: Decimal,
-    ss_income: Decimal,
-    ira_ordinary: Decimal,
-    roth_conversion: Decimal,
-) -> Decimal:
-    """Calculate optimal Roth conversion amount to reach MAGI target."""
-    if target_magi <= Decimal(0) or current_magi >= target_magi:
-        return Decimal(0)
-
-    # Calculate how much we can convert without exceeding MAGI target
-    conversion_room = target_magi - current_magi
-
-    # We can convert up to the available IRA balance or conversion room, whichever is smaller
-    return min(ira_balance, conversion_room)
+def _parse_draw_order(draw_order: str) -> Tuple[str, str, str]:
+    """Parse the draw order string into a tuple of account types."""
+    parts = [part.strip() for part in draw_order.split(",")]
+    return tuple(parts)
 
 
 def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
@@ -83,11 +68,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
     roth_end = Decimal(str(cfg.balances_roth))
     ira_end = Decimal(str(cfg.balances_ira))
 
-    order = (
-        ("IRA", "Brokerage", "Roth")
-        if cfg.draw_order == "IRA, Brokerage, Roth"
-        else ("Brokerage", "Roth", "IRA")
-    )
+    # Parse the draw order
+    order = _parse_draw_order(cfg.draw_order)
 
     rows: list[dict] = []
 
@@ -180,7 +162,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
         shortfall = max(Decimal(0), total_spend - provided_cash)
 
-        # Taxes/MAGI for composition
+        # Taxes/MAGI for composition; conversions next
         def tax_and_magi(conv: Decimal) -> tuple[Decimal, Decimal]:
             tax, _ss_tax, _taxable, magi = compute_tax_magi(
                 ira_ordinary=float(rmd + draw_ira + conv),
@@ -191,13 +173,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             )
             return Decimal(str(tax)), Decimal(str(magi))
 
-        # Initial tax calculation without conversions
-        tax0, magi0 = tax_and_magi(Decimal(0))
-
         # Fill conversions up to MAGI target (pre-Medicare), limited by post-draw IRA capacity
         conv = Decimal(0)
         for _ in range(8):  # Limit iterations to prevent infinite loop
-            tax, magi = tax_and_magi(conv)
+            tax0, magi0 = tax_and_magi(conv)
 
             if (
                 target_magi <= Decimal(0)
@@ -206,7 +185,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             ):
                 break
 
-            gap = target_magi - magi
+            gap = target_magi - magi0
             if gap <= Decimal("1.0"):
                 break
 
