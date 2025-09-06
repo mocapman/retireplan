@@ -12,30 +12,44 @@ COUNT_PRECISION = 0  # Whole numbers
 
 
 # Rounding functions
-def round_dollar(value: float) -> int:
+def round_dollar(value: Any) -> int:
     """Round to whole dollars"""
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return int(value.quantize(Decimal("1."), rounding=ROUND_HALF_UP))
     return round(value) if value is not None else None
 
 
-def round_percent(value: float) -> float:
+def round_percent(value: Any) -> float:
     """Round to 4 decimal places for percentages"""
     if value is None:
         return None
-    return round(value, 4)
+    if isinstance(value, Decimal):
+        return float(value.quantize(Decimal("1.0000"), rounding=ROUND_HALF_UP))
+    return round(value, 4) if value is not None else None
 
 
-def round_year(value: float) -> int:
+def round_year(value: Any) -> int:
     """Round to whole years"""
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return int(value.quantize(Decimal("1."), rounding=ROUND_HALF_UP))
     return round(value) if value is not None else None
 
 
-def round_count(value: float) -> int:
+def round_count(value: Any) -> int:
     """Round to whole numbers"""
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return int(value.quantize(Decimal("1."), rounding=ROUND_HALF_UP))
     return round(value) if value is not None else None
 
 
 # Column-specific rounding rules
-ROUNDING_RULES: Dict[str, Callable[[float], Any]] = {
+ROUNDING_RULES: Dict[str, Callable[[Any], Any]] = {
     # Dollar amounts
     "Total_Spend": round_dollar,
     "Taxes_Due": round_dollar,
@@ -56,8 +70,8 @@ ROUNDING_RULES: Dict[str, Callable[[float], Any]] = {
     "Shortfall": round_dollar,
     # Years and counts
     "Year": round_year,
-    "Your_Age": round_year,
-    "Spouse_Age": round_year,
+    "Person1_Age": round_year,
+    "Person2_Age": round_year,
     # Percentages (if any)
     # "Some_Percentage_Column": round_percent,
 }

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from decimal import Decimal
 
 
 def infl_factor(infl: float, years_since_start: int) -> float:
@@ -15,7 +16,7 @@ def spend_target(
     survivor_pct: float,
     person1_alive: bool,
     person2_alive: bool,
-) -> float:
+) -> Decimal:
     base = gogo if phase == "GoGo" else slow if phase == "Slow" else nogo
     amt = base * infl_factor(infl, year_index)
 
@@ -30,4 +31,4 @@ def spend_target(
         # Neither alive - no spending
         amt = 0.0
 
-    return amt
+    return Decimal(str(amt))
