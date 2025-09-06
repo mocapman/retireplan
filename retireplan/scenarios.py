@@ -11,32 +11,32 @@ from retireplan.engine import run_plan
 def _print_cut(rows: List[Dict[str, Any]], note: str | None = None) -> None:
     hdr = [
         "Year",
-        "Your_Age",
-        "Spouse_Age",
+        "Person1_Age",
+        "Person2_Age",
         "Lifestyle",
-        "Filing_Status",  # Updated to match new variable name
-        "Total_Spend",  # Updated to match new variable name
+        "Filing",
+        "Total_Spend",
         "Taxes_Due",
         "Social_Security",
-        "IRA_Draw",  # Updated to match new variable name
-        "Brokerage_Draw",  # Updated to match new variable name
-        "Roth_Draw",  # Updated to match new variable name
-        "Roth_Conversion",  # Updated to match new variable name
+        "IRA_Draw",
+        "Brokerage_Draw",
+        "Roth_Draw",
+        "Roth_Conversion",
         "RMD",
         "MAGI",
         "Shortfall",
-        "IRA_Balance",  # Updated to match new variable name
-        "Brokerage_Balance",  # Updated to match new variable name
-        "Roth_Balance",  # Updated to match new variable name
-        "Total_Assets",  # Updated to match new variable name
+        "IRA_Balance",
+        "Brokerage_Balance",
+        "Roth_Balance",
+        "Total_Assets",
         "View",
         "Note",
     ]
     print("  " + "  ".join(hdr))
     for r in rows:
         print(
-            f"{r['Year']:<6} {r['Your_Age']:<8} {r['Spouse_Age']:<11} "
-            f"{r['Lifestyle']:<5} {r['Filing']:<5}  "  # Note: Still using 'Filing' from schema
+            f"{r['Year']:<6} {r['Person1_Age']:<8} {r['Person2_Age']:<11} "
+            f"{r['Lifestyle']:<5} {r['Filing']:<5}  "
             f"{r['Total_Spend']:<12} {r['Taxes_Due']:<5} {r['Social_Security']:<9} "
             f"{r['IRA_Draw']:<8} {r['Brokerage_Draw']:<14} {r['Roth_Draw']:<9} "
             f"{r['Roth_Conversion']:<15} {r['RMD']:<5} {r['MAGI']:<6} "

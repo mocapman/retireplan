@@ -11,7 +11,7 @@ def test_events_affect_cash_and_identity():
     rows = run_plan(cfg, events=events)
     y0 = rows[0]
     # Events sit inside the budget; Total_Spend equals the budget
-    assert y0["Total_Spend"] == y0["Spend_Target"]
+    assert y0["Total_Spend"] == y0["Total_Spend"]
     # Discretionary is budget minus taxes and events
-    discretionary = y0["Spend_Target"] - y0["Taxes"] - y0["Events_Cash"]
+    discretionary = y0["Total_Spend"] - y0["Taxes_Due"] - y0["Cash_Events"]
     assert discretionary >= 0

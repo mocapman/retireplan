@@ -20,9 +20,9 @@ def test_rmd_triggers_at_start_age_and_no_conversions_after_medicare():
 
     # RMD = IRA_start / factor(age)
     ira_start = cfg.balances_ira
-    expected_rmd = round(ira_start / rmd_factor(y0["Age_You"]))
+    expected_rmd = round(ira_start / rmd_factor(y0["Your_Age"]))
     assert abs(y0["RMD"] - expected_rmd) <= 2
 
     # After Medicare age, conversions should be zero
-    assert y0["Age_You"] >= cfg.aca_end_age
+    assert y0["Your_Age"] >= cfg.aca_end_age
     assert y0["Roth_Conversion"] == 0

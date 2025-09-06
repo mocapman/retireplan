@@ -14,8 +14,9 @@ from retireplan import inputs, schema
 from retireplan.engine import run_plan
 from retireplan.theme import apply_theme, sheet_options, DEFAULT_THEME
 from retireplan.projections import to_2d_for_table
+from retireplan.precision import round_row
 
-APP_TITLE = "RetirePlan"
+APP_TITLE = "My Retirement Plan"
 
 
 class App:
@@ -55,7 +56,7 @@ class App:
         self.start_date.pack(side=LEFT, padx=(6, 16))
 
         self.btn_run = tb.Button(
-            top, text="Run Plan", bootstyle=SUCCESS, command=self._run_plan
+            top, text="Run Plan", bootstyle=PRIMARY, command=self._run_plan
         )
         self.btn_run.pack(side=LEFT, padx=4)
 
@@ -135,7 +136,8 @@ class App:
             w = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
             w.writerow(headers)
             for r in self.cur_rows:
-                w.writerow([r.get(k, None) for k in keys])
+                rounded_row = round_row(r)
+                w.writerow([rounded_row.get(k, None) for k in keys])
 
     def _populate_table_initial(self) -> None:
         cfg = inputs.load_yaml("examples/sample_inputs.yaml")

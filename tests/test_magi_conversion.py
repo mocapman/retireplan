@@ -16,7 +16,7 @@ def test_conversions_fill_magi_before_medicare_when_headroom_exists():
     rows = run_plan(cfg)
 
     # Pick first pre-Medicare year (your age < ACA end age)
-    y0 = next(r for r in rows if r["Age_You"] < cfg.aca_end_age)
+    y0 = next(r for r in rows if r["Your_Age"] < cfg.aca_end_age)
 
     # Conversions should be positive and MAGI near the inflated target
     assert y0["Roth_Conversion"] > 0

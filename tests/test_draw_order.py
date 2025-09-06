@@ -6,7 +6,7 @@ from retireplan.engine import run_plan
 
 def _first_pre_medicare(rows, aca_age):
     for r in rows:
-        if r["Age_You"] < aca_age:
+        if r["Your_Age"] < aca_age:
             return r
     return rows[0]
 
@@ -27,11 +27,11 @@ def test_draw_order_changes_distribution():
     y2 = _first_pre_medicare(rows2, cfg.aca_end_age)
 
     # Same spending target
-    assert abs(y1["Spend_Target"] - y2["Spend_Target"]) <= 2
+    assert abs(y1["Total_Spend"] - y2["Total_Spend"]) <= 2
 
     # Distribution changes as expected
-    assert y1["Draw_IRA"] >= y2["Draw_IRA"]
-    assert y2["Draw_Brokerage"] >= y1["Draw_Brokerage"]
+    assert y1["IRA_Draw"] >= y2["IRA_Draw"]
+    assert y2["Brokerage_Draw"] >= y1["Brokerage_Draw"]
 
     # MAGI typically higher with IRA-first (ordinary income larger).
     assert y1["MAGI"] >= y2["MAGI"]

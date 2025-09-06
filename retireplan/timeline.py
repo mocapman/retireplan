@@ -6,32 +6,35 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class YearCtx:
     year: int
-    age_you: int
-    age_spouse: int
+    age_person1: int
+    age_person2: int
     phase: str  # "GoGo" | "Slow" | "NoGo"
-    living: str  # "Joint" | "Survivor" | "None"
-    you_alive: bool
-    spouse_alive: bool
+    person1_alive: bool
+    person2_alive: bool
 
 
 def make_years(
     start_year: int,
-    birth_you: int,
-    birth_spouse: int | None,
-    final_you: int,
-    final_spouse: int | None,
+    birth_person1: int,
+    birth_person2: int | None,
+    final_age_person1: int,
+    final_age_person2: int | None,
     gogo_years: int,
     slow_years: int,
 ) -> list[YearCtx]:
     # Final calendar years each person is alive
-    last_you = birth_you + final_you
-    last_sp = (birth_spouse + final_spouse) if (birth_spouse and final_spouse) else start_year
-    last_year = max(last_you, last_sp)
+    last_p1 = birth_person1 + final_age_person1
+    last_p2 = (
+        (birth_person2 + final_age_person2)
+        if (birth_person2 and final_age_person2)
+        else start_year
+    )
+    last_year = max(last_p1, last_p2)
 
     out: list[YearCtx] = []
     for y in range(start_year, last_year + 1):
-        ay = y - birth_you
-        as_ = (y - birth_spouse) if birth_spouse else 0
+        ap1 = y - birth_person1
+        ap2 = (y - birth_person2) if birth_person2 else 0
 
         idx = y - start_year
         if idx < gogo_years:
@@ -41,15 +44,12 @@ def make_years(
         else:
             phase = "NoGo"
 
-        you_alive = ay <= final_you
-        spouse_alive = (as_ <= final_spouse) if (birth_spouse and final_spouse) else False
+        person1_alive = ap1 <= final_age_person1
+        person2_alive = (
+            (ap2 <= final_age_person2)
+            if (birth_person2 and final_age_person2)
+            else False
+        )
 
-        if you_alive and spouse_alive:
-            living = "Joint"
-        elif you_alive or spouse_alive:
-            living = "Survivor"
-        else:
-            living = "None"
-
-        out.append(YearCtx(y, ay, as_, phase, living, you_alive, spouse_alive))
+        out.append(YearCtx(y, ap1, ap2, phase, person1_alive, person2_alive))
     return out

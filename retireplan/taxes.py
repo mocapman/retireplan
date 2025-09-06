@@ -1,6 +1,6 @@
 from __future__ import annotations
-
 from typing import Tuple
+from decimal import Decimal
 
 from retireplan.policy import FED_BRACKETS, SS_THRESHOLDS
 

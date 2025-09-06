@@ -43,10 +43,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
     years = make_years(
         cfg.start_year,
-        cfg.birth_year_you,
-        cfg.birth_year_spouse,
-        cfg.final_age_you,
-        cfg.final_age_spouse,
+        cfg.birth_year_person1,
+        cfg.birth_year_person2,
+        cfg.final_age_person1,
+        cfg.final_age_person2,
         cfg.gogo_years,
         cfg.slow_years,
     )
@@ -68,15 +68,17 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         infl = _infl_factor(cfg.inflation, idx)
         std_ded = cfg.standard_deduction_base * infl
 
-        # Filing for this year is MFJ only if elected MFJ and both alive (Joint); else Single
+        # Filing for this year is MFJ only if elected MFJ and both alive; else Single
         filing_status = (
-            "MFJ" if (cfg.filing_status == "MFJ" and yc.living == "Joint") else "Single"
+            "MFJ"
+            if (cfg.filing_status == "MFJ" and yc.person1_alive and yc.person2_alive)
+            else "Single"
         )
 
         # Pre-Medicare MAGI target inflates; otherwise zero
         target_magi = (
             cfg.magi_target_base * infl
-            if (yc.you_alive and yc.age_you < cfg.aca_end_age)
+            if (yc.person1_alive and yc.age_person1 < cfg.aca_end_age)
             else 0.0
         )
 
@@ -89,30 +91,31 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             slow=cfg.slow_annual,
             nogo=cfg.nogo_annual,
             survivor_pct=cfg.survivor_percent,
-            living=yc.living,
+            person1_alive=yc.person1_alive,
+            person2_alive=yc.person2_alive,
         )
 
         # Social Security with survivor step-up
-        ss_you = ss_for_year(
-            yc.age_you,
-            cfg.ss_you_start_age,
-            cfg.ss_you_annual_at_start,
+        ss_person1 = ss_for_year(
+            yc.age_person1,
+            cfg.ss_person1_start_age,
+            cfg.ss_person1_annual_at_start,
             idx,
             cfg.inflation,
         )
-        ss_sp = ss_for_year(
-            yc.age_spouse,
-            cfg.ss_spouse_start_age,
-            cfg.ss_spouse_annual_at_start,
+        ss_person2 = ss_for_year(
+            yc.age_person2,
+            cfg.ss_person2_start_age,
+            cfg.ss_person2_annual_at_start,
             idx,
             cfg.inflation,
         )
-        if yc.you_alive and yc.spouse_alive:
-            ss_income = ss_you + ss_sp
-        elif yc.you_alive and not yc.spouse_alive:
-            ss_income = max(ss_you, ss_sp)
-        elif (not yc.you_alive) and yc.spouse_alive:
-            ss_income = max(ss_you, ss_sp)
+        if yc.person1_alive and yc.person2_alive:
+            ss_income = ss_person1 + ss_person2
+        elif yc.person1_alive and not yc.person2_alive:
+            ss_income = max(ss_person1, ss_person2)
+        elif (not yc.person1_alive) and yc.person2_alive:
+            ss_income = max(ss_person1, ss_person2)
         else:
             ss_income = 0.0
 
@@ -123,8 +126,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
         # RMD if owner alive and ≥ start age
         rmd = 0.0
-        if yc.you_alive and yc.age_you >= cfg.rmd_start_age and ira_end > 0.0:
-            rmd = ira_end / rmd_factor(yc.age_you)
+        if yc.person1_alive and yc.age_person1 >= cfg.rmd_start_age and ira_end > 0.0:
+            rmd = ira_end / rmd_factor(yc.age_person1)
 
         # Cash needed to meet the budget (taxes are inside the budget)
         need_for_budget = max(0.0, total_spend - ss_income - rmd)
@@ -153,7 +156,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         conv = 0.0
         for _ in range(8):
             tax0, magi0 = tax_and_magi(conv)
-            if target_magi <= 0.0 or not yc.you_alive or yc.age_you >= cfg.aca_end_age:
+            if (
+                target_magi <= 0.0
+                or not yc.person1_alive
+                or yc.age_person1 >= cfg.aca_end_age
+            ):
                 break
             gap = target_magi - magi0
             if gap <= 1.0:
@@ -192,8 +199,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             {
                 # Timeline
                 "Year": yc.year,
-                "Your_Age": yc.age_you,
-                "Spouse_Age": yc.age_spouse,
+                "Person1_Age": yc.age_person1,
+                "Person2_Age": yc.age_person2,
                 "Lifestyle": yc.phase,
                 "Filing": filing_status,
                 # Budgeting

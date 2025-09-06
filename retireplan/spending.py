@@ -13,12 +13,21 @@ def spend_target(
     slow: float,
     nogo: float,
     survivor_pct: float,
-    living: str,
+    person1_alive: bool,
+    person2_alive: bool,
 ) -> float:
     base = gogo if phase == "GoGo" else slow if phase == "Slow" else nogo
     amt = base * infl_factor(infl, year_index)
-    if living == "Survivor":
+
+    # Determine if survivor situation
+    if person1_alive and person2_alive:
+        # Both alive - full amount
+        pass
+    elif person1_alive or person2_alive:
+        # One alive - apply survivor percentage
         amt *= survivor_pct / 100.0
-    if living == "None":
+    else:
+        # Neither alive - no spending
         amt = 0.0
+
     return amt

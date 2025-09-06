@@ -2,7 +2,11 @@ from __future__ import annotations
 
 
 def ss_for_year(
-    age_now: int, start_age: int | None, annual_at_start: float | None, year_index: int, cola: float
+    age_now: int,
+    start_age: int | None,
+    annual_at_start: float | None,
+    year_index: int,
+    cola: float,
 ) -> float:
     if start_age is None or annual_at_start is None:
         return 0.0

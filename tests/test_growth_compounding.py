@@ -1,4 +1,6 @@
+# test_growth_compounding.py
 from copy import deepcopy
+from decimal import Decimal
 
 from retireplan import inputs
 from retireplan.engine import run_plan
@@ -8,27 +10,32 @@ def _assert_growth_identities(cfg, rows):
     for t in range(1, len(rows)):
         prev, cur = rows[t - 1], rows[t]
 
-        b0 = prev["End_Bal_Brokerage"]
-        r0 = prev["End_Bal_Roth"]
-        i0 = prev["End_Bal_IRA"]
+        b0 = prev["Brokerage_Balance"]
+        r0 = prev["Roth_Balance"]
+        i0 = prev["IRA_Balance"]
 
         rmd = cur["RMD"]
-        total_need = max(0, cur["Total_Spend"] - cur["SS_Income"])
+        total_need = max(0, cur["Total_Spend"] - cur["Social_Security"])
         rmd_surplus = max(0, rmd - total_need)
 
+        # Convert growth rates to Decimal for compatibility
+        brokerage_growth = Decimal(str(cfg.brokerage_growth))
+        roth_growth = Decimal(str(cfg.roth_growth))
+        ira_growth = Decimal(str(cfg.ira_growth))
+
         b_exp = round(
-            (b0 - cur["Draw_Brokerage"] + rmd_surplus) * (1 + cfg.brokerage_growth)
+            (b0 - cur["Brokerage_Draw"] + rmd_surplus) * (1 + brokerage_growth)
         )
         r_exp = round(
-            (r0 - cur["Draw_Roth"] + cur["Roth_Conversion"]) * (1 + cfg.roth_growth)
+            (r0 - cur["Roth_Draw"] + cur["Roth_Conversion"]) * (1 + roth_growth)
         )
         i_exp = round(
-            (i0 - rmd - cur["Draw_IRA"] - cur["Roth_Conversion"]) * (1 + cfg.ira_growth)
+            (i0 - rmd - cur["IRA_Draw"] - cur["Roth_Conversion"]) * (1 + ira_growth)
         )
 
-        assert abs(b_exp - cur["End_Bal_Brokerage"]) <= 2
-        assert abs(r_exp - cur["End_Bal_Roth"]) <= 2
-        assert abs(i_exp - cur["End_Bal_IRA"]) <= 2
+        assert abs(b_exp - cur["Brokerage_Balance"]) <= 2
+        assert abs(r_exp - cur["Roth_Balance"]) <= 2
+        assert abs(i_exp - cur["IRA_Balance"]) <= 2
 
 
 def test_growth_baseline():

@@ -12,10 +12,10 @@ DrawOrder = Literal["IRA, Brokerage, Roth", "Brokerage, Roth, IRA"]
 @dataclass
 class Inputs:
     # Personal
-    birth_year_you: int
-    birth_year_spouse: Optional[int]
-    final_age_you: int
-    final_age_spouse: Optional[int]
+    birth_year_person1: int
+    birth_year_person2: Optional[int]
+    final_age_person1: int
+    final_age_person2: Optional[int]
     filing_status: Filing
     start_year: int
 
@@ -32,11 +32,11 @@ class Inputs:
     slow_years: int
     survivor_percent: float
 
-    # Social Security (annual at start age, today’s $)
-    ss_you_start_age: int
-    ss_you_annual_at_start: float
-    ss_spouse_start_age: Optional[int]
-    ss_spouse_annual_at_start: Optional[float]
+    # Social Security (annual at start age, today's $)
+    ss_person1_start_age: int
+    ss_person1_annual_at_start: float
+    ss_person2_start_age: Optional[int]
+    ss_person2_annual_at_start: Optional[float]
 
     # Rates
     inflation: float
@@ -66,10 +66,10 @@ def load_yaml(path: str) -> Inputs:
     th = raw["tax_health"]
 
     i = Inputs(
-        birth_year_you=raw["birth_year_you"],
-        birth_year_spouse=raw.get("birth_year_spouse"),
-        final_age_you=raw["final_age_you"],
-        final_age_spouse=raw.get("final_age_spouse"),
+        birth_year_person1=raw["birth_year_person1"],
+        birth_year_person2=raw.get("birth_year_person2"),
+        final_age_person1=raw["final_age_person1"],
+        final_age_person2=raw.get("final_age_person2"),
         filing_status=raw["filing_status"],
         start_year=raw["start_year"],
         balances_brokerage=b["brokerage"],
@@ -81,10 +81,10 @@ def load_yaml(path: str) -> Inputs:
         gogo_years=s["gogo_years"],
         slow_years=s["slow_years"],
         survivor_percent=s["survivor_percent"],
-        ss_you_start_age=ss["you_start_age"],
-        ss_you_annual_at_start=ss["you_annual_at_start"],
-        ss_spouse_start_age=ss.get("spouse_start_age"),
-        ss_spouse_annual_at_start=ss.get("spouse_annual_at_start"),
+        ss_person1_start_age=ss["person1_start_age"],
+        ss_person1_annual_at_start=ss["person1_annual_at_start"],
+        ss_person2_start_age=ss.get("person2_start_age"),
+        ss_person2_annual_at_start=ss.get("person2_annual_at_start"),
         inflation=r["inflation"],
         brokerage_growth=r["brokerage_growth"],
         roth_growth=r["roth_growth"],
@@ -106,15 +106,18 @@ def validate(i: Inputs) -> None:
             raise ValueError(f"{name} out of range [{lo},{hi}]: {val}")
 
     # Years
-    for name, y in (("birth_year_you", i.birth_year_you), ("start_year", i.start_year)):
+    for name, y in (
+        ("birth_year_person1", i.birth_year_person1),
+        ("start_year", i.start_year),
+    ):
         rng(name, y, 1900, 2100)
-    if i.birth_year_spouse is not None:
-        rng("birth_year_spouse", i.birth_year_spouse, 1900, 2100)
+    if i.birth_year_person2 is not None:
+        rng("birth_year_person2", i.birth_year_person2, 1900, 2100)
 
     # Ages
-    rng("final_age_you", i.final_age_you, 60, 105)
-    if i.final_age_spouse is not None:
-        rng("final_age_spouse", i.final_age_spouse, 60, 105)
+    rng("final_age_person1", i.final_age_person1, 60, 105)
+    if i.final_age_person2 is not None:
+        rng("final_age_person2", i.final_age_person2, 60, 105)
 
     # Filing
     if i.filing_status not in ("MFJ", "Single"):
@@ -130,9 +133,9 @@ def validate(i: Inputs) -> None:
         rng(name, p, -0.2, 0.2)
 
     # Social Security ages
-    rng("ss_you_start_age", i.ss_you_start_age, 62, 70)
-    if i.ss_spouse_start_age is not None:
-        rng("ss_spouse_start_age", i.ss_spouse_start_age, 62, 70)
+    rng("ss_person1_start_age", i.ss_person1_start_age, 62, 70)
+    if i.ss_person2_start_age is not None:
+        rng("ss_person2_start_age", i.ss_person2_start_age, 62, 70)
 
     # Survivor %
     rng("survivor_percent", i.survivor_percent, 50, 100)
