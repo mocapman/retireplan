@@ -539,39 +539,38 @@ class App:
             pass
 
     def _autosize(self) -> None:
-        """Resize the window to fit the content properly"""
+        """Simpler auto-size that just resizes columns"""
         try:
-            # Auto-size all columns first
+            # First, try to auto-size columns to content
+            # Note: set_all_column_widths() might need no parameters or specific ones
             self.sheet.set_all_column_widths()
 
-            # Calculate required width
-            total_col_width = sum(
-                (
-                    int(self.sheet.column_width(c))
-                    if self.sheet.column_width(c) is not None
-                    else 110
-                )
-                for c in range(self.sheet.total_columns())
-            )
+            # Or try with explicit width
+            # self.sheet.set_all_column_widths(width=120)
 
-            # Add padding for the table
-            table_width = total_col_width + 50
+            # Calculate a reasonable window size based on number of columns
+            num_cols = self.sheet.total_columns()
+            num_rows = self.sheet.total_rows()
 
-            # Calculate required height
-            rows = self.sheet.total_rows()
-            table_height = self._hdr_h + (rows * self._row_h) + 100
+            # Estimate width (assuming ~120 pixels per column)
+            estimated_table_width = num_cols * 100 + 50
+            estimated_height = self._hdr_h + (num_rows * self._row_h) + 80
 
-            # Set the sash position to maintain the input panel width
-            input_width = 600  # Fixed width for input panel
-            total_width = input_width + table_width
-            self.paned.sashpos(0, input_width)
+            input_width = 600
+            total_width = input_width + estimated_table_width
 
-            # Set the window size
-            self.root.geometry(f"{total_width}x{table_height}")
+            # Apply screen limits
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+
+            final_width = min(total_width, int(screen_width * 0.95))
+            final_height = min(estimated_height, int(screen_height * 0.90))
+
+            self.root.geometry(f"{final_width}x{final_height}")
+            self.root.after(100, lambda: self.paned.sashpos(0, input_width))
 
         except Exception as e:
             print(f"Error in autosize: {e}")
-            # Fallback to a reasonable size
             self.root.geometry("1800x800")
 
     def _style_sheet(self) -> None:
