@@ -7,39 +7,64 @@ from tksheet import Sheet
 from typing import List, Dict, Any
 
 from retireplan.projections import to_2d_for_table
-from retireplan.schema import keys as schema_keys
-
-# Define which columns are money columns by key
-MONEY_COLUMNS = {
-    "Total_Spend",
-    "Taxes_Due",
-    "Base_Spend",
-    "IRA_Draw",
-    "Brokerage_Draw",
-    "Roth_Draw",
-    "Roth_Conversion",
-    "IRA_Balance",
-    "Brokerage_Balance",
-    "Roth_Balance",
-    "Total_Assets",
-    "Shortfall",
-    "Social_Security",
-    "RMD",
-    # Add more keys as needed
-}
 
 
-def format_currency(val) -> str:
+def format_currency(val):
+    """Format as $#,### (no decimals)."""
     try:
-        num = float(val)
-        return f"${num:,.0f}"
-    except (ValueError, TypeError):
-        return str(val)
+        val = float(val)
+        return "${:,.0f}".format(val)
+    except Exception:
+        return val
+
+
+def format_percent(val):
+    """Format as #.##% or #%. No decimals if not needed."""
+    try:
+        val = float(val)
+        if val == int(val):
+            return f"{int(val)}%"
+        else:
+            return f"{val:.2f}%"
+    except Exception:
+        return val
+
+
+# List of headers/column names that should display as currency
+CURRENCY_HEADERS = {
+    "Brokerage",
+    "Roth",
+    "IRA",
+    "Total",
+    "Spending",
+    "Taxable",
+    "MAGI",
+    "Tax Owed",
+    "Balance",
+    "Net Worth",
+    "SS",
+    "Tax",
+    "RMD",
+    "Withdrawal",
+    "Medical",
+    "Income",
+    "Standard Deduction",
+}
+# Add more terms as your CSV/data files require.
+
+PERCENT_HEADERS = {
+    "Inflation",
+    "Growth",
+    "Rate",
+    "Return",
+    "Survivor %",
+}  # Add/adjust as needed
 
 
 class ResultsDisplay(tb.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, app):
         super().__init__(parent)
+        self.app = app
         self.current_rows: List[dict] = []
         self._row_h = 24
         self._hdr_h = 28
@@ -114,7 +139,6 @@ class ResultsDisplay(tb.Frame):
         try:
             self.sheet.set_options(**options)
         except Exception:
-            # Fallback: set options individually
             for k, v in options.items():
                 try:
                     setattr(self.sheet, k, v)
@@ -122,18 +146,33 @@ class ResultsDisplay(tb.Frame):
                     pass
 
     def load_results(self, rows: List[dict]):
-        """Load and display results data with currency formatting"""
+        """Load and display results data"""
         headers, data = to_2d_for_table(rows)
-        col_keys = schema_keys()
+        self.current_rows = rows
 
-        # Format currency columns
+        # Determine columns to format as currency or percent
+        col_types = []
+        for hdr in headers:
+            if any(hdr.lower().startswith(h.lower()) for h in CURRENCY_HEADERS) or any(
+                h.lower() in hdr.lower() for h in CURRENCY_HEADERS
+            ):
+                col_types.append("currency")
+            elif any(hdr.lower().endswith(h.lower()) for h in PERCENT_HEADERS) or any(
+                h.lower() in hdr.lower() for h in PERCENT_HEADERS
+            ):
+                col_types.append("percent")
+            else:
+                col_types.append("default")
+
+        # Format the data
         formatted_data = []
         for row in data:
             formatted_row = []
-            for idx, val in enumerate(row):
-                key = col_keys[idx] if idx < len(col_keys) else None
-                if key in MONEY_COLUMNS and val not in (None, ""):
+            for i, val in enumerate(row):
+                if col_types[i] == "currency":
                     formatted_row.append(format_currency(val))
+                elif col_types[i] == "percent":
+                    formatted_row.append(format_percent(val))
                 else:
                     formatted_row.append(val)
             formatted_data.append(formatted_row)
@@ -145,47 +184,43 @@ class ResultsDisplay(tb.Frame):
             redraw=True,
         )
         self.sheet.headers(headers)
-        self.current_rows = rows
         self.apply_alternate_row_colors()
-        self.autosize()  # Ensures window resizes after new data
+        self.autosize()
 
     def apply_alternate_row_colors(self):
-        """Apply alternate row coloring for readability"""
+        """Apply alternating row colors for better readability"""
         try:
-            for idx in range(self.sheet.get_total_rows()):
-                color = "#23272b" if idx % 2 else "#2e2e2e"
-                self.sheet.row_colors(rows=[idx], clr=color)
+            # Dark theme colors
+            bg = "#2e2e2e"
+            alt = "#3e3e3e"
+            fg = "#ffffff"
+
+            self.sheet.dehighlight_all()
+            total = self.sheet.total_rows()
+            if total <= 0:
+                return
+            evens = tuple(range(0, total, 2))
+            odds = tuple(range(1, total, 2))
+            self.sheet.highlight_rows(evens, bg=bg, fg=fg, redraw=False)
+            self.sheet.highlight_rows(odds, bg=alt, fg=fg, redraw=True)
         except Exception:
             pass
 
     def autosize(self):
-        """Auto-size columns and adjust window size to fit the sheet, including currency formatting."""
+        """Force window to fixed size, skipping all calculations."""
         try:
             self.sheet.set_all_column_widths()
-            total_width = sum(
-                self.sheet.column_width(col)
-                for col in range(self.sheet.total_columns())
-            )
-            # Add some padding for scrollbars and window borders
-            window_width = min(
-                max(total_width + 680, 800), 4000
-            )  # min/max limits to avoid crazy sizes
-            window_height = (
-                self.sheet.get_total_rows() * self._row_h + 220
-            )  # tweak as needed
-
             root = self.winfo_toplevel()
-            root.geometry(f"{window_width}x{window_height}")
+            root.geometry("2525x950")
         except Exception as e:
             print(f"Error in autosize: {e}")
+            root = self.winfo_toplevel()
+            root.geometry("2525x950")
 
     def export_csv(self):
-        """Export the currently shown data as CSV (calls parent app method if available)"""
-        if hasattr(self.master, "export_csv"):
-            self.master.export_csv()
-        elif hasattr(self.master.master, "export_csv"):
-            self.master.master.export_csv()
+        if hasattr(self.app, "export_csv"):
+            self.app.export_csv()
 
     def get_current_rows(self) -> List[dict]:
-        """Return the current raw data rows (for export)"""
+        """Get the currently displayed rows"""
         return self.current_rows

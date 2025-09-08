@@ -1,4 +1,3 @@
-# gui/main_window.py
 from __future__ import annotations
 
 import ctypes
@@ -59,7 +58,7 @@ class RetirePlanApp:
     def build_ui(self) -> None:
         """Build the main user interface"""
         # Set initial window size
-        self.root.geometry("2825x950")
+        self.root.geometry("2525x950")
 
         # Create main paned window
         self.paned = tb.PanedWindow(self.root, orient=tk.HORIZONTAL)
@@ -69,14 +68,18 @@ class RetirePlanApp:
         input_frame = tb.Frame(self.paned, width=600)
         self.paned.add(input_frame, weight=1)
 
-        self.input_panel = InputPanel(input_frame, on_change_callback=self.run_plan)
+        # Pass self as app to InputPanel
+        self.input_panel = InputPanel(
+            input_frame, app=self, on_change_callback=self.run_plan
+        )
         self.input_panel.pack(fill=tk.BOTH, expand=True)
 
         # Results display on the right
         output_frame = tb.Frame(self.paned)
         self.paned.add(output_frame, weight=2)
 
-        self.results_display = ResultsDisplay(output_frame)
+        # Pass self as app to ResultsDisplay
+        self.results_display = ResultsDisplay(output_frame, app=self)
         self.results_display.pack(fill=tk.BOTH, expand=True)
 
         # Set initial values from config

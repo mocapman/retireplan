@@ -1,12 +1,10 @@
-# gui/file_operations.py
-from __future__ import annotations
-
 import csv
 import yaml
+import tkinter.messagebox as messagebox
+import tkinter.filedialog as filedialog
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
-import ttkbootstrap as tb
 
 from retireplan import schema
 from retireplan.precision import round_row
@@ -20,7 +18,7 @@ class FileOperations:
 
     def load_config(self):
         """Load configuration from YAML file"""
-        file_path = tb.filedialog.askopenfilename(
+        file_path = filedialog.askopenfilename(
             filetypes=[("YAML files", "*.yaml"), ("All files", "*.*")]
         )
         if file_path:
@@ -30,11 +28,11 @@ class FileOperations:
                 self.app.input_panel.set_config(config)
                 self.app.run_plan()
             except Exception as e:
-                tb.messagebox.showerror("Error", f"Failed to load config: {e}")
+                messagebox.showerror("Error", f"Failed to load config: {e}")
 
     def save_config(self):
         """Save current configuration to YAML file"""
-        file_path = tb.filedialog.asksaveasfilename(
+        file_path = filedialog.asksaveasfilename(
             defaultextension=".yaml",
             filetypes=[("YAML files", "*.yaml"), ("All files", "*.*")],
         )
@@ -44,13 +42,13 @@ class FileOperations:
                 with open(file_path, "w") as f:
                     yaml.dump(config, f, default_flow_style=False)
             except Exception as e:
-                tb.messagebox.showerror("Error", f"Failed to save config: {e}")
+                messagebox.showerror("Error", f"Failed to save config: {e}")
 
     def export_csv(self):
-        """Export current results to CSV with timestamp"""
+        """Export current results to CSV with config appended"""
         current_rows = self.app.results_display.get_current_rows()
         if not current_rows:
-            tb.messagebox.showwarning("Warning", "No data to export")
+            messagebox.showwarning("Warning", "No data to export")
             return
 
         try:
@@ -58,7 +56,7 @@ class FileOperations:
             cfg = self.app.cfg
             settings_str = f"{cfg.draw_order.replace(', ', '_')}_{cfg.gogo_annual}"
 
-            out = Path(f"projections_{settings_str}_{timestamp}.csv")
+            out = Path(f"Projections_{settings_str}_{timestamp}.csv")
 
             keys = schema.keys()
             headers = schema.labels()
@@ -69,15 +67,30 @@ class FileOperations:
                     rounded_row = round_row(r)
                     w.writerow([rounded_row.get(k, None) for k in keys])
 
-            # Also save the config that generated this data
-            config_out = Path(f"config_{settings_str}_{timestamp}.yaml")
-            config = self.app.input_panel.get_config_dict()
-            with config_out.open("w", encoding="utf-8") as f:
-                yaml.dump(config, f, default_flow_style=False)
+                # Blank line
+                w.writerow([])
+                # Write a header for config section (optional, helpful for humans)
+                w.writerow(["# Config Settings"])
+                # Flatten config and write as key,value pairs
+                config = self.app.input_panel.get_config_dict()
 
-            tb.messagebox.showinfo(
-                "Export Complete", f"Data exported to:\n{out}\n{config_out}"
+                def flatten(d, parent_key="", sep="."):
+                    items = []
+                    for k, v in d.items():
+                        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+                        if isinstance(v, dict):
+                            items.extend(flatten(v, new_key, sep=sep))
+                        else:
+                            items.append((new_key, v))
+                    return items
+
+                flat = flatten(config)
+                for k, v in flat:
+                    w.writerow([k, v])
+
+            messagebox.showinfo(
+                "Export Complete", f"Data and config exported to:\n{out}"
             )
 
         except Exception as e:
-            tb.messagebox.showerror("Error", f"Failed to export: {e}")
+            messagebox.showerror("Error", f"Failed to export: {e}")
