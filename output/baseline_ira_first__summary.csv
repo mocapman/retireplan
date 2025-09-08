@@ -1,0 +1,5 @@
+Year,Age_You,Age_Spouse,Phase,Living,Spend_Target,Taxes,SS_Income,Draw_IRA,Draw_Brokerage,Draw_Roth,Roth_Conversion,RMD,MAGI,Shortfall,End_Bal_IRA,End_Bal_Brokerage,End_Bal_Roth,Total_Assets,View,Note
+2025.0,58.0,56.0,GoGo,Joint,120000.0,10156.0,0.0,120000.0,0.0,0.0,0.0,0.0,120000.0,0.0,964600.0,514800.0,122550.0,1601950.0,Start,
+2025.0,58.0,56.0,GoGo,Joint,120000.0,10156.0,0.0,120000.0,0.0,0.0,0.0,0.0,120000.0,0.0,964600.0,514800.0,122550.0,1601950.0,PreMedicare,
+2032.0,65.0,63.0,Slow,Joint,127228.0,9215.0,43278.0,83950.0,0.0,0.0,0.0,0.0,120736.0,0.0,488928.0,677442.0,203316.0,1369686.0,PostMedicare,
+,,,,,,,,,,,,,,,,,,,FirstRMD,N/A
