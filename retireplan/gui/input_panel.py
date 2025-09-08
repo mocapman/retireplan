@@ -26,13 +26,13 @@ class InputPanel(tb.Frame):
             button_frame,
             text="Save Config",
             command=self.save_config,
-            bootstyle=SECONDARY,
+            bootstyle=PRIMARY,
         ).pack(side=tk.LEFT, padx=5)
         tb.Button(
             button_frame,
             text="Apply Changes",
             command=self.apply_changes,
-            bootstyle=PRIMARY,
+            bootstyle=SECONDARY,
         ).pack(side=tk.LEFT, padx=5)
 
         # Notebook
@@ -290,6 +290,3 @@ class InputPanel(tb.Frame):
         for key, value in mapping.items():
             if key in self.variables and value is not None:
                 self.variables[key].set(str(value))
-
-
-cl

@@ -1,4 +1,3 @@
-# gui/results_display.py
 from __future__ import annotations
 
 import tkinter as tk
@@ -103,6 +102,7 @@ class ResultsDisplay(tb.Frame):
         self.sheet.headers(headers)
         self.current_rows = rows
         self.apply_alternate_row_colors()
+        self.autosize()  # <-- Ensures window resizes after new data
 
     def apply_alternate_row_colors(self):
         """Apply alternating row colors for better readability"""
@@ -124,39 +124,15 @@ class ResultsDisplay(tb.Frame):
             pass
 
     def autosize(self):
-        """Auto-resize columns and window to fit content"""
+        """Force window to fixed size, skipping all calculations."""
         try:
-            # Auto-size columns
-            self.sheet.set_all_column_widths()
-
-            # Calculate reasonable window size
-            num_cols = self.sheet.total_columns()
-            num_rows = self.sheet.total_rows()
-
-            # Estimate dimensions
-            estimated_table_width = num_cols * 100 + 50
-            estimated_height = self._hdr_h + (num_rows * self._row_h) + 80
-
-            # Get the main window and resize
+            self.sheet.set_all_column_widths()  # Still auto-sizes columns
             root = self.winfo_toplevel()
-            if hasattr(root, "paned"):
-                input_width = 600
-                total_width = input_width + estimated_table_width
-
-                # Apply screen limits
-                screen_width = root.winfo_screenwidth()
-                screen_height = root.winfo_screenheight()
-
-                final_width = min(total_width, int(screen_width * 0.95))
-                final_height = min(estimated_height, int(screen_height * 0.90))
-
-                root.geometry(f"{final_width}x{final_height}")
-                root.after(100, lambda: root.paned.sashpos(0, input_width))
-
+            root.geometry("2525x950")
         except Exception as e:
             print(f"Error in autosize: {e}")
             root = self.winfo_toplevel()
-            root.geometry("1800x800")
+            root.geometry("2525x950")
 
     def export_csv(self):
         """Export current results to CSV"""

@@ -20,10 +20,10 @@ spending:
   survivor_percent: 70
 
 social_security:
-  person1_start_age: 70
-  person1_annual_at_start: 40000
-  person2_start_age: 70
-  person2_annual_at_start: 30000
+  person1_start_age: 62
+  person1_annual_at_start: 32500
+  person2_start_age: 62
+  person2_annual_at_start: 7000
 
 rates:
   inflation: 0.035
