@@ -1,10 +1,17 @@
-# gui/input_panel.py
 from __future__ import annotations
 
 import tkinter as tk
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from typing import Callable, Optional
+
+# ============================
+# USER INPUT FONT CONFIGURATION
+# ============================
+INPUT_FONT_FAMILY = "Arial"
+INPUT_FONT_SIZE = 12
+INPUT_FONT = (INPUT_FONT_FAMILY, INPUT_FONT_SIZE)
+# ============================
 
 
 class InputPanel(tb.Frame):
@@ -79,7 +86,7 @@ class InputPanel(tb.Frame):
             row=row, column=col, sticky=tk.W, padx=5, pady=2
         )
         var = tk.StringVar(value=str(default))
-        entry = tb.Entry(parent, textvariable=var)
+        entry = tb.Entry(parent, textvariable=var, font=INPUT_FONT)
         entry.grid(row=row, column=col + 1, sticky=(tk.W, tk.E), padx=5, pady=2)
         parent.columnconfigure(col + 1, weight=1)  # Make entry expand
         self.variables[key] = var
