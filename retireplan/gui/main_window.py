@@ -59,7 +59,7 @@ class RetirePlanApp:
     def build_ui(self) -> None:
         """Build the main user interface"""
         # Set initial window size
-        self.root.geometry("2525x950")
+        self.root.geometry("2825x950")
 
         # Create main paned window
         self.paned = tb.PanedWindow(self.root, orient=tk.HORIZONTAL)

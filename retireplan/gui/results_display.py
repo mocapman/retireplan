@@ -7,6 +7,34 @@ from tksheet import Sheet
 from typing import List, Dict, Any
 
 from retireplan.projections import to_2d_for_table
+from retireplan.schema import keys as schema_keys
+
+# Define which columns are money columns by key
+MONEY_COLUMNS = {
+    "Total_Spend",
+    "Taxes_Due",
+    "Base_Spend",
+    "IRA_Draw",
+    "Brokerage_Draw",
+    "Roth_Draw",
+    "Roth_Conversion",
+    "IRA_Balance",
+    "Brokerage_Balance",
+    "Roth_Balance",
+    "Total_Assets",
+    "Shortfall",
+    "Social_Security",
+    "RMD",
+    # Add more keys as needed
+}
+
+
+def format_currency(val) -> str:
+    try:
+        num = float(val)
+        return f"${num:,.0f}"
+    except (ValueError, TypeError):
+        return str(val)
 
 
 class ResultsDisplay(tb.Frame):
@@ -94,53 +122,70 @@ class ResultsDisplay(tb.Frame):
                     pass
 
     def load_results(self, rows: List[dict]):
-        """Load and display results data"""
+        """Load and display results data with currency formatting"""
         headers, data = to_2d_for_table(rows)
+        col_keys = schema_keys()
+
+        # Format currency columns
+        formatted_data = []
+        for row in data:
+            formatted_row = []
+            for idx, val in enumerate(row):
+                key = col_keys[idx] if idx < len(col_keys) else None
+                if key in MONEY_COLUMNS and val not in (None, ""):
+                    formatted_row.append(format_currency(val))
+                else:
+                    formatted_row.append(val)
+            formatted_data.append(formatted_row)
+
         self.sheet.set_sheet_data(
-            data, reset_col_positions=True, reset_row_positions=True, redraw=True
+            formatted_data,
+            reset_col_positions=True,
+            reset_row_positions=True,
+            redraw=True,
         )
         self.sheet.headers(headers)
         self.current_rows = rows
         self.apply_alternate_row_colors()
-        self.autosize()  # <-- Ensures window resizes after new data
+        self.autosize()  # Ensures window resizes after new data
 
     def apply_alternate_row_colors(self):
-        """Apply alternating row colors for better readability"""
+        """Apply alternate row coloring for readability"""
         try:
-            # Dark theme colors
-            bg = "#2e2e2e"
-            alt = "#3e3e3e"
-            fg = "#ffffff"
-
-            self.sheet.dehighlight_all()
-            total = self.sheet.total_rows()
-            if total <= 0:
-                return
-            evens = tuple(range(0, total, 2))
-            odds = tuple(range(1, total, 2))
-            self.sheet.highlight_rows(evens, bg=bg, fg=fg, redraw=False)
-            self.sheet.highlight_rows(odds, bg=alt, fg=fg, redraw=True)
+            for idx in range(self.sheet.get_total_rows()):
+                color = "#23272b" if idx % 2 else "#2e2e2e"
+                self.sheet.row_colors(rows=[idx], clr=color)
         except Exception:
             pass
 
     def autosize(self):
-        """Force window to fixed size, skipping all calculations."""
+        """Auto-size columns and adjust window size to fit the sheet, including currency formatting."""
         try:
-            self.sheet.set_all_column_widths()  # Still auto-sizes columns
+            self.sheet.set_all_column_widths()
+            total_width = sum(
+                self.sheet.column_width(col)
+                for col in range(self.sheet.total_columns())
+            )
+            # Add some padding for scrollbars and window borders
+            window_width = min(
+                max(total_width + 680, 800), 4000
+            )  # min/max limits to avoid crazy sizes
+            window_height = (
+                self.sheet.get_total_rows() * self._row_h + 220
+            )  # tweak as needed
+
             root = self.winfo_toplevel()
-            root.geometry("2525x950")
+            root.geometry(f"{window_width}x{window_height}")
         except Exception as e:
             print(f"Error in autosize: {e}")
-            root = self.winfo_toplevel()
-            root.geometry("2525x950")
 
     def export_csv(self):
-        """Export current results to CSV"""
-        # Delegate to parent's export method
-        parent = self.winfo_toplevel()
-        if hasattr(parent, "export_csv"):
-            parent.export_csv()
+        """Export the currently shown data as CSV (calls parent app method if available)"""
+        if hasattr(self.master, "export_csv"):
+            self.master.export_csv()
+        elif hasattr(self.master.master, "export_csv"):
+            self.master.master.export_csv()
 
     def get_current_rows(self) -> List[dict]:
-        """Get the currently displayed rows"""
+        """Return the current raw data rows (for export)"""
         return self.current_rows
