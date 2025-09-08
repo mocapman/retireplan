@@ -72,7 +72,7 @@ def main() -> int:
     theme_ok = True
     try:
         import PySimpleGUI as sg  # noqa
-        from retireplan import theme  # type: ignore
+        from retireplan import theme
 
         theme.apply()
     except Exception as e:

@@ -1,5 +1,5 @@
 from retireplan import inputs
-from retireplan.audit import audit_rows_against_cfg
+from tools.audit import audit_rows_against_cfg
 from retireplan.engine import run_plan
 
 
