@@ -4,15 +4,11 @@ import ctypes
 import os
 import tkinter as tk
 import ttkbootstrap as tb
+from tkinter import messagebox
 from datetime import datetime
 from pathlib import Path
 from typing import List
-
-# DPI awareness for Windows
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)
-except:
-    pass
+import yaml
 
 from retireplan import inputs
 from retireplan.engine import run_plan
@@ -46,79 +42,77 @@ class RetirePlanApp:
         self.run_plan()
 
     def load_initial_config(self):
-        """Load configuration from default file"""
         try:
+            # print(f"Loading config from: {DEFAULT_CONFIG_PATH}")
+            with open(DEFAULT_CONFIG_PATH, "r", encoding="utf-8") as f:
+                config_dict = yaml.safe_load(f)
+            if "column_order" not in config_dict:
+                raise ValueError(
+                    "Config missing 'column_order' key at top level! Please check your default_config.yaml."
+                )
+            self.input_panel_config_dict = config_dict.copy()
             self.cfg = inputs.load_yaml(DEFAULT_CONFIG_PATH)
+            self.cfg.column_order = config_dict["column_order"]
+            # print("Loaded config keys:", list(config_dict.keys()))
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Configuration file '{DEFAULT_CONFIG_PATH}' not found. "
                 f"Please create a default configuration file."
             )
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load default config: {e}")
+            raise
 
     def build_ui(self) -> None:
-        """Build the main user interface"""
-        # Set initial window size
         self.root.geometry("2525x950")
-
-        # Create main paned window
         self.paned = tb.PanedWindow(self.root, orient=tk.HORIZONTAL)
         self.paned.pack(fill=tk.BOTH, expand=True)
 
-        # Input panel on the left
         input_frame = tb.Frame(self.paned, width=600)
         self.paned.add(input_frame, weight=1)
 
-        # Pass self as app to InputPanel
         self.input_panel = InputPanel(
             input_frame, app=self, on_change_callback=self.run_plan
         )
         self.input_panel.pack(fill=tk.BOTH, expand=True)
 
-        # Results display on the right
         output_frame = tb.Frame(self.paned)
         self.paned.add(output_frame, weight=2)
 
-        # Pass self as app to ResultsDisplay
         self.results_display = ResultsDisplay(output_frame, app=self)
         self.results_display.pack(fill=tk.BOTH, expand=True)
 
-        # Set initial values from config
-        config_dict = self.config_manager.config_to_dict(self.cfg)
-        self.input_panel.set_config(config_dict)
+        if hasattr(self, "input_panel_config_dict"):
+            self.input_panel.set_config(self.input_panel_config_dict)
+        else:
+            config_dict = self.config_manager.config_to_dict(self.cfg)
+            self.input_panel.set_config(config_dict)
 
-        # Set initial sash position
         self.root.after(100, lambda: self.paned.sashpos(0, 600))
 
     def run_plan(self) -> None:
-        """Run the retirement plan calculation with current inputs"""
         try:
             config_dict = self.input_panel.get_config_dict()
             self.config_manager.update_config_from_dict(self.cfg, config_dict)
-
             rows = run_plan(self.cfg)
             self.results_display.load_results(rows)
         except Exception as e:
-            tb.messagebox.showerror("Calculation Error", f"Error running plan: {e}")
+            messagebox.showerror("Calculation Error", f"Error running plan: {e}")
 
     def load_config(self):
-        """Load configuration from file"""
         self.file_ops.load_config()
 
     def save_config(self):
-        """Save current configuration to file"""
         self.file_ops.save_config()
 
     def export_csv(self):
-        """Export current results to CSV"""
         self.file_ops.export_csv()
 
     def run(self):
-        """Start the GUI application"""
         self.root.mainloop()
 
 
 def main() -> None:
-    """Main entry point for the GUI application"""
     try:
         app = RetirePlanApp()
         app.run()

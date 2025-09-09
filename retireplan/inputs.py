@@ -1,8 +1,7 @@
-# inputs.py
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Literal, List, Dict, Any
+from typing import Optional, Literal
 import yaml
 
 Filing = Literal["MFJ", "Single"]
@@ -15,16 +14,6 @@ DrawOrder = Literal[
 
 
 @dataclass
-class Year1Inputs:
-    spend: float
-    income: float
-    cash_events: List[Dict[str, Any]]
-    draws: Dict[str, float]  # keys: ira, brokerage, roth
-    taxes: float
-    roth_conversion: float
-
-
-@dataclass
 class Inputs:
     # Personal
     birth_year_person1: int
@@ -32,23 +21,28 @@ class Inputs:
     final_age_person1: int
     final_age_person2: Optional[int]
     filing_status: Filing
-    start_year: int
 
     # Balances
     balances_brokerage: float
     balances_roth: float
     balances_ira: float
 
-    # Spending phases - New model: target spend + percentages
-    target_spend: float  # Annual spending target in today's dollars
-    gogo_percent: float  # Percentage of target spend for GoGo phase (default 100)
-    slow_percent: float  # Percentage of target spend for Slow phase (default 80)  
-    nogo_percent: float  # Percentage of target spend for NoGo phase (default 70)
+    # Spending (Start Year is now under spending)
+    start_year: int
+    year1_spend: float
+    year1_cash_events: float
+    year1_brokerage_draw: float
+    year1_ira_draw: float
+    year1_roth_draw: float
+    target_spend: float
+    gogo_percent: float
+    slow_percent: float
+    nogo_percent: float
     gogo_years: int
     slow_years: int
     survivor_percent: float
 
-    # Social Security (annual at start age, today's $)
+    # Social Security
     ss_person1_start_age: int
     ss_person1_annual_at_start: float
     ss_person2_start_age: Optional[int]
@@ -70,20 +64,15 @@ class Inputs:
     # Strategy
     draw_order: DrawOrder
 
-    # Year 1 specific inputs
-    year1: Year1Inputs
-
 
 def load_yaml(path: str) -> Inputs:
     with open(path, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)
-
     b = raw["balances"]
     s = raw["spending"]
     ss = raw["social_security"]
     r = raw["rates"]
     th = raw["tax_health"]
-    y1 = raw["year1"]
 
     i = Inputs(
         birth_year_person1=raw["birth_year_person1"],
@@ -91,10 +80,16 @@ def load_yaml(path: str) -> Inputs:
         final_age_person1=raw["final_age_person1"],
         final_age_person2=raw.get("final_age_person2"),
         filing_status=raw["filing_status"],
-        start_year=raw["start_year"],
         balances_brokerage=b["brokerage"],
         balances_roth=b["roth"],
         balances_ira=b["ira"],
+        # start_year now from spending
+        start_year=s["start_year"],
+        year1_spend=s.get("year1_spend", 0),
+        year1_cash_events=s.get("year1_cash_events", 0),
+        year1_brokerage_draw=s.get("year1_brokerage_draw", 0),
+        year1_ira_draw=s.get("year1_ira_draw", 0),
+        year1_roth_draw=s.get("year1_roth_draw", 0),
         target_spend=s["target_spend"],
         gogo_percent=s.get("gogo_percent", 100.0),
         slow_percent=s.get("slow_percent", 80.0),
@@ -116,14 +111,6 @@ def load_yaml(path: str) -> Inputs:
         aca_end_age=th["aca_end_age"],
         aca_subsidy_annual=th.get("aca_subsidy_annual"),
         draw_order=raw.get("draw_order", "IRA, Brokerage, Roth"),
-        year1=Year1Inputs(
-            spend=y1["spend"],
-            income=y1["income"],
-            cash_events=y1.get("cash_events", []),
-            draws=y1["draws"],
-            taxes=y1["taxes"],
-            roth_conversion=y1["roth_conversion"],
-        ),
     )
     validate(i)
     return i
@@ -134,7 +121,6 @@ def validate(i: Inputs) -> None:
         if not (lo <= val <= hi):
             raise ValueError(f"{name} out of range [{lo},{hi}]: {val}")
 
-    # Years
     for name, y in (
         ("birth_year_person1", i.birth_year_person1),
         ("start_year", i.start_year),
@@ -142,17 +128,11 @@ def validate(i: Inputs) -> None:
         rng(name, y, 1900, 2100)
     if i.birth_year_person2 is not None:
         rng("birth_year_person2", i.birth_year_person2, 1900, 2100)
-
-    # Ages
     rng("final_age_person1", i.final_age_person1, 60, 105)
     if i.final_age_person2 is not None:
         rng("final_age_person2", i.final_age_person2, 60, 105)
-
-    # Filing
     if i.filing_status not in ("MFJ", "Single"):
         raise ValueError("filing_status must be MFJ or Single")
-
-    # Rates
     for name, p in (
         ("inflation", i.inflation),
         ("brokerage_growth", i.brokerage_growth),
@@ -160,19 +140,11 @@ def validate(i: Inputs) -> None:
         ("ira_growth", i.ira_growth),
     ):
         rng(name, p, -0.2, 0.2)
-
-    # Social Security ages
     rng("ss_person1_start_age", i.ss_person1_start_age, 62, 70)
     if i.ss_person2_start_age is not None:
         rng("ss_person2_start_age", i.ss_person2_start_age, 62, 70)
-
-    # Survivor %
     rng("survivor_percent", i.survivor_percent, 50, 100)
-
-    # RMD start
     rng("rmd_start_age", i.rmd_start_age, 70, 80)
-
-    # Draw order
     valid_orders = [
         "IRA, Brokerage, Roth",
         "Brokerage, Roth, IRA",
@@ -181,35 +153,3 @@ def validate(i: Inputs) -> None:
     ]
     if i.draw_order not in valid_orders:
         raise ValueError(f"draw_order must be one of: {valid_orders}")
-
-    # Year 1 validation
-    if i.year1.spend < 0:
-        raise ValueError("year1.spend must be non-negative")
-    if i.year1.income < 0:
-        raise ValueError("year1.income must be non-negative")
-    if i.year1.taxes < 0:
-        raise ValueError("year1.taxes must be non-negative")
-    if i.year1.roth_conversion < 0:
-        raise ValueError("year1.roth_conversion must be non-negative")
-
-    # Validate draws
-    for account, amount in i.year1.draws.items():
-        if account not in ["ira", "brokerage", "roth"]:
-            raise ValueError(
-                f"year1.draws key must be one of: ira, brokerage, roth. Got: {account}"
-            )
-        if amount < 0:
-            raise ValueError(f"year1.draws.{account} must be non-negative")
-
-    # Validate cash events
-    for event in i.year1.cash_events:
-        if "amount" not in event:
-            raise ValueError("year1.cash_events must have an 'amount' field")
-        if "from_account" in event and event["from_account"] not in [
-            "IRA",
-            "Brokerage",
-            "Roth",
-        ]:
-            raise ValueError(
-                "year1.cash_events.from_account must be one of: IRA, Brokerage, Roth"
-            )

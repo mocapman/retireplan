@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
+from tkinter import messagebox
 from typing import Callable, Optional
 
 INPUT_FONT_FAMILY = "Arial"
@@ -11,7 +12,6 @@ INPUT_FONT = (INPUT_FONT_FAMILY, INPUT_FONT_SIZE)
 
 
 def format_currency(val):
-    """Format as $#,### (no decimals)."""
     try:
         val = float(str(val).replace(",", "").replace("$", ""))
         return "${:,.0f}".format(val)
@@ -20,15 +20,12 @@ def format_currency(val):
 
 
 def strip_currency(val):
-    """Remove $ and commas for parsing."""
     return str(val).replace("$", "").replace(",", "").strip()
 
 
 def format_percent(val):
-    """Format as #.##% or #%. No decimals if not needed."""
     try:
         val = float(str(val).replace("%", ""))
-        # Show up to 2 decimals if needed, but trim .00
         if val == int(val):
             return f"{int(val)}%"
         else:
@@ -38,12 +35,10 @@ def format_percent(val):
 
 
 def strip_percent(val):
-    """Remove % for parsing."""
     return str(val).replace("%", "").strip()
 
 
 def percent_to_float(val):
-    """Convert percent string (e.g. '4', '4%', '3.5%') to float (0.04, 0.035)."""
     try:
         return float(strip_percent(val)) / 100.0
     except Exception:
@@ -51,7 +46,6 @@ def percent_to_float(val):
 
 
 def float_to_percent(val):
-    """Convert float (0.04, 0.035) to percent string (4, 3.5)."""
     try:
         val = float(val)
         return val * 100
@@ -118,10 +112,7 @@ class InputPanel(tb.Frame):
         self.create_strategy_section(strategy_frame)
         notebook.add(strategy_frame, text="Strategy")
 
-    # --- Enhanced input field creators ---
-
     def create_currency_field(self, parent, label, key, default, row, col=0):
-        """Entry with $ formatting and no decimals."""
         tb.Label(parent, text=label).grid(
             row=row, column=col, sticky=tk.W, padx=5, pady=2
         )
@@ -136,7 +127,6 @@ class InputPanel(tb.Frame):
 
         def on_focus_out(event):
             v = var.get()
-            # Only format if there is a value and input is a valid number
             try:
                 n = int(float(strip_currency(v)))
                 var.set(format_currency(n) if v.strip() else "")
@@ -150,11 +140,9 @@ class InputPanel(tb.Frame):
         return var
 
     def create_percent_field(self, parent, label, key, default, row, col=0):
-        """Entry with % formatting, supports decimals."""
         tb.Label(parent, text=label).grid(
             row=row, column=col, sticky=tk.W, padx=5, pady=2
         )
-        # Accept float or string for default, always display as percent
         if default not in ("", None):
             try:
                 shown = format_percent(float(default))
@@ -209,21 +197,20 @@ class InputPanel(tb.Frame):
 
     def create_personal_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_input_field(parent, "Start Year", "start_year", "", 0)
         self.create_input_field(
-            parent, "Person 1 Birth Year", "birth_year_person1", "", 1
+            parent, "Person 1 Birth Year", "birth_year_person1", "", 0
         )
         self.create_input_field(
-            parent, "Person 2 Birth Year", "birth_year_person2", "", 2
+            parent, "Person 2 Birth Year", "birth_year_person2", "", 1
         )
         self.create_input_field(
-            parent, "Person 1 Final Age", "final_age_person1", "", 3
+            parent, "Person 1 Final Age", "final_age_person1", "", 2
         )
         self.create_input_field(
-            parent, "Person 2 Final Age", "final_age_person2", "", 4
+            parent, "Person 2 Final Age", "final_age_person2", "", 3
         )
         self.create_combobox(
-            parent, "Filing Status", "filing_status", ["MFJ", "Single"], "MFJ", 5
+            parent, "Filing Status", "filing_status", ["MFJ", "Single"], "MFJ", 4
         )
 
     def create_accounts_section(self, parent):
@@ -236,13 +223,29 @@ class InputPanel(tb.Frame):
 
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_currency_field(parent, "Target Spend (today's $)", "target_spend", "", 0)
-        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 1)
-        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 2) 
-        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 3)
-        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 4)
-        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 5)
-        self.create_percent_field(parent, "Survivor Spending %", "survivor_percent", "", 6)
+        self.create_input_field(parent, "Start Year", "start_year", "", 0)
+        self.create_currency_field(
+            parent, "Year 1 Remaining Spend", "year1_spend", "", 1
+        )
+        self.create_input_field(
+            parent, "Year 1 Cash Events", "year1_cash_events", "", 2
+        )
+        self.create_currency_field(
+            parent, "Year 1 Brokerage Draw", "year1_brokerage_draw", "", 3
+        )
+        self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 4)
+        self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 5)
+        self.create_currency_field(
+            parent, "Target Spend (today's $)", "target_spend", "", 6
+        )
+        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 7)
+        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 8)
+        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 9)
+        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 10)
+        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 11)
+        self.create_percent_field(
+            parent, "Survivor Spending %", "survivor_percent", "", 12
+        )
 
     def create_ss_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -300,7 +303,6 @@ class InputPanel(tb.Frame):
             self.app.save_config()
 
     def get_config_dict(self):
-        # Always parse to numbers for backend logic
         def safe_int(val):
             try:
                 return int(float(val))
@@ -314,7 +316,6 @@ class InputPanel(tb.Frame):
                 return 0.0
 
         config = {
-            "start_year": safe_int(self.variables["start_year"].get()),
             "birth_year_person1": safe_int(self.variables["birth_year_person1"].get()),
             "birth_year_person2": safe_int(self.variables["birth_year_person2"].get()),
             "final_age_person1": safe_int(self.variables["final_age_person1"].get()),
@@ -330,6 +331,22 @@ class InputPanel(tb.Frame):
                 "ira": safe_float(strip_currency(self.variables["balances_ira"].get())),
             },
             "spending": {
+                "start_year": safe_int(self.variables["start_year"].get()),
+                "year1_spend": safe_float(
+                    strip_currency(self.variables["year1_spend"].get())
+                ),
+                "year1_cash_events": safe_float(
+                    self.variables["year1_cash_events"].get()
+                ),
+                "year1_brokerage_draw": safe_float(
+                    strip_currency(self.variables["year1_brokerage_draw"].get())
+                ),
+                "year1_ira_draw": safe_float(
+                    strip_currency(self.variables["year1_ira_draw"].get())
+                ),
+                "year1_roth_draw": safe_float(
+                    strip_currency(self.variables["year1_roth_draw"].get())
+                ),
                 "target_spend": safe_float(
                     strip_currency(self.variables["target_spend"].get())
                 ),
@@ -385,9 +402,9 @@ class InputPanel(tb.Frame):
         return config
 
     def set_config(self, config):
-        # Always display formatted for currency/percent fields
+        s = config.get("spending", {})
         mapping = {
-            "start_year": config.get("start_year"),
+            "start_year": s.get("start_year"),
             "birth_year_person1": config.get("birth_year_person1"),
             "birth_year_person2": config.get("birth_year_person2"),
             "final_age_person1": config.get("final_age_person1"),
@@ -400,23 +417,18 @@ class InputPanel(tb.Frame):
                 config.get("balances", {}).get("roth", "")
             ),
             "balances_ira": format_currency(config.get("balances", {}).get("ira", "")),
-            "target_spend": format_currency(
-                config.get("spending", {}).get("target_spend", "")
-            ),
-            "gogo_percent": format_percent(
-                config.get("spending", {}).get("gogo_percent", 100)
-            ),
-            "slow_percent": format_percent(
-                config.get("spending", {}).get("slow_percent", 80)
-            ),
-            "nogo_percent": format_percent(
-                config.get("spending", {}).get("nogo_percent", 70)
-            ),
-            "gogo_years": config.get("spending", {}).get("gogo_years"),
-            "slow_years": config.get("spending", {}).get("slow_years"),
-            "survivor_percent": format_percent(
-                config.get("spending", {}).get("survivor_percent", "")
-            ),
+            "year1_spend": format_currency(s.get("year1_spend", "")),
+            "year1_cash_events": s.get("year1_cash_events", ""),
+            "year1_brokerage_draw": format_currency(s.get("year1_brokerage_draw", "")),
+            "year1_ira_draw": format_currency(s.get("year1_ira_draw", "")),
+            "year1_roth_draw": format_currency(s.get("year1_roth_draw", "")),
+            "target_spend": format_currency(s.get("target_spend", "")),
+            "gogo_percent": format_percent(s.get("gogo_percent", 100)),
+            "slow_percent": format_percent(s.get("slow_percent", 80)),
+            "nogo_percent": format_percent(s.get("nogo_percent", 70)),
+            "gogo_years": s.get("gogo_years"),
+            "slow_years": s.get("slow_years"),
+            "survivor_percent": format_percent(s.get("survivor_percent", "")),
             "ss_person1_start_age": config.get("social_security", {}).get(
                 "person1_start_age"
             ),

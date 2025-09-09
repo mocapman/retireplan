@@ -1,4 +1,3 @@
-# engine.py
 from __future__ import annotations
 
 from typing import Iterable, Tuple
@@ -77,29 +76,17 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # Handle Year 1 specially
         if idx == 0:
             # Use user-provided values for Year 1
-            total_spend = Decimal(str(cfg.year1.spend))
-            ss_income = Decimal(str(cfg.year1.income))
-            tax = Decimal(str(cfg.year1.taxes))
-            roth_conv = Decimal(str(cfg.year1.roth_conversion))
+            total_spend = Decimal(str(cfg.year1_spend))
+            ss_income = Decimal(0)  # Not in config, or set if you wish
+            tax = Decimal(0)  # Not in config, or set if you wish
+            roth_conv = Decimal(0)  # Not in config, or set if you wish
 
-            # Apply user-specified draws
-            draw_ira = Decimal(str(cfg.year1.draws.get("ira", 0)))
-            draw_broke = Decimal(str(cfg.year1.draws.get("brokerage", 0)))
-            draw_roth = Decimal(str(cfg.year1.draws.get("roth", 0)))
+            draw_ira = Decimal(str(cfg.year1_ira_draw))
+            draw_broke = Decimal(str(cfg.year1_brokerage_draw))
+            draw_roth = Decimal(str(cfg.year1_roth_draw))
 
-            # Apply cash events
-            events_cash = Decimal(0)
-            for event in cfg.year1.cash_events:
-                amount = Decimal(str(event["amount"]))
-                events_cash += amount
-                # Deduct from specified account
-                account = event.get("from_account", "").lower()
-                if account == "ira":
-                    ira_end += amount  # amount is negative for expenses
-                elif account == "brokerage":
-                    brokerage_end += amount
-                elif account == "roth":
-                    roth_end += amount
+            # Apply cash events (as one value)
+            events_cash = Decimal(str(cfg.year1_cash_events))
 
             # Apply Roth conversion
             ira_end -= roth_conv
@@ -149,21 +136,18 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             rows.append(row_data)
             continue
 
-        # Normal processing for subsequent years
+        # Normal processing for subsequent years (unchanged)
         infl = _infl_factor(cfg.inflation, idx)
         std_ded = Decimal(str(cfg.standard_deduction_base)) * infl
 
-        # Determine filing status based on living status
         filing_status = "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
 
-        # Pre-Medicare MAGI target inflates; otherwise zero
         target_magi = (
             Decimal(str(cfg.magi_target_base)) * infl
             if (yc.person1_alive and yc.age_person1 < cfg.aca_end_age)
             else Decimal(0)
         )
 
-        # Annual budget (includes taxes and events), inflation + survivor adjust
         total_spend = Decimal(
             str(
                 spend_target(
@@ -181,7 +165,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             )
         )
 
-        # Social Security with survivor step-up
         ss_person1 = Decimal(
             str(
                 ss_for_year(
@@ -213,12 +196,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         else:
             ss_income = Decimal(0)
 
-        # Events (inside the budget; they reduce discretionary)
         events_cash = Decimal(0)
         for e in ev_by_year.get(yc.year, []):
             events_cash += Decimal(str(e.get("amount", 0)))
 
-        # RMD if owner alive and ≥ start age
         rmd = Decimal(0)
         if (
             yc.person1_alive
@@ -227,19 +208,15 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         ):
             rmd = ira_end / Decimal(str(rmd_factor(yc.age_person1)))
 
-        # Cash needed to meet the budget (taxes are inside the budget)
         need_for_budget = max(Decimal(0), total_spend - ss_income - rmd)
 
-        # Withdraw to meet budget; IRA reduced by RMD before draws
         draw_broke, draw_roth, draw_ira, b1, r1, i1, unmet = _withdraw_local(
             brokerage_end, roth_end, ira_end - rmd, need_for_budget, order
         )
 
-        # Provided cash and shortfall against budget
         provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
         shortfall = max(Decimal(0), total_spend - provided_cash)
 
-        # Taxes/MAGI for composition; conversions next
         def tax_and_magi(conv: Decimal) -> tuple[Decimal, Decimal]:
             tax, _ss_tax, _taxable, magi = compute_tax_magi(
                 ira_ordinary=float(rmd + draw_ira + conv),
@@ -250,81 +227,64 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             )
             return Decimal(str(tax)), Decimal(str(magi))
 
-        # Fill conversions up to MAGI target (pre-Medicare), limited by post-draw IRA capacity
         conv = Decimal(0)
         for _ in range(8):  # Limit iterations to prevent infinite loop
             tax0, magi0 = tax_and_magi(conv)
-
             if (
                 target_magi <= Decimal(0)
                 or not yc.person1_alive
                 or yc.age_person1 >= cfg.aca_end_age
             ):
                 break
-
             gap = target_magi - magi0
             if gap <= Decimal("1.0"):
                 break
-
             cap = max(Decimal(0), i1)
             step = min(gap, cap - conv)
             if step <= Decimal("1.0"):
                 break
-
             conv += step
 
-        # Apply conversion (IRA -> Roth)
         roth_conv = min(conv, max(Decimal(0), i1))
         i1 -= roth_conv
         r1 += roth_conv
 
-        # Recalculate tax with final conversion amount
         tax, magi = tax_and_magi(roth_conv)
 
-        # Sweep ONLY RMD surplus (no SS sweep)
         need_after_ss = max(Decimal(0), total_spend - ss_income)
         rmd_surplus = max(Decimal(0), rmd - need_after_ss)
         b1 += rmd_surplus
 
-        # Year-end growth
         broke_bal = b1 * (Decimal(1) + Decimal(str(cfg.brokerage_growth)))
         roth_bal = r1 * (Decimal(1) + Decimal(str(cfg.roth_growth)))
         ira_bal = i1 * (Decimal(1) + Decimal(str(cfg.ira_growth)))
 
-        # Commit running balances
         brokerage_end, roth_end, ira_end = broke_bal, roth_bal, ira_bal
 
-        # Discretionary inside the gross budget
         target_spend = max(Decimal(0), total_spend - tax - events_cash)
 
-        # Apply rounding to all monetary values
         row_data = {
-            # Timeline
             "Year": round_year(yc.year),
             "Person1_Age": round_year(yc.age_person1),
             "Person2_Age": round_year(yc.age_person2),
             "Lifestyle": yc.phase,
             "Filing": filing_status,
-            # Budgeting
             "Total_Spend": round_dollar(total_spend),
             "Taxes_Due": round_dollar(tax),
             "Cash_Events": round_dollar(events_cash),
             "Target_Spend": round_dollar(target_spend),
-            # Flows
             "Social_Security": round_dollar(ss_income),
-            "IRA_Draw": round_dollar(draw_ira),  # excludes RMD
+            "IRA_Draw": round_dollar(draw_ira),
             "Brokerage_Draw": round_dollar(draw_broke),
             "Roth_Draw": round_dollar(draw_roth),
             "Roth_Conversion": round_dollar(roth_conv),
             "RMD": round_dollar(rmd),
             "MAGI": round_dollar(magi),
             "Std_Deduction": round_dollar(std_ded),
-            # Balances
             "IRA_Balance": round_dollar(ira_bal),
             "Brokerage_Balance": round_dollar(broke_bal),
             "Roth_Balance": round_dollar(roth_bal),
             "Total_Assets": round_dollar(broke_bal + roth_bal + ira_bal),
-            # Shortfall
             "Shortfall": round_dollar(shortfall),
         }
 

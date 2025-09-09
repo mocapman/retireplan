@@ -1,10 +1,9 @@
 import csv
 import yaml
-import tkinter.messagebox as messagebox
+from tkinter import messagebox
 import tkinter.filedialog as filedialog
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any
 
 from retireplan import schema
 from retireplan.precision import round_row
@@ -17,7 +16,6 @@ class FileOperations:
         self.app = app
 
     def load_config(self):
-        """Load configuration from YAML file"""
         file_path = filedialog.askopenfilename(
             filetypes=[("YAML files", "*.yaml"), ("All files", "*.*")]
         )
@@ -25,9 +23,7 @@ class FileOperations:
             try:
                 with open(file_path, "r") as f:
                     config = yaml.safe_load(f)
-                # Set config in input panel
                 self.app.input_panel.set_config(config)
-                # Set column order in cfg for later use (for ResultsDisplay)
                 if "column_order" in config:
                     if hasattr(self.app, "cfg"):
                         self.app.cfg.column_order = config["column_order"]
@@ -36,7 +32,6 @@ class FileOperations:
                 messagebox.showerror("Error", f"Failed to load config: {e}")
 
     def save_config(self):
-        """Save current configuration to YAML file"""
         file_path = filedialog.asksaveasfilename(
             defaultextension=".yaml",
             filetypes=[("YAML files", "*.yaml"), ("All files", "*.*")],
@@ -44,7 +39,6 @@ class FileOperations:
         if file_path:
             try:
                 config = self.app.input_panel.get_config_dict()
-                # Add current column order to config
                 if hasattr(self.app, "results_display"):
                     column_order = self.app.results_display.get_current_column_order()
                     config["column_order"] = column_order
@@ -54,7 +48,6 @@ class FileOperations:
                 messagebox.showerror("Error", f"Failed to save config: {e}")
 
     def export_csv(self):
-        """Export current results to CSV with config appended"""
         current_rows = self.app.results_display.get_current_rows()
         if not current_rows:
             messagebox.showwarning("Warning", "No data to export")
@@ -75,12 +68,8 @@ class FileOperations:
                 for r in current_rows:
                     rounded_row = round_row(r)
                     w.writerow([rounded_row.get(k, None) for k in keys])
-
-                # Blank line
                 w.writerow([])
-                # Write a header for config section (optional, helpful for humans)
                 w.writerow(["# Config Settings"])
-                # Flatten config and write as key,value pairs
                 config = self.app.input_panel.get_config_dict()
 
                 def flatten(d, parent_key="", sep="."):
