@@ -1,4 +1,4 @@
-Year,Person1_Age,Person2_Age,Filing,Lifestyle,Total_Spend,Taxes_Due,Cash_Events,Base_Spend,Social_Security,IRA_Draw,Brokerage_Draw,Roth_Draw,Roth_Conversion,RMD,MAGI,Std_Deduction,IRA_Balance,Brokerage_Balance,Roth_Balance,Total_Assets,Shortfall
+Year,Person1_Age,Person2_Age,Filing,Lifestyle,Total_Spend,Taxes_Due,Cash_Events,Target_Spend,Social_Security,IRA_Draw,Brokerage_Draw,Roth_Draw,Roth_Conversion,RMD,MAGI,Std_Deduction,IRA_Balance,Brokerage_Balance,Roth_Balance,Total_Assets,Shortfall
 2025,58,56,MFJ,GoGo,120000,10156,0,109844,0,120000,0,0,0,0,120000,31500,964600,514800,112338,1591738,0
 2026,59,57,MFJ,GoGo,124200,10528,0,113672,0,124200,0,0,0,0,124200,32603,890824,535392,120763,1546979,0
 2027,60,58,MFJ,GoGo,128547,10963,0,117584,0,128547,0,0,0,0,128547,33744,808014,556808,129820,1494641,0

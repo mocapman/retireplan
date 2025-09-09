@@ -115,8 +115,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             roth_end *= Decimal(1) + Decimal(str(cfg.roth_growth))
             ira_end *= Decimal(1) + Decimal(str(cfg.ira_growth))
 
-            # Calculate base spend
-            base_spend = max(Decimal(0), total_spend - tax - events_cash)
+            # Calculate target spend
+            target_spend = max(Decimal(0), total_spend - tax - events_cash)
 
             # Create Year 1 row
             row_data = {
@@ -130,7 +130,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Total_Spend": round_dollar(total_spend),
                 "Taxes_Due": round_dollar(tax),
                 "Cash_Events": round_dollar(events_cash),
-                "Base_Spend": round_dollar(base_spend),
+                "Target_Spend": round_dollar(target_spend),
                 "Social_Security": round_dollar(ss_income),
                 "IRA_Draw": round_dollar(draw_ira),
                 "Brokerage_Draw": round_dollar(draw_broke),
@@ -295,7 +295,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         brokerage_end, roth_end, ira_end = broke_bal, roth_bal, ira_bal
 
         # Discretionary inside the gross budget
-        base_spend = max(Decimal(0), total_spend - tax - events_cash)
+        target_spend = max(Decimal(0), total_spend - tax - events_cash)
 
         # Apply rounding to all monetary values
         row_data = {
@@ -309,7 +309,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Total_Spend": round_dollar(total_spend),
             "Taxes_Due": round_dollar(tax),
             "Cash_Events": round_dollar(events_cash),
-            "Base_Spend": round_dollar(base_spend),
+            "Target_Spend": round_dollar(target_spend),
             # Flows
             "Social_Security": round_dollar(ss_income),
             "IRA_Draw": round_dollar(draw_ira),  # excludes RMD

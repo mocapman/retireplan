@@ -54,7 +54,7 @@ ROUNDING_RULES: Dict[str, Callable[[Any], Any]] = {
     "Total_Spend": round_dollar,
     "Taxes_Due": round_dollar,
     "Cash_Events": round_dollar,
-    "Base_Spend": round_dollar,
+    "Target_Spend": round_dollar,
     "Social_Security": round_dollar,
     "IRA_Draw": round_dollar,
     "Brokerage_Draw": round_dollar,

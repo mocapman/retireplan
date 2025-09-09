@@ -28,7 +28,7 @@ def test_calculation_consistency():
 
         # 2. Check that spending components add up
         total_spend = row["Total_Spend"]
-        sum_components = row["Base_Spend"] + row["Taxes_Due"] + row["Cash_Events"]
+        sum_components = row["Target_Spend"] + row["Taxes_Due"] + row["Cash_Events"]
         assert (
             abs(total_spend - sum_components) <= 1
         ), f"Year {row['Year']}: Total_Spend doesn't match sum of components"

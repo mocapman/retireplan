@@ -16,7 +16,7 @@ REPLACEMENTS = [
     ("Spend_Target", "Total_Spend"),
     ("Taxes\\b", "Taxes_Due"),  # whole-word 'Taxes' only
     ("Events_Cash", "Cash_Events"),
-    ("Discretionary_Spend", "Base_Spend"),
+    ("Discretionary_Spend", "Target_Spend"),
     ("SS_Income", "Social_Security"),
     ("Draw_IRA", "IRA_Draw"),
     ("Draw_Brokerage", "Brokerage_Draw"),

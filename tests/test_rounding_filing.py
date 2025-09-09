@@ -5,7 +5,7 @@ from io import StringIO
 import os
 
 # Test data
-data = """Year,Person1_Age,Person2_Age,Filing,Lifestyle,Total_Spend,Taxes_Due,Cash_Events,Base_Spend,Social_Security,IRA_Draw,Brokerage_Draw,Roth_Draw,Roth_Conversion,RMD,MAGI,Std_Deduction,IRA_Balance,Brokerage_Balance,Roth_Balance,Total_Assets,Shortfall
+data = """Year,Person1_Age,Person2_Age,Filing,Lifestyle,Total_Spend,Taxes_Due,Cash_Events,Target_Spend,Social_Security,IRA_Draw,Brokerage_Draw,Roth_Draw,Roth_Conversion,RMD,MAGI,Std_Deduction,IRA_Balance,Brokerage_Balance,Roth_Balance,Total_Assets,Shortfall
 2025,58,56,MFJ,GoGo,100000,7756,0,92244,0,100000,0,0,0,0,100000,31500,321000,535000,107000,963000,0
 2026,59,57,MFJ,GoGo,102500,7962,0,94539,0,102500,0,0,0,0,102500,32288,233795,572450,114490,920735,0
 2027,60,58,MFJ,GoGo,105062,8172,0,96890,0,105063,0,0,0,0,105063,33095,137744,612522,122504,872770,0
