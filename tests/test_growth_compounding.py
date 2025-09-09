@@ -59,7 +59,7 @@ def test_growth_with_conversions_and_rmd():
 
     # Ensure an RMD year early
     cfg3 = deepcopy(cfg)
-    bump_to_rmd = (cfg.rmd_start_age + 1) - (cfg.start_year - cfg.birth_year_you)
+    bump_to_rmd = (cfg.rmd_start_age + 1) - (cfg.start_year - cfg.birth_year_person1)
     cfg3.start_year += max(0, bump_to_rmd)
     rows3 = run_plan(cfg3)
     _assert_growth_identities(cfg3, rows3)
