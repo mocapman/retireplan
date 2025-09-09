@@ -53,3 +53,24 @@ year1:
     roth: 0
   taxes: 0
   roth_conversion: 0
+
+  column_order:
+    - Year
+    - Age
+    - IRA
+    - Roth
+    - Brokerage
+    - Taxable
+    - Total
+    - Spending
+    - MAGI
+    - Tax Owed
+    - Balance
+    - Net Worth
+    - SS
+    - Tax
+    - RMD
+    - Withdrawal
+    - Medical
+    - Income
+    - Standard Deduction

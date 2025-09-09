@@ -25,7 +25,12 @@ class FileOperations:
             try:
                 with open(file_path, "r") as f:
                     config = yaml.safe_load(f)
+                # Set config in input panel
                 self.app.input_panel.set_config(config)
+                # Set column order in cfg for later use (for ResultsDisplay)
+                if "column_order" in config:
+                    if hasattr(self.app, "cfg"):
+                        self.app.cfg.column_order = config["column_order"]
                 self.app.run_plan()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load config: {e}")
@@ -39,6 +44,10 @@ class FileOperations:
         if file_path:
             try:
                 config = self.app.input_panel.get_config_dict()
+                # Add current column order to config
+                if hasattr(self.app, "results_display"):
+                    column_order = self.app.results_display.get_current_column_order()
+                    config["column_order"] = column_order
                 with open(file_path, "w") as f:
                     yaml.dump(config, f, default_flow_style=False)
             except Exception as e:
