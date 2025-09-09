@@ -15,7 +15,7 @@ def test_decimal_precision():
         "Total_Spend",
         "Taxes_Due",
         "Cash_Events",
-        "Base_Spend",
+        "Target_Spend",
         "Social_Security",
         "IRA_Draw",
         "Brokerage_Draw",
