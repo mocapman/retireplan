@@ -63,7 +63,7 @@ class FileOperations:
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             cfg = self.app.cfg
-            settings_str = f"{cfg.draw_order.replace(', ', '_')}_{cfg.gogo_annual}"
+            settings_str = f"{cfg.draw_order.replace(', ', '_')}_{cfg.target_spend}"
 
             out = Path(f"Projections_{settings_str}_{timestamp}.csv")
 

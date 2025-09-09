@@ -236,12 +236,13 @@ class InputPanel(tb.Frame):
 
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_currency_field(parent, "GoGo Annual", "gogo_annual", "", 0)
-        self.create_currency_field(parent, "Slow Annual", "slow_annual", "", 1)
-        self.create_currency_field(parent, "NoGo Annual", "nogo_annual", "", 2)
-        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 3)
-        self.create_input_field(parent, "Slow Years", "slow_years", "", 4)
-        self.create_percent_field(parent, "Survivor %", "survivor_percent", "", 5)
+        self.create_currency_field(parent, "Target Spend", "target_spend", "", 0)
+        self.create_percent_field(parent, "GoGo %", "gogo_percent", 100, 1)
+        self.create_percent_field(parent, "Slow %", "slow_percent", 80, 2) 
+        self.create_percent_field(parent, "NoGo %", "nogo_percent", 70, 3)
+        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 4)
+        self.create_input_field(parent, "Slow Years", "slow_years", "", 5)
+        self.create_percent_field(parent, "Survivor %", "survivor_percent", "", 6)
 
     def create_ss_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -329,14 +330,17 @@ class InputPanel(tb.Frame):
                 "ira": safe_float(strip_currency(self.variables["balances_ira"].get())),
             },
             "spending": {
-                "gogo_annual": safe_float(
-                    strip_currency(self.variables["gogo_annual"].get())
+                "target_spend": safe_float(
+                    strip_currency(self.variables["target_spend"].get())
                 ),
-                "slow_annual": safe_float(
-                    strip_currency(self.variables["slow_annual"].get())
+                "gogo_percent": safe_float(
+                    strip_percent(self.variables["gogo_percent"].get())
                 ),
-                "nogo_annual": safe_float(
-                    strip_currency(self.variables["nogo_annual"].get())
+                "slow_percent": safe_float(
+                    strip_percent(self.variables["slow_percent"].get())
+                ),
+                "nogo_percent": safe_float(
+                    strip_percent(self.variables["nogo_percent"].get())
                 ),
                 "gogo_years": safe_int(self.variables["gogo_years"].get()),
                 "slow_years": safe_int(self.variables["slow_years"].get()),
@@ -396,14 +400,17 @@ class InputPanel(tb.Frame):
                 config.get("balances", {}).get("roth", "")
             ),
             "balances_ira": format_currency(config.get("balances", {}).get("ira", "")),
-            "gogo_annual": format_currency(
-                config.get("spending", {}).get("gogo_annual", "")
+            "target_spend": format_currency(
+                config.get("spending", {}).get("target_spend", "")
             ),
-            "slow_annual": format_currency(
-                config.get("spending", {}).get("slow_annual", "")
+            "gogo_percent": format_percent(
+                config.get("spending", {}).get("gogo_percent", 100)
             ),
-            "nogo_annual": format_currency(
-                config.get("spending", {}).get("nogo_annual", "")
+            "slow_percent": format_percent(
+                config.get("spending", {}).get("slow_percent", 80)
+            ),
+            "nogo_percent": format_percent(
+                config.get("spending", {}).get("nogo_percent", 70)
             ),
             "gogo_years": config.get("spending", {}).get("gogo_years"),
             "slow_years": config.get("spending", {}).get("slow_years"),

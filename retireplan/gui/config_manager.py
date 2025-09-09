@@ -23,9 +23,10 @@ class ConfigManager:
                 "ira": cfg.balances_ira,
             },
             "spending": {
-                "gogo_annual": cfg.gogo_annual,
-                "slow_annual": cfg.slow_annual,
-                "nogo_annual": cfg.nogo_annual,
+                "target_spend": cfg.target_spend,
+                "gogo_percent": cfg.gogo_percent,
+                "slow_percent": cfg.slow_percent,
+                "nogo_percent": cfg.nogo_percent,
                 "gogo_years": cfg.gogo_years,
                 "slow_years": cfg.slow_years,
                 "survivor_percent": cfg.survivor_percent,

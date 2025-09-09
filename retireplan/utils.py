@@ -13,8 +13,8 @@ def generate_filename(prefix: str, cfg, extension: str = "csv") -> Path:
     # Create a descriptive string from key settings
     settings_parts = [
         f"draw_{cfg.draw_order[:3]}",
-        f"gogo_{cfg.gogo_annual}",
-        f"slow_{cfg.slow_annual}",
+        f"target_{cfg.target_spend}",
+        f"gogo_{cfg.gogo_percent}pct",
         f"brokerage_{cfg.balances_brokerage}",
     ]
 

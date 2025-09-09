@@ -10,14 +10,22 @@ def spend_target(
     phase: str,
     year_index: int,
     infl: float,
-    gogo: float,
-    slow: float,
-    nogo: float,
+    target_spend: float,
+    gogo_percent: float,
+    slow_percent: float,
+    nogo_percent: float,
     survivor_pct: float,
     person1_alive: bool,
     person2_alive: bool,
 ) -> Decimal:
-    base = gogo if phase == "GoGo" else slow if phase == "Slow" else nogo
+    # Calculate phase-specific amount from target spend and percentage
+    if phase == "GoGo":
+        base = target_spend * (gogo_percent / 100.0)
+    elif phase == "Slow":
+        base = target_spend * (slow_percent / 100.0)
+    else:  # NoGo
+        base = target_spend * (nogo_percent / 100.0)
+    
     amt = base * infl_factor(infl, year_index)
 
     # Determine if survivor situation

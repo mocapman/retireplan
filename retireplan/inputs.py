@@ -39,10 +39,11 @@ class Inputs:
     balances_roth: float
     balances_ira: float
 
-    # Spending phases
-    gogo_annual: float
-    slow_annual: float
-    nogo_annual: float
+    # Spending phases - New model: target spend + percentages
+    target_spend: float  # Annual spending target in today's dollars
+    gogo_percent: float  # Percentage of target spend for GoGo phase (default 100)
+    slow_percent: float  # Percentage of target spend for Slow phase (default 80)  
+    nogo_percent: float  # Percentage of target spend for NoGo phase (default 70)
     gogo_years: int
     slow_years: int
     survivor_percent: float
@@ -94,9 +95,10 @@ def load_yaml(path: str) -> Inputs:
         balances_brokerage=b["brokerage"],
         balances_roth=b["roth"],
         balances_ira=b["ira"],
-        gogo_annual=s["gogo_annual"],
-        slow_annual=s["slow_annual"],
-        nogo_annual=s["nogo_annual"],
+        target_spend=s["target_spend"],
+        gogo_percent=s.get("gogo_percent", 100.0),
+        slow_percent=s.get("slow_percent", 80.0),
+        nogo_percent=s.get("nogo_percent", 70.0),
         gogo_years=s["gogo_years"],
         slow_years=s["slow_years"],
         survivor_percent=s["survivor_percent"],
