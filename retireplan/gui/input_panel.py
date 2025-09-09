@@ -236,13 +236,13 @@ class InputPanel(tb.Frame):
 
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_currency_field(parent, "Target Spend", "target_spend", "", 0)
-        self.create_percent_field(parent, "GoGo %", "gogo_percent", 100, 1)
-        self.create_percent_field(parent, "Slow %", "slow_percent", 80, 2) 
-        self.create_percent_field(parent, "NoGo %", "nogo_percent", 70, 3)
+        self.create_currency_field(parent, "Target Spend (today's $)", "target_spend", "", 0)
+        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 1)
+        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 2) 
+        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 3)
         self.create_input_field(parent, "GoGo Years", "gogo_years", "", 4)
-        self.create_input_field(parent, "Slow Years", "slow_years", "", 5)
-        self.create_percent_field(parent, "Survivor %", "survivor_percent", "", 6)
+        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 5)
+        self.create_percent_field(parent, "Survivor Spending %", "survivor_percent", "", 6)
 
     def create_ss_section(self, parent):
         parent.columnconfigure(1, weight=1)

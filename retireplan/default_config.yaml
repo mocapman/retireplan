@@ -12,9 +12,10 @@ balances:
   ira: 1030000
 
 spending:
-  gogo_annual: 120000
-  slow_annual: 100000
-  nogo_annual: 80000
+  target_spend: 120000   # Annual spending target in today's dollars
+  gogo_percent: 100.0    # Percentage of target spend for GoGo phase
+  slow_percent: 83.3     # Percentage of target spend for Slow phase  
+  nogo_percent: 66.7     # Percentage of target spend for NoGo phase
   gogo_years: 10
   slow_years: 6
   survivor_percent: 70

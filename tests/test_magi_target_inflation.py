@@ -12,7 +12,8 @@ def test_magi_target_inflates_and_engine_fills_when_headroom():
     cfg = inputs.load_yaml("examples/sample_inputs.yaml")
     # Maximize headroom and minimize ordinary income
     cfg.draw_order = "Brokerage, Roth, IRA"
-    cfg.gogo_annual = cfg.slow_annual = cfg.nogo_annual = 30000
+    cfg.target_spend = 30000
+    cfg.gogo_percent = cfg.slow_percent = cfg.nogo_percent = 100.0
     cfg.balances_brokerage = max(cfg.balances_brokerage, 200_000)
     cfg.balances_ira = max(cfg.balances_ira, 50_000)
 

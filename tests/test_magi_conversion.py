@@ -7,9 +7,10 @@ def test_conversions_fill_magi_before_medicare_when_headroom_exists():
 
     # Create headroom for MAGI by drawing from brokerage first and lowering spend
     cfg.draw_order = "Brokerage, Roth, IRA"
-    cfg.gogo_annual = 30000
-    cfg.slow_annual = 30000
-    cfg.nogo_annual = 30000
+    cfg.target_spend = 30000
+    cfg.gogo_percent = 100.0
+    cfg.slow_percent = 100.0
+    cfg.nogo_percent = 100.0
     cfg.balances_brokerage = max(cfg.balances_brokerage, 200000)
     cfg.balances_ira = max(50000, cfg.balances_ira)  # ensure some IRA to convert
 

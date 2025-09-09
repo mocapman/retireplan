@@ -19,7 +19,8 @@ def _first_post_medicare(rows, aca_age):
 def test_magi_fills_to_inflated_target_pre_medicare():
     cfg = inputs.load_yaml("examples/sample_inputs.yaml")
     cfg.draw_order = "Brokerage, Roth, IRA"  # minimize ordinary income
-    cfg.gogo_annual = cfg.slow_annual = cfg.nogo_annual = 30000
+    cfg.target_spend = 30000
+    cfg.gogo_percent = cfg.slow_percent = cfg.nogo_percent = 100.0
     cfg.balances_brokerage = max(cfg.balances_brokerage, 200_000)
     cfg.balances_ira = max(cfg.balances_ira, 50_000)
 

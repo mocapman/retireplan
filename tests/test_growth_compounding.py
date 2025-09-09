@@ -50,7 +50,8 @@ def test_growth_with_conversions_and_rmd():
     # Ensure conversions pre-Medicare
     cfg2 = deepcopy(cfg)
     cfg2.draw_order = "Brokerage, Roth, IRA"
-    cfg2.gogo_annual = cfg2.slow_annual = cfg2.nogo_annual = 30000
+    cfg2.target_spend = 30000
+    cfg2.gogo_percent = cfg2.slow_percent = cfg2.nogo_percent = 100.0
     cfg2.balances_brokerage = max(cfg2.balances_brokerage, 200_000)
     cfg2.balances_ira = max(cfg2.balances_ira, 50_000)
     rows2 = run_plan(cfg2)

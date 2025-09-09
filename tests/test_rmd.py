@@ -11,9 +11,10 @@ def test_rmd_triggers_at_start_age_and_no_conversions_after_medicare():
     years_to_bump = (cfg.rmd_start_age + 2) - (cfg.start_year - cfg.birth_year_you)
     cfg.start_year += max(0, years_to_bump)
     # Keep spend modest so RMD covers most needs and we can check the amount
-    cfg.gogo_annual = 20000
-    cfg.slow_annual = 20000
-    cfg.nogo_annual = 20000
+    cfg.target_spend = 20000
+    cfg.gogo_percent = 100.0
+    cfg.slow_percent = 100.0
+    cfg.nogo_percent = 100.0
 
     rows = run_plan(cfg)
     y0 = rows[0]
