@@ -1,5 +1,5 @@
 from retireplan import inputs
-from retireplan.engine import run_plan
+from retireplan.engine.engine import run_plan
 
 
 def _first_pre_medicare(rows, aca_age):
@@ -58,7 +58,7 @@ def test_no_conversions_post_medicare_and_rmd_works():
     if y0["RMD"] > 0:
         # IRA start-of-year approximated by reversing year-end growth and adds draws+RMD
         # Simpler check: required amount aligns with table within tolerance
-        from retireplan.policy import rmd_factor as rf
+        from retireplan.engine.policy import rmd_factor as rf
 
         expect = round(cfg.balances_ira / rf(y0["Your_Age"]))
         assert abs(y0["RMD"] - expect) <= 2

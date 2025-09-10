@@ -1,8 +1,8 @@
 # test_precision.py
 from decimal import Decimal
 from retireplan import inputs
-from retireplan.engine import run_plan
-from retireplan.precision import round_row
+from retireplan.engine.engine import run_plan
+from retireplan.engine.precision import round_row
 
 
 def test_decimal_precision():

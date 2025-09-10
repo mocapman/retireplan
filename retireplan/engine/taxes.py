@@ -1,9 +1,8 @@
 # taxes.py
 from __future__ import annotations
 from typing import Tuple
-from decimal import Decimal
 
-from retireplan.policy import FED_BRACKETS, SS_THRESHOLDS
+from retireplan.engine.policy import FED_BRACKETS, SS_THRESHOLDS
 
 
 def progressive_tax(taxable_income: float, filing: str) -> float:

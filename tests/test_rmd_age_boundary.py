@@ -1,5 +1,5 @@
 from retireplan import inputs
-from retireplan.engine import run_plan
+from retireplan.engine.engine import run_plan
 
 
 def _age(cfg, year):

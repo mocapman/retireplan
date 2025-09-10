@@ -6,12 +6,12 @@ from decimal import Decimal, getcontext
 # Set precision for decimal calculations
 getcontext().prec = 10  # 10 decimal places of precision
 
-from retireplan.policy import rmd_factor
-from retireplan.social_security import ss_for_year
-from retireplan.spending import spend_target
-from retireplan.taxes import compute_tax_magi
-from retireplan.timeline import make_years
-from retireplan.precision import round_dollar, round_percent, round_year
+from retireplan.engine.policy import rmd_factor
+from retireplan.engine.social_security import ss_for_year
+from retireplan.engine.spending import spend_target
+from retireplan.engine.taxes import compute_tax_magi
+from retireplan.engine.timeline import make_years
+from retireplan.engine.precision import round_dollar, round_year
 
 
 def _infl_factor(rate: float, idx: int) -> Decimal:

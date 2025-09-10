@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Dict, Any
 
 from retireplan import inputs
-from retireplan.engine import run_plan
+from retireplan.engine.engine import run_plan
 
 
 def _rows_early_years(rows: List[Dict[str, Any]], n: int = 12) -> List[Dict[str, Any]]:

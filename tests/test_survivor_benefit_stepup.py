@@ -1,6 +1,6 @@
 from retireplan import inputs
-from retireplan.engine import run_plan
-from retireplan.social_security import ss_for_year
+from retireplan.engine.engine import run_plan
+from retireplan.engine.social_security import ss_for_year
 
 
 def test_survivor_steps_up_to_higher_benefit():

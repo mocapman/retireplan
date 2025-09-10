@@ -1,11 +1,8 @@
-import pytest
-import yaml
 import os
-from decimal import Decimal
 
 from retireplan.inputs import load_yaml
-from retireplan.engine import run_plan
-from retireplan.taxes import ss_taxable_amount
+from retireplan.engine.engine import run_plan
+from retireplan.engine.taxes import ss_taxable_amount
 
 # Load the sample inputs
 yaml_path = os.path.join("examples", "sample_inputs.yaml")

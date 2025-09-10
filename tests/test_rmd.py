@@ -1,6 +1,6 @@
 from retireplan import inputs
-from retireplan.engine import run_plan
-from retireplan.policy import rmd_factor
+from retireplan.engine.engine import run_plan
+from retireplan.engine.policy import rmd_factor
 
 
 def test_rmd_triggers_at_start_age_and_no_conversions_after_medicare():

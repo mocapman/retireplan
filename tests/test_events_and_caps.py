@@ -1,5 +1,5 @@
 from retireplan import inputs
-from retireplan.engine import run_plan
+from retireplan.engine.engine import run_plan
 
 
 def test_events_affect_cash_and_identity():

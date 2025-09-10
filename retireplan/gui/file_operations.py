@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from retireplan import schema
-from retireplan.precision import round_row
+from retireplan.engine.precision import round_row
 
 
 class FileOperations:

@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 import csv
 
 from retireplan import inputs, schema
-from retireplan.engine import run_plan
+from retireplan.engine.engine import run_plan
 
 
 def _print_cut(rows: List[Dict[str, Any]], note: str | None = None) -> None:
