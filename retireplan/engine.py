@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+"""
+/home/runner/work/retireplan/retireplan/retireplan/engine.py
+
+Core retirement planning calculation engine.
+
+This module contains the main `run_plan()` function that orchestrates the year-by-year
+retirement planning calculations. It handles timeline generation, spending calculations,
+tax computations, account withdrawals, and RMD requirements.
+
+Author: Retirement Planning Team
+License: MIT
+Last Updated: 2024-01-10
+"""
 from __future__ import annotations
 
 from typing import Iterable, Tuple
@@ -15,43 +29,141 @@ from retireplan.precision import round_dollar, round_percent, round_year
 
 
 def _infl_factor(rate: float, idx: int) -> Decimal:
+    """
+    Calculate inflation adjustment factor for a given rate and number of years.
+    
+    Args:
+        rate: Annual inflation rate as decimal (e.g., 0.03 for 3%)
+        idx: Number of years since start (0 = no inflation adjustment)
+        
+    Returns:
+        Decimal factor to multiply base amount for inflation adjustment
+        
+    Example:
+        _infl_factor(0.03, 5) returns (1.03)^5 = 1.159274...
+    """
     return (Decimal(1) + Decimal(str(rate))) ** idx
 
 
 def _withdraw_local(
     b: Decimal, r: Decimal, i: Decimal, need: Decimal, order: Tuple[str, str, str]
 ) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal, Decimal, Decimal]:
-    """Withdraw in the given order; returns draws, end balances, and remaining unmet need."""
+    """
+    Withdraw funds from retirement accounts in specified order to meet spending need.
+    
+    This function implements the core withdrawal logic, taking money from accounts
+    in the specified order until the need is met or all accounts are exhausted.
+    
+    Args:
+        b: Brokerage account balance
+        r: Roth IRA account balance  
+        i: Traditional IRA account balance
+        need: Amount of money needed for spending
+        order: Tuple specifying withdrawal order (e.g., ("Brokerage", "Roth", "IRA"))
+        
+    Returns:
+        Tuple containing:
+        - Brokerage draw amount
+        - Roth draw amount  
+        - IRA draw amount
+        - Remaining brokerage balance
+        - Remaining Roth balance
+        - Remaining IRA balance
+        - Unmet need (if any)
+        
+    Business Rules:
+        - Withdrawals follow the specified order strictly
+        - Cannot withdraw more than account balance
+        - Stops when need is met or all accounts exhausted
+        - Uses small epsilon (1e-9) to handle rounding errors
+    """
     remaining = max(Decimal(0), need)
     draws = {"Brokerage": Decimal(0), "Roth": Decimal(0), "IRA": Decimal(0)}
+    
     for leg in order:
+        # Determine available balance for current account type
         cap = b if leg == "Brokerage" else r if leg == "Roth" else i
         take = min(cap, remaining)
+        
+        # Update account balance
         if leg == "Brokerage":
             b -= take
         elif leg == "Roth":
             r -= take
-        else:
+        else:  # IRA
             i -= take
+            
+        # Track withdrawal amount
         draws[leg] += take
         remaining -= take
+        
+        # Stop if need is met (with small tolerance for rounding)
         if remaining <= Decimal("1e-9"):
             break
+            
     return draws["Brokerage"], draws["Roth"], draws["IRA"], b, r, i, remaining
 
 
 def _parse_draw_order(draw_order: str) -> Tuple[str, str, str]:
-    """Parse the draw order string into a tuple of account types."""
+    """
+    Parse the draw order string into a tuple of account types.
+    
+    Args:
+        draw_order: Comma-separated string of account names (e.g., "Brokerage, Roth, IRA")
+        
+    Returns:
+        Tuple of three account type strings in withdrawal order
+        
+    Example:
+        _parse_draw_order("Brokerage, IRA, Roth") -> ("Brokerage", "IRA", "Roth")
+    """
     parts = [part.strip() for part in draw_order.split(",")]
     return tuple(parts)
 
 
 def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
+    """
+    Execute year-by-year retirement planning calculations.
+    
+    This is the main engine function that orchestrates all retirement planning
+    calculations for each year from start to end of plan. It handles spending
+    targets, tax calculations, account withdrawals, RMD requirements, Roth
+    conversions, and survivor benefit adjustments.
+    
+    Args:
+        cfg: Configuration object containing all plan parameters including:
+            - Account balances and growth rates
+            - Spending targets and lifestyle phases
+            - Tax and Social Security parameters
+            - Timeline parameters (birth years, final ages)
+        events: Optional list of cash events by year with structure:
+            [{"year": int, "amount": float}, ...] where positive amounts
+            are extra spending, negative amounts are cash inflows
+            
+    Returns:
+        List of dictionaries, one per year, containing:
+            - Year and age information
+            - Spending and tax calculations  
+            - Account balances and draws
+            - RMD and Roth conversion amounts
+            - Social Security benefits
+            - Filing status and lifecycle phase
+            
+    Business Rules:
+        - Year 1 uses user-provided values for most calculations
+        - Subsequent years use calculated values based on configuration
+        - Survivor benefits: When one person dies, take higher SS benefit
+        - RMD starts at configured age using IRS Uniform Lifetime Table
+        - Roth conversions target MAGI limits for ACA premium subsidies
+        - Account withdrawals follow configured draw order
+        - Surplus RMD (beyond spending need) goes to brokerage account
+    """
     # Events by year (amount >0 = extra spend; <0 = inflow). Cash-only.
     ev_by_year: dict[int, list[dict]] = {}
     for e in events or []:
         ev_by_year.setdefault(int(e["year"]), []).append(e)
 
+    # Generate complete timeline with ages, phases, and survival status
     years = make_years(
         cfg.start_year,
         cfg.birth_year_person1,
@@ -67,13 +179,15 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
     roth_end = Decimal(str(cfg.balances_roth))
     ira_end = Decimal(str(cfg.balances_ira))
 
-    # Parse the draw order
+    # Parse the draw order for account withdrawal sequencing
     order = _parse_draw_order(cfg.draw_order)
 
     rows: list[dict] = []
 
     for idx, yc in enumerate(years):
-        # Handle Year 1 specially
+        # BUSINESS RULE: Year 1 special handling
+        # Year 1 uses user-provided values instead of calculated values
+        # This allows users to set known actuals for the current year
         if idx == 0:
             # Use user-provided values for Year 1
             total_spend = Decimal(str(cfg.year1_spend))
@@ -81,6 +195,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             tax = Decimal(0)  # Not in config, or set if you wish
             roth_conv = Decimal(0)  # Not in config, or set if you wish
 
+            # Apply user-specified draws for Year 1
             draw_ira = Decimal(str(cfg.year1_ira_draw))
             draw_broke = Decimal(str(cfg.year1_brokerage_draw))
             draw_roth = Decimal(str(cfg.year1_roth_draw))
@@ -88,7 +203,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             # Apply cash events (as one value)
             events_cash = Decimal(str(cfg.year1_cash_events))
 
-            # Apply Roth conversion
+            # Apply Roth conversion (IRA -> Roth transfer)
             ira_end -= roth_conv
             roth_end += roth_conv
 
@@ -97,12 +212,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             brokerage_end -= draw_broke
             roth_end -= draw_roth
 
-            # Apply growth
+            # Apply growth at end of year
             brokerage_end *= Decimal(1) + Decimal(str(cfg.brokerage_growth))
             roth_end *= Decimal(1) + Decimal(str(cfg.roth_growth))
             ira_end *= Decimal(1) + Decimal(str(cfg.ira_growth))
 
-            # Calculate target spend
+            # Calculate target spend (spending after taxes and events)
             target_spend = max(Decimal(0), total_spend - tax - events_cash)
 
             # Create Year 1 row
@@ -136,18 +251,23 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             rows.append(row_data)
             continue
 
-        # Normal processing for subsequent years (unchanged)
+        # Normal processing for subsequent years (calculated values)
         infl = _infl_factor(cfg.inflation, idx)
         std_ded = Decimal(str(cfg.standard_deduction_base)) * infl
 
+        # BUSINESS RULE: Filing status determination
+        # Both alive = Married Filing Jointly, otherwise Single
         filing_status = "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
 
+        # BUSINESS RULE: MAGI targeting for ACA premium subsidies  
+        # Only target MAGI while person1 is under ACA end age (usually 65)
         target_magi = (
             Decimal(str(cfg.magi_target_base)) * infl
             if (yc.person1_alive and yc.age_person1 < cfg.aca_end_age)
             else Decimal(0)
         )
 
+        # Calculate inflation-adjusted spending target based on lifecycle phase
         total_spend = Decimal(
             str(
                 spend_target(
@@ -165,6 +285,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             )
         )
 
+        # Calculate Social Security benefits with COLA adjustments
         ss_person1 = Decimal(
             str(
                 ss_for_year(
@@ -187,6 +308,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 )
             )
         )
+        
+        # BUSINESS RULE: Survivor Social Security benefits
+        # When both alive: sum of both benefits
+        # When one alive: higher of the two benefits (survivor gets better benefit)
+        # When neither alive: no benefits
         if yc.person1_alive and yc.person2_alive:
             ss_income = ss_person1 + ss_person2
         elif yc.person1_alive and not yc.person2_alive:
@@ -196,10 +322,14 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         else:
             ss_income = Decimal(0)
 
+        # Sum all cash events for this year
         events_cash = Decimal(0)
         for e in ev_by_year.get(yc.year, []):
             events_cash += Decimal(str(e.get("amount", 0)))
 
+        # BUSINESS RULE: Required Minimum Distribution (RMD) calculation
+        # RMD required when person1 is alive and at/above RMD start age (usually 73)
+        # Uses IRS Uniform Lifetime Table factors
         rmd = Decimal(0)
         if (
             yc.person1_alive
@@ -208,16 +338,24 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         ):
             rmd = ira_end / Decimal(str(rmd_factor(yc.age_person1)))
 
+        # Calculate how much we need from accounts after SS and RMD
         need_for_budget = max(Decimal(0), total_spend - ss_income - rmd)
 
+        # Withdraw from accounts in specified order to meet budget need
+        # Note: RMD amount is excluded from IRA balance for withdrawal calculation
         draw_broke, draw_roth, draw_ira, b1, r1, i1, unmet = _withdraw_local(
             brokerage_end, roth_end, ira_end - rmd, need_for_budget, order
         )
 
+        # Calculate total cash provided and any shortfall
         provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
         shortfall = max(Decimal(0), total_spend - provided_cash)
 
+        # BUSINESS RULE: Roth conversion targeting for MAGI limits
+        # Iteratively adjust Roth conversion to hit MAGI target for ACA subsidies
+        # Only applies when person1 is alive and under ACA end age
         def tax_and_magi(conv: Decimal) -> tuple[Decimal, Decimal]:
+            """Calculate tax and MAGI for given Roth conversion amount."""
             tax, _ss_tax, _taxable, magi = compute_tax_magi(
                 ira_ordinary=float(rmd + draw_ira + conv),
                 roth_conversion=float(conv),
@@ -228,7 +366,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             return Decimal(str(tax)), Decimal(str(magi))
 
         conv = Decimal(0)
-        for _ in range(8):  # Limit iterations to prevent infinite loop
+        # Iterative approach to hit MAGI target (limit iterations to prevent infinite loop)
+        for _ in range(8):
             tax0, magi0 = tax_and_magi(conv)
             if (
                 target_magi <= Decimal(0)
@@ -237,30 +376,38 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             ):
                 break
             gap = target_magi - magi0
-            if gap <= Decimal("1.0"):
+            if gap <= Decimal("1.0"):  # Close enough to target
                 break
-            cap = max(Decimal(0), i1)
-            step = min(gap, cap - conv)
-            if step <= Decimal("1.0"):
+            cap = max(Decimal(0), i1)  # Available IRA balance for conversion
+            step = min(gap, cap - conv)  # Don't exceed available balance
+            if step <= Decimal("1.0"):  # Minimal remaining step
                 break
             conv += step
 
+        # Apply final Roth conversion (limited by available IRA balance)
         roth_conv = min(conv, max(Decimal(0), i1))
         i1 -= roth_conv
         r1 += roth_conv
 
+        # Calculate final tax and MAGI with chosen conversion amount
         tax, magi = tax_and_magi(roth_conv)
 
+        # BUSINESS RULE: Surplus RMD handling
+        # If RMD exceeds spending need (after SS), put surplus in brokerage
+        # This ensures required distributions are taken but excess goes to taxable account
         need_after_ss = max(Decimal(0), total_spend - ss_income)
         rmd_surplus = max(Decimal(0), rmd - need_after_ss)
         b1 += rmd_surplus
 
+        # Apply end-of-year growth to all accounts
         broke_bal = b1 * (Decimal(1) + Decimal(str(cfg.brokerage_growth)))
         roth_bal = r1 * (Decimal(1) + Decimal(str(cfg.roth_growth)))
         ira_bal = i1 * (Decimal(1) + Decimal(str(cfg.ira_growth)))
 
+        # Update running balances for next year
         brokerage_end, roth_end, ira_end = broke_bal, roth_bal, ira_bal
 
+        # Calculate target spend (spending after taxes and events)
         target_spend = max(Decimal(0), total_spend - tax - events_cash)
 
         row_data = {

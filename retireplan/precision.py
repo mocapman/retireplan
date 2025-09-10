@@ -1,4 +1,17 @@
-# precision.py
+#!/usr/bin/env python3
+"""
+/home/runner/work/retireplan/retireplan/retireplan/precision.py
+
+Precision control and rounding utilities for financial calculations.
+
+This module ensures consistent rounding behavior across all financial calculations,
+with specific rules for dollar amounts, percentages, years, and counts. It provides
+column-specific rounding rules for output consistency.
+
+Author: Retirement Planning Team
+License: MIT
+Last Updated: 2024-01-10
+"""
 from __future__ import annotations
 from typing import Any, Dict, List, Callable
 from decimal import Decimal, ROUND_HALF_UP
