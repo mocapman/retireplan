@@ -33,6 +33,29 @@ def infl_factor(infl: float, years_since_start: int) -> float:
     return (1.0 + infl) ** years_since_start
 
 
+def infl_factor_decimal(rate: float, idx: int) -> Decimal:
+    """
+    Calculate inflation adjustment factor returning Decimal for precision.
+    
+    Same calculation as infl_factor() but returns Decimal type for
+    high-precision financial calculations.
+    
+    Args:
+        rate: Annual inflation rate as decimal (e.g., 0.03 for 3%)
+        idx: Number of years since start (0 = no inflation adjustment)
+        
+    Returns:
+        Decimal factor to multiply base amount for inflation adjustment
+        
+    Example:
+        infl_factor_decimal(0.03, 5) returns Decimal('1.159274074')
+        
+    TODO: Consider consolidating with infl_factor() once Decimal adoption
+    is complete throughout the codebase.
+    """
+    return (Decimal(1) + Decimal(str(rate))) ** idx
+
+
 def spend_target(
     phase: str,
     year_index: int,

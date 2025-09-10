@@ -15,6 +15,8 @@ Last Updated: 2024-01-10
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
+from typing import Tuple
 
 
 @dataclass
@@ -118,3 +120,98 @@ class Accounts:
         self.brokerage *= 1.0 + self.gr_brokerage
         self.roth *= 1.0 + self.gr_roth
         self.ira *= 1.0 + self.gr_ira
+
+
+def withdraw_with_order(
+    brokerage_balance: Decimal, 
+    roth_balance: Decimal, 
+    ira_balance: Decimal, 
+    need: Decimal, 
+    order: Tuple[str, str, str]
+) -> Tuple[Decimal, Decimal, Decimal, Decimal, Decimal, Decimal, Decimal]:
+    """
+    Withdraw funds from retirement accounts in specified order to meet spending need.
+    
+    This function implements the core withdrawal logic used by the retirement
+    planning engine. It takes money from accounts in the specified order until
+    the need is met or all accounts are exhausted.
+    
+    Args:
+        brokerage_balance: Available brokerage account balance
+        roth_balance: Available Roth IRA balance  
+        ira_balance: Available Traditional IRA balance
+        need: Amount of money needed for spending
+        order: Tuple specifying withdrawal order (e.g., ("Brokerage", "Roth", "IRA"))
+        
+    Returns:
+        Tuple containing:
+        - Brokerage draw amount
+        - Roth draw amount  
+        - IRA draw amount
+        - Remaining brokerage balance
+        - Remaining Roth balance
+        - Remaining IRA balance
+        - Unmet need (if any)
+        
+    Business Rules:
+        - Withdrawals follow the specified order strictly
+        - Cannot withdraw more than account balance
+        - Stops when need is met or all accounts exhausted
+        - Uses small epsilon (1e-9) to handle rounding errors
+        
+    Note:
+        This function does not modify the input balances - it returns new values.
+        This is designed for use in the engine's calculation loop where balances
+        are managed separately.
+        
+    TODO: Consider merging with Accounts.withdraw_sequence() once Decimal
+    adoption is complete throughout the codebase.
+    """
+    remaining = max(Decimal(0), need)
+    draws = {"Brokerage": Decimal(0), "Roth": Decimal(0), "IRA": Decimal(0)}
+    
+    # Track balances (don't modify inputs)
+    b, r, i = brokerage_balance, roth_balance, ira_balance
+    
+    for leg in order:
+        # Determine available balance for current account type
+        cap = b if leg == "Brokerage" else r if leg == "Roth" else i
+        take = min(cap, remaining)
+        
+        # Update running balance
+        if leg == "Brokerage":
+            b -= take
+        elif leg == "Roth":
+            r -= take
+        else:  # IRA
+            i -= take
+            
+        # Track withdrawal amount
+        draws[leg] += take
+        remaining -= take
+        
+        # Stop if need is met (with small tolerance for rounding)
+        if remaining <= Decimal("1e-9"):
+            break
+            
+    return draws["Brokerage"], draws["Roth"], draws["IRA"], b, r, i, remaining
+
+
+def parse_draw_order(draw_order: str) -> Tuple[str, str, str]:
+    """
+    Parse the draw order string into a tuple of account types.
+    
+    Args:
+        draw_order: Comma-separated string of account names (e.g., "Brokerage, Roth, IRA")
+        
+    Returns:
+        Tuple of three account type strings in withdrawal order
+        
+    Example:
+        parse_draw_order("Brokerage, IRA, Roth") -> ("Brokerage", "IRA", "Roth")
+        
+    TODO: Add validation to ensure all three account types are specified
+    and are valid account names.
+    """
+    parts = [part.strip() for part in draw_order.split(",")]
+    return tuple(parts)

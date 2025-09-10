@@ -22,103 +22,31 @@ getcontext().prec = 10  # 10 decimal places of precision
 
 from retireplan.policy import rmd_factor
 from retireplan.social_security import ss_for_year
-from retireplan.spending import spend_target
+from retireplan.spending import spend_target, infl_factor_decimal
 from retireplan.taxes import compute_tax_magi
 from retireplan.timeline import make_years
 from retireplan.precision import round_dollar, round_percent, round_year
+from retireplan.accounts import withdraw_with_order, parse_draw_order
 
 
-def _infl_factor(rate: float, idx: int) -> Decimal:
-    """
-    Calculate inflation adjustment factor for a given rate and number of years.
-    
-    Args:
-        rate: Annual inflation rate as decimal (e.g., 0.03 for 3%)
-        idx: Number of years since start (0 = no inflation adjustment)
-        
-    Returns:
-        Decimal factor to multiply base amount for inflation adjustment
-        
-    Example:
-        _infl_factor(0.03, 5) returns (1.03)^5 = 1.159274...
-    """
-    return (Decimal(1) + Decimal(str(rate))) ** idx
+# Remove duplicate inflation function - use infl_factor_decimal from spending.py
+# TODO: Further consolidate inflation utilities once Decimal adoption is complete
+#
+# MODULARIZATION DECISION: Consolidated inflation calculations in spending.py
+# RATIONALE: The spending.py module already had an identical inflation function.
+#            Having two functions doing the same calculation creates maintenance issues.
+# FUTURE: Consider standardizing on either float or Decimal throughout the codebase
+#         to allow complete consolidation of these functions.
 
 
-def _withdraw_local(
-    b: Decimal, r: Decimal, i: Decimal, need: Decimal, order: Tuple[str, str, str]
-) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal, Decimal, Decimal]:
-    """
-    Withdraw funds from retirement accounts in specified order to meet spending need.
-    
-    This function implements the core withdrawal logic, taking money from accounts
-    in the specified order until the need is met or all accounts are exhausted.
-    
-    Args:
-        b: Brokerage account balance
-        r: Roth IRA account balance  
-        i: Traditional IRA account balance
-        need: Amount of money needed for spending
-        order: Tuple specifying withdrawal order (e.g., ("Brokerage", "Roth", "IRA"))
-        
-    Returns:
-        Tuple containing:
-        - Brokerage draw amount
-        - Roth draw amount  
-        - IRA draw amount
-        - Remaining brokerage balance
-        - Remaining Roth balance
-        - Remaining IRA balance
-        - Unmet need (if any)
-        
-    Business Rules:
-        - Withdrawals follow the specified order strictly
-        - Cannot withdraw more than account balance
-        - Stops when need is met or all accounts exhausted
-        - Uses small epsilon (1e-9) to handle rounding errors
-    """
-    remaining = max(Decimal(0), need)
-    draws = {"Brokerage": Decimal(0), "Roth": Decimal(0), "IRA": Decimal(0)}
-    
-    for leg in order:
-        # Determine available balance for current account type
-        cap = b if leg == "Brokerage" else r if leg == "Roth" else i
-        take = min(cap, remaining)
-        
-        # Update account balance
-        if leg == "Brokerage":
-            b -= take
-        elif leg == "Roth":
-            r -= take
-        else:  # IRA
-            i -= take
-            
-        # Track withdrawal amount
-        draws[leg] += take
-        remaining -= take
-        
-        # Stop if need is met (with small tolerance for rounding)
-        if remaining <= Decimal("1e-9"):
-            break
-            
-    return draws["Brokerage"], draws["Roth"], draws["IRA"], b, r, i, remaining
-
-
-def _parse_draw_order(draw_order: str) -> Tuple[str, str, str]:
-    """
-    Parse the draw order string into a tuple of account types.
-    
-    Args:
-        draw_order: Comma-separated string of account names (e.g., "Brokerage, Roth, IRA")
-        
-    Returns:
-        Tuple of three account type strings in withdrawal order
-        
-    Example:
-        _parse_draw_order("Brokerage, IRA, Roth") -> ("Brokerage", "IRA", "Roth")
-    """
-    parts = [part.strip() for part in draw_order.split(",")]
-    return tuple(parts)
+# Remove duplicate functions - now using centralized versions from accounts.py
+# TODO: Further consolidate account management once refactoring is complete
+#
+# MODULARIZATION DECISION: Moved withdrawal and draw order logic to accounts.py
+# RATIONALE: The accounts.py module is the natural place for account-related operations.
+#            The engine was duplicating withdrawal logic that already existed there.
+# FUTURE: Consider using the Accounts class directly instead of separate functions
+#         once Decimal precision is standardized throughout the codebase.
 
 
 def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
@@ -180,7 +108,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
     ira_end = Decimal(str(cfg.balances_ira))
 
     # Parse the draw order for account withdrawal sequencing
-    order = _parse_draw_order(cfg.draw_order)
+    order = parse_draw_order(cfg.draw_order)
 
     rows: list[dict] = []
 
@@ -252,7 +180,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             continue
 
         # Normal processing for subsequent years (calculated values)
-        infl = _infl_factor(cfg.inflation, idx)
+        infl = infl_factor_decimal(cfg.inflation, idx)
         std_ded = Decimal(str(cfg.standard_deduction_base)) * infl
 
         # BUSINESS RULE: Filing status determination
@@ -343,7 +271,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
         # Withdraw from accounts in specified order to meet budget need
         # Note: RMD amount is excluded from IRA balance for withdrawal calculation
-        draw_broke, draw_roth, draw_ira, b1, r1, i1, unmet = _withdraw_local(
+        draw_broke, draw_roth, draw_ira, b1, r1, i1, unmet = withdraw_with_order(
             brokerage_end, roth_end, ira_end - rmd, need_for_budget, order
         )
 
