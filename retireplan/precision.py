@@ -26,7 +26,20 @@ COUNT_PRECISION = 0  # Whole numbers
 
 # Rounding functions
 def round_dollar(value: Any) -> int:
-    """Round to whole dollars"""
+    """
+    Round to whole dollars for financial calculations.
+    
+    Args:
+        value: Numeric value to round (supports Decimal, float, int)
+        
+    Returns:
+        Integer dollar amount, or None if input was None
+        
+    Business Rules:
+        - Uses banker's rounding (ROUND_HALF_UP) for consistent behavior
+        - All financial amounts displayed as whole dollars for clarity
+        - Supports Decimal type for high-precision intermediate calculations
+    """
     if value is None:
         return None
     if isinstance(value, Decimal):
@@ -35,7 +48,19 @@ def round_dollar(value: Any) -> int:
 
 
 def round_percent(value: Any) -> float:
-    """Round to 4 decimal places for percentages"""
+    """
+    Round to 4 decimal places for percentage calculations.
+    
+    Args:
+        value: Numeric value representing a percentage
+        
+    Returns:
+        Float rounded to 4 decimal places, or None if input was None
+        
+    Business Rules:
+        - Provides sufficient precision for percentage calculations (e.g., 12.3456%)
+        - Uses consistent ROUND_HALF_UP behavior with dollar amounts
+    """
     if value is None:
         return None
     if isinstance(value, Decimal):
@@ -91,7 +116,24 @@ ROUNDING_RULES: Dict[str, Callable[[Any], Any]] = {
 
 
 def round_value(key: str, value: Any) -> Any:
-    """Round a value based on its column key"""
+    """
+    Round a value based on its column key using predefined rules.
+    
+    Args:
+        key: Column name/key that determines rounding rule
+        value: Value to be rounded
+        
+    Returns:
+        Rounded value according to the column's rule, or original value if no rule
+        
+    Business Rules:
+        - Dollar amounts: rounded to whole dollars
+        - Years/Ages: rounded to whole numbers  
+        - Percentages: rounded to 4 decimal places
+        - String/categorical values: returned unchanged
+        
+    This provides consistent formatting across all output columns.
+    """
     if value is None:
         return None
 
@@ -108,5 +150,16 @@ def round_row(row: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def round_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Round all values in all rows according to their column rules"""
+    """
+    Round all values in all rows according to their column rules.
+    
+    Args:
+        rows: List of dictionaries representing table rows
+        
+    Returns:
+        List of dictionaries with all values properly rounded
+        
+    This is the main function used by the retirement planning engine
+    to ensure all output values have consistent precision and formatting.
+    """
     return [round_row(row) for row in rows]
