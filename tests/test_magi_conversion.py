@@ -1,5 +1,5 @@
 from retireplan import inputs
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 
 
 def test_conversions_fill_magi_before_medicare_when_headroom_exists():

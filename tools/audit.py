@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Any
 
 from retireplan import inputs
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 
 
 @dataclass

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from retireplan import inputs
 from tools import projections
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 
 COLUMNS_CHECK = [
     "Year",
