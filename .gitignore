@@ -5,11 +5,11 @@ __pycache__/
 *.pyd
 .idea/
 *.egg-info/
-dist/
-build/
 .env
 .DS_Store
-projections.csv
+dist/
+build/
 out/
-.idea/
 docs/
+tests/
+tools/
