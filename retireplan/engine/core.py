@@ -118,7 +118,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # This allows users to set known actuals for the current year
         if idx == 0:
             # Use user-provided values for Year 1
-            total_spend = Decimal(str(cfg.year1_spend))
+            year1_lifestyle_spend = Decimal(str(cfg.year1_spend))
             ss_income = Decimal(0)  # Not in config, or set if you wish
             tax = Decimal(0)  # Not in config, or set if you wish
             roth_conv = Decimal(0)  # Not in config, or set if you wish
@@ -145,8 +145,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             roth_end *= Decimal(1) + Decimal(str(cfg.roth_growth))
             ira_end *= Decimal(1) + Decimal(str(cfg.ira_growth))
 
-            # Calculate target spend (spending after taxes and events)
-            target_spend = max(Decimal(0), total_spend - tax - events_cash)
+            # Calculate final spending values for output
+            # Target_Spend: Actual lifestyle spending for Year 1
+            target_spend = year1_lifestyle_spend  
+            # Total_Spend: For Year 1, show the gross lifestyle spending (same as target)
+            # Cash events are shown separately in the Cash_Events column
+            total_spend = year1_lifestyle_spend
 
             # Create Year 1 row
             row_data = {
@@ -195,8 +199,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             else Decimal(0)
         )
 
-        # Calculate inflation-adjusted spending target based on lifecycle phase
-        total_spend = Decimal(
+        # Calculate inflation-adjusted lifestyle spending target based on lifecycle phase
+        # This represents the core lifestyle spending goal (Target_Spend)
+        target_spend_lifestyle = Decimal(
             str(
                 spend_target(
                     phase=yc.phase,
@@ -267,7 +272,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             rmd = ira_end / Decimal(str(rmd_factor(yc.age_person1)))
 
         # Calculate how much we need from accounts after SS and RMD
-        need_for_budget = max(Decimal(0), total_spend - ss_income - rmd)
+        need_for_budget = max(Decimal(0), target_spend_lifestyle - ss_income - rmd)
 
         # Withdraw from accounts in specified order to meet budget need
         # Note: RMD amount is excluded from IRA balance for withdrawal calculation
@@ -277,7 +282,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
         # Calculate total cash provided and any shortfall
         provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
-        shortfall = max(Decimal(0), total_spend - provided_cash)
+        shortfall = max(Decimal(0), target_spend_lifestyle - provided_cash)
 
         # BUSINESS RULE: Roth conversion targeting for MAGI limits
         # Iteratively adjust Roth conversion to hit MAGI target for ACA subsidies
@@ -323,7 +328,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # BUSINESS RULE: Surplus RMD handling
         # If RMD exceeds spending need (after SS), put surplus in brokerage
         # This ensures required distributions are taken but excess goes to taxable account
-        need_after_ss = max(Decimal(0), total_spend - ss_income)
+        need_after_ss = max(Decimal(0), target_spend_lifestyle - ss_income)
         rmd_surplus = max(Decimal(0), rmd - need_after_ss)
         b1 += rmd_surplus
 
@@ -335,8 +340,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # Update running balances for next year
         brokerage_end, roth_end, ira_end = broke_bal, roth_bal, ira_bal
 
-        # Calculate target spend (spending after taxes and events)
-        target_spend = max(Decimal(0), total_spend - tax - events_cash)
+        # Calculate final spending values for output
+        # Target_Spend: Core lifestyle spending goal (inflation-adjusted)
+        target_spend = target_spend_lifestyle
+        # Total_Spend: Total amount needed including taxes and events
+        total_spend = target_spend_lifestyle + tax + events_cash
 
         row_data = {
             "Year": round_year(yc.year),
