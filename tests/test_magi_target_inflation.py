@@ -1,6 +1,6 @@
 from decimal import Decimal
 from retireplan import inputs
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 
 
 def _first_two_pre_medicare(rows, aca_age):

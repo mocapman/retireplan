@@ -1,5 +1,5 @@
 from retireplan import inputs
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 from retireplan.engine.social_security import ss_for_year
 
 

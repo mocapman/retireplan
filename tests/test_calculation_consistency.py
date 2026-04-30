@@ -1,7 +1,7 @@
 import os
 
 from retireplan.inputs import load_yaml
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 from retireplan.engine.taxes import ss_taxable_amount
 
 # Load the sample inputs

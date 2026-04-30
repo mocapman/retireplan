@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 from retireplan import inputs
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 
 
 def _first_pre_medicare(rows, aca_age):

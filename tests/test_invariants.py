@@ -1,6 +1,6 @@
 from retireplan import inputs
 from tools.audit import audit_rows_against_cfg
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 
 
 def test_engine_identities_hold():

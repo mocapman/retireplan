@@ -8,7 +8,7 @@ from datetime import datetime
 import yaml
 
 from retireplan import inputs
-from retireplan.engine.engine import run_plan
+from retireplan.engine.core import run_plan
 from .input_panel import InputPanel
 from .results_display import ResultsDisplay
 from .file_operations import FileOperations
