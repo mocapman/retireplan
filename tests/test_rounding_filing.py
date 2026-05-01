@@ -29,9 +29,8 @@ def test_standard_deduction_inflation():
     rows = run_plan(cfg)
     for row in rows[1:]:  # year 1 has Std_Deduction=0 hardcoded
         years_since_start = row["Year"] - cfg.start_year
-        expected = round(
-            cfg.standard_deduction_base * (1 + cfg.inflation) ** years_since_start
-        )
+        base = cfg.standard_deduction_base / 2 if row["Filing"] == "Single" else cfg.standard_deduction_base
+        expected = round(base * (1 + cfg.inflation) ** years_since_start)
         assert abs(row["Std_Deduction"] - expected) < 100, (
             f"Year {row['Year']}: Std_Deduction {row['Std_Deduction']} vs expected {expected}"
         )

@@ -165,11 +165,15 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
         # Normal processing for subsequent years (calculated values)
         infl = infl_factor_decimal(cfg.inflation, idx)
-        std_ded = Decimal(str(cfg.standard_deduction_base)) * infl
 
         # BUSINESS RULE: Filing status determination
         # Both alive = Married Filing Jointly, otherwise Single
         filing_status = "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
+
+        base_ded = Decimal(str(cfg.standard_deduction_base))
+        if filing_status == "Single":
+            base_ded = base_ded / 2
+        std_ded = base_ded * infl
 
         # BUSINESS RULE: MAGI targeting for ACA premium subsidies
         # Only target MAGI while person1 is under ACA end age (usually 65)
