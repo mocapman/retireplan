@@ -1,7 +1,7 @@
 balances:
-  brokerage: 483000.0
-  ira: 1049000.0
-  roth: 106000.0
+  brokerage: 528000.0
+  ira: 1201000.0
+  roth: 125000.0
 birth_year_person1: 1967
 birth_year_person2: 1969
 column_order:
@@ -44,7 +44,7 @@ spending:
   nogo_percent: 70.0
   slow_percent: 80.0
   slow_years: 6
-  start_year: 2025
+  start_year: 2026
   survivor_percent: 70.0
   target_spend: 120000.0
   year1_brokerage_draw: 80000.0

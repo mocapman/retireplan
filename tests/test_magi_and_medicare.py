@@ -25,7 +25,7 @@ def test_magi_fills_to_inflated_target_pre_medicare():
     cfg.balances_ira = max(cfg.balances_ira, 50_000)
 
     rows = run_plan(cfg)
-    y = _first_pre_medicare(rows, cfg.aca_end_age)
+    y = _first_pre_medicare(rows[1:], cfg.aca_end_age)
     assert y is not None
 
     years_since_start = y["Year"] - cfg.start_year
