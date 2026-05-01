@@ -62,7 +62,7 @@ class RetirePlanApp:
 
     def build_ui(self) -> None:
         self.root.geometry("2525x950")
-        self.paned = tb.PanedWindow(self.root, orient=tk.HORIZONTAL)
+        self.paned = tb.Panedwindow(self.root, orient=tk.HORIZONTAL)
         self.paned.pack(fill=tk.BOTH, expand=True)
 
         input_frame = tb.Frame(self.paned, width=600)

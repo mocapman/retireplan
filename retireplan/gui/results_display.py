@@ -6,7 +6,7 @@ from ttkbootstrap.constants import *
 from tksheet import Sheet
 from typing import List
 
-from tools.projections import to_2d_for_table
+from retireplan.projections import to_2d_for_table
 
 
 def format_currency(val):
