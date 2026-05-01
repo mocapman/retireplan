@@ -29,26 +29,6 @@ from retireplan.engine.precision import round_dollar, round_percent, round_year
 from retireplan.engine.accounts import withdraw_with_order, parse_draw_order
 
 
-# Remove duplicate inflation function - use infl_factor_decimal from spending.py
-# TODO: Further consolidate inflation utilities once Decimal adoption is complete
-#
-# MODULARIZATION DECISION: Consolidated inflation calculations in spending.py
-# RATIONALE: The spending.py module already had an identical inflation function.
-#            Having two functions doing the same calculation creates maintenance issues.
-# FUTURE: Consider standardizing on either float or Decimal throughout the codebase
-#         to allow complete consolidation of these functions.
-
-
-# Remove duplicate functions - now using centralized versions from accounts.py
-# TODO: Further consolidate account management once refactoring is complete
-#
-# MODULARIZATION DECISION: Moved withdrawal and draw order logic to accounts.py
-# RATIONALE: The accounts.py module is the natural place for account-related operations.
-#            The engine was duplicating withdrawal logic that already existed there.
-# FUTURE: Consider using the Accounts class directly instead of separate functions
-#         once Decimal precision is standardized throughout the codebase.
-
-
 def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
     """
     Execute year-by-year retirement planning calculations.
@@ -290,7 +270,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         def tax_and_magi(conv: Decimal) -> tuple[Decimal, Decimal]:
             """Calculate tax and MAGI for given Roth conversion amount."""
             tax, _ss_tax, _taxable, magi = compute_tax_magi(
-                ira_ordinary=float(rmd + draw_ira + conv),
+                ira_ordinary=float(rmd + draw_ira),
                 roth_conversion=float(conv),
                 ss_total=float(ss_income),
                 std_deduction=float(std_ded),
