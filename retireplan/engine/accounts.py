@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Tuple
 
+VALID_ACCOUNT_NAMES = ("Brokerage", "Roth", "IRA")
+
 
 @dataclass
 class Accounts:
@@ -163,10 +165,8 @@ def withdraw_with_order(
         This function does not modify the input balances - it returns new values.
         This is designed for use in the engine's calculation loop where balances
         are managed separately.
-        
-    TODO: Consider merging with Accounts.withdraw_sequence() once Decimal
-    adoption is complete throughout the codebase.
     """
+    order = _validate_draw_order_parts(tuple(order))
     remaining = max(Decimal(0), need)
     draws = {"Brokerage": Decimal(0), "Roth": Decimal(0), "IRA": Decimal(0)}
     
@@ -209,9 +209,39 @@ def parse_draw_order(draw_order: str) -> Tuple[str, str, str]:
         
     Example:
         parse_draw_order("Brokerage, IRA, Roth") -> ("Brokerage", "IRA", "Roth")
-        
-    TODO: Add validation to ensure all three account types are specified
-    and are valid account names.
     """
     parts = [part.strip() for part in draw_order.split(",")]
-    return tuple(parts)
+    return _validate_draw_order_parts(tuple(parts))
+
+
+def _validate_draw_order_parts(parts: tuple[str, ...]) -> Tuple[str, str, str]:
+    """Validate that draw order contains each engine account exactly once."""
+    valid = set(VALID_ACCOUNT_NAMES)
+
+    if len(parts) != len(VALID_ACCOUNT_NAMES):
+        expected = ", ".join(VALID_ACCOUNT_NAMES)
+        raise ValueError(f"draw_order must include exactly three accounts: {expected}")
+
+    if any(part == "" for part in parts):
+        raise ValueError("draw_order contains an empty account name")
+
+    invalid = [part for part in parts if part not in valid]
+    if invalid:
+        invalid_names = ", ".join(invalid)
+        expected = ", ".join(VALID_ACCOUNT_NAMES)
+        raise ValueError(
+            f"draw_order contains invalid account name(s): {invalid_names}. "
+            f"Known accounts: {expected}"
+        )
+
+    duplicates = sorted({part for part in parts if parts.count(part) > 1})
+    if duplicates:
+        duplicate_names = ", ".join(duplicates)
+        raise ValueError(f"draw_order contains duplicate account name(s): {duplicate_names}")
+
+    missing = [account for account in VALID_ACCOUNT_NAMES if account not in parts]
+    if missing:
+        missing_names = ", ".join(missing)
+        raise ValueError(f"draw_order is missing required account(s): {missing_names}")
+
+    return parts

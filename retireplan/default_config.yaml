@@ -1,7 +1,7 @@
 balances:
-  brokerage: 483000.0
-  ira: 1049000.0
-  roth: 106000.0
+  brokerage: 528000.0
+  ira: 1201000.0
+  roth: 125000.0
 birth_year_person1: 1967
 birth_year_person2: 1969
 column_order:
@@ -24,7 +24,7 @@ column_order:
 - Brokerage_Balance
 - Roth_Balance
 - Total_Assets
-draw_order: Brokerage, Roth, IRA
+draw_order: Brokerage, IRA, Roth
 filing_status: MFJ
 final_age_person1: 75
 final_age_person2: 85
@@ -44,14 +44,14 @@ spending:
   nogo_percent: 70.0
   slow_percent: 80.0
   slow_years: 6
-  start_year: 2025
+  start_year: 2026
   survivor_percent: 70.0
   target_spend: 120000.0
   year1_brokerage_draw: 80000.0
-  year1_cash_events: -40000.0
+  year1_cash_events: 0.0
   year1_ira_draw: 0.0
   year1_roth_draw: 0.0
-  year1_spend: 40000.0
+  year1_spend: 80000.0
 tax_health:
   aca_end_age: 65
   magi_target_base: 85000.0
