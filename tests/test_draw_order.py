@@ -5,10 +5,10 @@ from retireplan.engine.core import run_plan
 
 
 def _first_pre_medicare(rows, aca_age):
-    for r in rows:
-        if r["Your_Age"] < aca_age:
+    for r in rows[1:]:  # skip year 1 (hardcoded zeros)
+        if r["Person1_Age"] < aca_age:
             return r
-    return rows[0]
+    return rows[1]
 
 
 def test_draw_order_changes_distribution():
@@ -26,8 +26,8 @@ def test_draw_order_changes_distribution():
     rows2 = run_plan(cfg2)
     y2 = _first_pre_medicare(rows2, cfg.aca_end_age)
 
-    # Same spending target
-    assert abs(y1["Total_Spend"] - y2["Total_Spend"]) <= 2
+    # Same lifestyle spending target (taxes differ by draw order, so check Target_Spend)
+    assert abs(y1["Target_Spend"] - y2["Target_Spend"]) <= 2
 
     # Distribution changes as expected
     assert y1["IRA_Draw"] >= y2["IRA_Draw"]

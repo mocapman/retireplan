@@ -4,7 +4,7 @@ from retireplan.engine.core import run_plan
 
 
 def _first_two_pre_medicare(rows, aca_age):
-    xs = [r for r in rows if r["Your_Age"] < aca_age]
+    xs = [r for r in rows[1:] if r["Person1_Age"] < aca_age]  # skip year 1
     return xs[0], xs[1] if len(xs) > 1 else (xs[0], xs[0])
 
 

@@ -15,7 +15,8 @@ def _assert_growth_identities(cfg, rows):
         i0 = prev["IRA_Balance"]
 
         rmd = cur["RMD"]
-        total_need = max(0, cur["Total_Spend"] - cur["Social_Security"])
+        # Engine computes surplus against Target_Spend (lifestyle only, not taxes)
+        total_need = max(0, cur["Target_Spend"] - cur["Social_Security"])
         rmd_surplus = max(0, rmd - total_need)
 
         # Convert growth rates to Decimal for compatibility

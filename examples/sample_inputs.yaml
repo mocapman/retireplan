@@ -12,6 +12,7 @@ balances:
   ira: 1030000
 
 spending:
+  start_year: 2025
   target_spend: 120000
   gogo_percent: 100.0
   slow_percent: 83.3
@@ -19,6 +20,11 @@ spending:
   gogo_years: 10
   slow_years: 6
   survivor_percent: 70
+  year1_spend: 40000.0
+  year1_cash_events: -40000.0
+  year1_brokerage_draw: 80000.0
+  year1_ira_draw: 0.0
+  year1_roth_draw: 0.0
 
 social_security:
   person1_start_age: 70

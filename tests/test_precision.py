@@ -1,17 +1,13 @@
-# test_precision.py
-from decimal import Decimal
 from retireplan import inputs
 from retireplan.engine.core import run_plan
-from retireplan.engine.precision import round_row
 
 
 def test_decimal_precision():
-    """Test that monetary calculations use Decimal precision and rounding works correctly"""
+    """Test that run_plan outputs integer dollar amounts and integer ages/years"""
     cfg = inputs.load_yaml("examples/sample_inputs.yaml")
     rows = run_plan(cfg)
 
-    # Columns that should be Decimal (monetary values)
-    decimal_columns = [
+    monetary_columns = [
         "Total_Spend",
         "Taxes_Due",
         "Cash_Events",
@@ -30,31 +26,14 @@ def test_decimal_precision():
         "Total_Assets",
         "Shortfall",
     ]
+    integer_columns = ["Year", "Person1_Age", "Person2_Age"]
 
-    # Columns that should be integers
-    integer_columns = ["Year", "Your_Age", "Spouse_Age"]
-
-    # Check that monetary values are Decimal before rounding
     for row in rows:
-        for key, value in row.items():
-            if key in decimal_columns:
-                assert isinstance(
-                    value, Decimal
-                ), f"Value for {key} should be Decimal, got {type(value)}"
-            elif key in integer_columns:
-                assert isinstance(
-                    value, int
-                ), f"Value for {key} should be int, got {type(value)}"
-
-    # Check that rounding works correctly
-    rounded_rows = [round_row(row) for row in rows]
-    for rounded_row in rounded_rows:
-        for key, value in rounded_row.items():
-            if key in integer_columns:
-                assert (
-                    isinstance(value, int) or value is None
-                ), f"{key} should be int after rounding"
-            elif key in decimal_columns:
-                assert (
-                    isinstance(value, int) or value is None
-                ), f"{key} should be int after rounding (dollar amounts)"
+        for key in monetary_columns:
+            assert isinstance(
+                row[key], int
+            ), f"{key} should be int after run_plan, got {type(row[key])}"
+        for key in integer_columns:
+            assert isinstance(
+                row[key], int
+            ), f"{key} should be int, got {type(row[key])}"

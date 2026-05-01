@@ -7,21 +7,21 @@ def test_survivor_steps_up_to_higher_benefit():
     cfg = inputs.load_yaml("examples/sample_inputs.yaml")
     rows = run_plan(cfg)
 
-    # Find first Survivor year where at least one benefit is scheduled
+    # Find first Single (survivor) year where at least one benefit is scheduled
     for r in rows:
-        if r["Living"] == "Survivor":
+        if r["Filing"] == "Single":
             idx = int(r["Year"] - cfg.start_year)
             you_sched = ss_for_year(
-                r["Your_Age"],
-                cfg.ss_you_start_age,
-                cfg.ss_you_annual_at_start,
+                r["Person1_Age"],
+                cfg.ss_person1_start_age,
+                cfg.ss_person1_annual_at_start,
                 idx,
                 cfg.inflation,
             )
             sp_sched = ss_for_year(
-                r["Spouse_Age"],
-                cfg.ss_spouse_start_age,
-                cfg.ss_spouse_annual_at_start,
+                r["Person2_Age"],
+                cfg.ss_person2_start_age,
+                cfg.ss_person2_annual_at_start,
                 idx,
                 cfg.inflation,
             )

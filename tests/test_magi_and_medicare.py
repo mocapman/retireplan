@@ -4,14 +4,14 @@ from retireplan.engine.core import run_plan
 
 def _first_pre_medicare(rows, aca_age):
     for r in rows:
-        if r["Your_Age"] < aca_age:
+        if r["Person1_Age"] < aca_age:
             return r
     return None
 
 
 def _first_post_medicare(rows, aca_age):
     for r in rows:
-        if r["Your_Age"] >= aca_age:
+        if r["Person1_Age"] >= aca_age:
             return r
     return None
 
@@ -41,17 +41,17 @@ def test_no_conversions_post_medicare_and_rmd_works():
 
     # force post-Medicare start and trigger RMD in first year
     bump_to_post_medicare = (cfg.aca_end_age + 1) - (
-        cfg.start_year - cfg.birth_year_you
+        cfg.start_year - cfg.birth_year_person1
     )
     cfg.start_year += max(0, bump_to_post_medicare)
-    years_to_rmd = (cfg.rmd_start_age + 1) - (cfg.start_year - cfg.birth_year_you)
+    years_to_rmd = (cfg.rmd_start_age + 1) - (cfg.start_year - cfg.birth_year_person1)
     cfg.start_year += max(0, years_to_rmd)
 
     rows = run_plan(cfg)
     y0 = rows[0]
 
     # No conversions after Medicare
-    assert y0["Your_Age"] >= cfg.aca_end_age
+    assert y0["Person1_Age"] >= cfg.aca_end_age
     assert y0["Roth_Conversion"] == 0
 
     # If RMD is present, it should match factor logic approximately
@@ -60,5 +60,5 @@ def test_no_conversions_post_medicare_and_rmd_works():
         # Simpler check: required amount aligns with table within tolerance
         from retireplan.engine.policy import rmd_factor as rf
 
-        expect = round(cfg.balances_ira / rf(y0["Your_Age"]))
+        expect = round(cfg.balances_ira / rf(y0["Person1_Age"]))
         assert abs(y0["RMD"] - expect) <= 2

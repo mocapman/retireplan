@@ -23,32 +23,33 @@ def test_calculation_consistency():
             abs(total_assets - sum_balances) <= 1
         ), f"Year {row['Year']}: Total_Assets doesn't match sum of account balances"
 
-        # 2. Check that spending components add up
-        total_spend = row["Total_Spend"]
-        sum_components = row["Target_Spend"] + row["Taxes_Due"] + row["Cash_Events"]
-        assert (
-            abs(total_spend - sum_components) <= 1
-        ), f"Year {row['Year']}: Total_Spend doesn't match sum of components"
+        # 2. Check that spending components add up (year 1 uses different formula)
+        if i > 0:
+            total_spend = row["Total_Spend"]
+            sum_components = row["Target_Spend"] + row["Taxes_Due"] + row["Cash_Events"]
+            assert (
+                abs(total_spend - sum_components) <= 1
+            ), f"Year {row['Year']}: Total_Spend doesn't match sum of components"
 
-        # 3. Check that income sources are consistent with spending
-        total_income = (
+        # 3. Check shortfall consistency (engine compares provided cash vs Target_Spend only)
+        # Roth_Conversion is an IRA→Roth transfer, not cash; taxes come from the same draws
+        provided_cash = (
             row["Social_Security"]
             + row["IRA_Draw"]
             + row["Brokerage_Draw"]
             + row["Roth_Draw"]
-            + row["Roth_Conversion"]
             + row["RMD"]
         )
+        target = row["Target_Spend"]
 
-        # Allow $1 tolerance for rounding differences
-        if total_income < total_spend - 1:
+        if provided_cash < target - 1:
             assert (
                 row["Shortfall"] > 0
-            ), f"Year {row['Year']}: Income {total_income} < Spend {total_spend} but no shortfall"
-        elif total_income >= total_spend:
+            ), f"Year {row['Year']}: Cash {provided_cash} < Target {target} but no shortfall"
+        elif provided_cash >= target:
             assert (
                 row["Shortfall"] == 0
-            ), f"Year {row['Year']}: Income {total_income} >= Spend {total_spend} but shortfall {row['Shortfall']}"
+            ), f"Year {row['Year']}: Cash {provided_cash} >= Target {target} but shortfall {row['Shortfall']}"
 
 
 def test_account_growth_consistency():
@@ -60,18 +61,23 @@ def test_account_growth_consistency():
         prev = rows[i - 1]
         curr = rows[i]
 
-        # Check IRA growth (accounting for draws and conversions)
+        # Check IRA growth (accounting for RMD, draws, and conversions)
         expected_ira = (
-            prev["IRA_Balance"] - curr["IRA_Draw"] - curr["Roth_Conversion"]
+            prev["IRA_Balance"]
+            - curr["RMD"]
+            - curr["IRA_Draw"]
+            - curr["Roth_Conversion"]
         ) * (1 + cfg.ira_growth)
         assert (
             abs(curr["IRA_Balance"] - expected_ira) <= 100
         ), f"Year {curr['Year']}: IRA balance doesn't match expected growth"
 
-        # Check Brokerage growth (accounting for draws)
-        expected_brokerage = (prev["Brokerage_Balance"] - curr["Brokerage_Draw"]) * (
-            1 + cfg.brokerage_growth
-        )
+        # Check Brokerage growth (accounting for draws and RMD surplus)
+        need_after_ss = max(0, curr["Target_Spend"] - curr["Social_Security"])
+        rmd_surplus = max(0, curr["RMD"] - need_after_ss)
+        expected_brokerage = (
+            prev["Brokerage_Balance"] - curr["Brokerage_Draw"] + rmd_surplus
+        ) * (1 + cfg.brokerage_growth)
         assert (
             abs(curr["Brokerage_Balance"] - expected_brokerage) <= 100
         ), f"Year {curr['Year']}: Brokerage balance doesn't match expected growth"

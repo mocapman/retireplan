@@ -1,17 +1,18 @@
 import tempfile
 from pathlib import Path
 
+import pandas as pd
+
 from retireplan import inputs
-from tools import projections
 from retireplan.engine.core import run_plan
 
 COLUMNS_CHECK = [
     "Year",
-    "Taxes",
+    "Taxes_Due",
     "MAGI",
-    "End_Bal_IRA",
-    "End_Bal_Brokerage",
-    "End_Bal_Roth",
+    "IRA_Balance",
+    "Brokerage_Balance",
+    "Roth_Balance",
     "Total_Assets",
 ]
 
@@ -19,12 +20,12 @@ COLUMNS_CHECK = [
 def test_engine_equals_csv_roundtrip():
     cfg = inputs.load_yaml("examples/sample_inputs.yaml")
     rows = run_plan(cfg)
-    df = projections.to_dataframe(rows)
+    df = pd.DataFrame(rows)
 
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "proj.csv"
         df.to_csv(p, index=False)
-        df2 = projections.pd.read_csv(p)
+        df2 = pd.read_csv(p)
 
     for a, b in zip(df.to_dict("records"), df2.to_dict("records")):
         for k in COLUMNS_CHECK:
