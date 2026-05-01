@@ -50,10 +50,17 @@ spending:
   year1_brokerage_draw: 80000.0
   year1_cash_events: 0.0
   year1_ira_draw: 0.0
+  year1_magi_income: 0.0
+  year1_magi_losses: 0.0
   year1_roth_draw: 0.0
+  year1_roth_conversion: 0.0
   year1_spend: 80000.0
 tax_health:
   aca_end_age: 65
+  aca_expected_subsidy_monthly: 0.0
+  aca_full_premium_monthly: 0.0
+  aca_magi_ceiling: 85000.0
+  aca_magi_floor: 43000.0
   magi_target_base: 85000.0
   rmd_start_age: 73
   standard_deduction_base: 31500.0

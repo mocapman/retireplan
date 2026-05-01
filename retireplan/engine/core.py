@@ -101,7 +101,20 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             year1_lifestyle_spend = Decimal(str(cfg.year1_spend))
             ss_income = Decimal(0)  # Not in config, or set if you wish
             tax = Decimal(0)  # Not in config, or set if you wish
-            roth_conv = Decimal(0)  # Not in config, or set if you wish
+            roth_conv = Decimal(str(cfg.year1_roth_conversion))
+            magi = (
+                Decimal(str(cfg.year1_magi_income))
+                - Decimal(str(cfg.year1_magi_losses))
+                + roth_conv
+            )
+            target_magi = Decimal(str(cfg.magi_target_base))
+            magi_remaining = target_magi - magi
+            aca_subsidy = Decimal(str(cfg.aca_expected_subsidy_monthly)) * Decimal(12)
+            magi_status = _magi_status(
+                magi,
+                Decimal(str(cfg.aca_magi_floor)),
+                Decimal(str(cfg.aca_magi_ceiling)),
+            )
 
             # Apply user-specified draws for Year 1
             draw_ira = Decimal(str(cfg.year1_ira_draw))
@@ -151,7 +164,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Roth_Draw": round_dollar(draw_roth),
                 "Roth_Conversion": round_dollar(roth_conv),
                 "RMD": round_dollar(0),
-                "MAGI": round_dollar(0),  # Not calculated for Year 1
+                "MAGI": round_dollar(magi),
+                "Target_MAGI": round_dollar(target_magi),
+                "MAGI_Remaining": round_dollar(magi_remaining),
+                "MAGI_Status": magi_status,
+                "ACA_Subsidy": round_dollar(aca_subsidy),
                 "Std_Deduction": round_dollar(0),  # Not calculated for Year 1
                 "IRA_Balance": round_dollar(ira_end),
                 "Brokerage_Balance": round_dollar(brokerage_end),
@@ -347,6 +364,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Roth_Conversion": round_dollar(roth_conv),
             "RMD": round_dollar(rmd),
             "MAGI": round_dollar(magi),
+            "Target_MAGI": round_dollar(0),
+            "MAGI_Remaining": round_dollar(0),
+            "MAGI_Status": "",
+            "ACA_Subsidy": round_dollar(0),
             "Std_Deduction": round_dollar(std_ded),
             "IRA_Balance": round_dollar(ira_bal),
             "Brokerage_Balance": round_dollar(broke_bal),
@@ -358,3 +379,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         rows.append(row_data)
 
     return rows
+
+
+def _magi_status(magi: Decimal, floor: Decimal, ceiling: Decimal) -> str:
+    """Classify current-year MAGI against configured ACA bounds."""
+    if magi < floor:
+        return "BELOW_FLOOR"
+    if magi < ceiling:
+        return "IN_RANGE"
+    return "ABOVE_CEILING"

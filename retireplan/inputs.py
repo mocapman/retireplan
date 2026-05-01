@@ -34,6 +34,9 @@ class Inputs:
     year1_brokerage_draw: float
     year1_ira_draw: float
     year1_roth_draw: float
+    year1_roth_conversion: float
+    year1_magi_income: float
+    year1_magi_losses: float
     target_spend: float
     gogo_percent: float
     slow_percent: float
@@ -59,6 +62,10 @@ class Inputs:
     standard_deduction_base: float
     rmd_start_age: int
     aca_end_age: int
+    aca_magi_floor: float
+    aca_magi_ceiling: float
+    aca_full_premium_monthly: float
+    aca_expected_subsidy_monthly: float
     aca_subsidy_annual: Optional[float]
 
     # Strategy
@@ -90,6 +97,9 @@ def load_yaml(path: str) -> Inputs:
         year1_brokerage_draw=s.get("year1_brokerage_draw", 0),
         year1_ira_draw=s.get("year1_ira_draw", 0),
         year1_roth_draw=s.get("year1_roth_draw", 0),
+        year1_roth_conversion=s.get("year1_roth_conversion", 0),
+        year1_magi_income=s.get("year1_magi_income", 0),
+        year1_magi_losses=s.get("year1_magi_losses", 0),
         target_spend=s["target_spend"],
         gogo_percent=s.get("gogo_percent", 100.0),
         slow_percent=s.get("slow_percent", 80.0),
@@ -109,6 +119,10 @@ def load_yaml(path: str) -> Inputs:
         standard_deduction_base=th["standard_deduction_base"],
         rmd_start_age=th["rmd_start_age"],
         aca_end_age=th["aca_end_age"],
+        aca_magi_floor=th.get("aca_magi_floor", 0),
+        aca_magi_ceiling=th.get("aca_magi_ceiling", 0),
+        aca_full_premium_monthly=th.get("aca_full_premium_monthly", 0),
+        aca_expected_subsidy_monthly=th.get("aca_expected_subsidy_monthly", 0),
         aca_subsidy_annual=th.get("aca_subsidy_annual"),
         draw_order=raw.get("draw_order", "IRA, Brokerage, Roth"),
     )

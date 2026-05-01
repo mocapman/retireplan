@@ -23,6 +23,10 @@ COLUMNS: List[Dict[str, Any]] = [
     {"key": "RMD", "label": "RMD", "visible": True},
     # Default hidden in GUI
     {"key": "MAGI", "label": "MAGI", "visible": False},
+    {"key": "Target_MAGI", "label": "Target_MAGI", "visible": False},
+    {"key": "MAGI_Remaining", "label": "MAGI_Remaining", "visible": False},
+    {"key": "MAGI_Status", "label": "MAGI_Status", "visible": False},
+    {"key": "ACA_Subsidy", "label": "ACA_Subsidy", "visible": False},
     {"key": "Std_Deduction", "label": "Std_Deduction", "visible": False},
     {"key": "IRA_Balance", "label": "IRA_Balance", "visible": True},
     {"key": "Brokerage_Balance", "label": "Brokerage_Balance", "visible": True},

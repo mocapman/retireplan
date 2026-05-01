@@ -19,6 +19,9 @@ def minimal_two_person_config() -> Inputs:
         year1_brokerage_draw=1000,
         year1_ira_draw=0,
         year1_roth_draw=0,
+        year1_roth_conversion=0,
+        year1_magi_income=0,
+        year1_magi_losses=0,
         target_spend=1000,
         gogo_percent=100,
         slow_percent=80,
@@ -38,6 +41,10 @@ def minimal_two_person_config() -> Inputs:
         standard_deduction_base=1000,
         rmd_start_age=73,
         aca_end_age=65,
+        aca_magi_floor=0,
+        aca_magi_ceiling=1,
+        aca_full_premium_monthly=0,
+        aca_expected_subsidy_monthly=0,
         aca_subsidy_annual=None,
         draw_order="Brokerage, Roth, IRA",
     )
@@ -66,6 +73,10 @@ def test_run_plan_rows_include_current_schema_and_core_financial_fields():
         "Target_Spend",
         "Taxes_Due",
         "MAGI",
+        "Target_MAGI",
+        "MAGI_Remaining",
+        "MAGI_Status",
+        "ACA_Subsidy",
         "Roth_Conversion",
         "Shortfall",
         "Brokerage_Balance",
@@ -101,3 +112,27 @@ def test_run_plan_baseline_tax_magi_conversion_and_shortfall_outputs():
     assert [row["Shortfall"] for row in rows] == [0, 0, 0]
     assert [row["Social_Security"] for row in rows] == [0, 0, 0]
     assert [row["RMD"] for row in rows] == [0, 0, 0]
+
+
+def test_run_plan_year1_magi_aca_seed_outputs_are_user_driven():
+    cfg = minimal_two_person_config()
+    cfg.year1_roth_conversion = 5000
+    cfg.year1_magi_income = 42000
+    cfg.year1_magi_losses = 2000
+    cfg.magi_target_base = 85000
+    cfg.aca_magi_floor = 43000
+    cfg.aca_magi_ceiling = 85000
+    cfg.aca_expected_subsidy_monthly = 1500
+
+    rows = run_plan(cfg)
+
+    assert rows[0]["MAGI"] == 45000
+    assert rows[0]["Roth_Conversion"] == 5000
+    assert rows[0]["Target_MAGI"] == 85000
+    assert rows[0]["MAGI_Remaining"] == 40000
+    assert rows[0]["ACA_Subsidy"] == 18000
+    assert rows[0]["MAGI_Status"] == "IN_RANGE"
+    assert rows[1]["Target_MAGI"] == 0
+    assert rows[1]["MAGI_Remaining"] == 0
+    assert rows[1]["ACA_Subsidy"] == 0
+    assert rows[1]["MAGI_Status"] == ""
