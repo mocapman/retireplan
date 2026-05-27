@@ -1,0 +1,211 @@
+  Short Summary
+  The implemented model is still mostly flat and workable, but the input boundary is uneven: YAML has more source inputs
+  than the GUI exposes, some GUI/config-manager paths omit fields, and several fields blur user-owned inputs with
+  calculated/output values. The recent _rate rename group fits the style guide and gives a clean foundation.
+
+  The biggest current risks are not the flat Inputs dataclass itself. They are ambiguous Year 1 semantics, ACA subsidy
+  input naming/meaning, and fields that appear in YAML/tests but are missing from the GUI save/load surface.
+
+  1. Master Input Categories
+
+  | Category | Purpose | Exists now | YAML | GUI | Flat now? |
+  |---|---|---:|---:|---:|---|
+  | personal/timeline | birth years, final ages, filing, projection start | yes | yes | yes | flat ok |
+  | account balances | starting brokerage/IRA/Roth balances | yes | yes | yes | flat ok |
+  | spending assumptions | baseline/phase spending and survivor adjustment | yes | yes | yes | flat ok, group later |
+  | year1 inputs | first projection row manual seeds/overrides | partial | yes | partial | flat ok, needs clarity |
+  | rates | inflation and growth assumptions | yes | yes | yes | flat ok |
+  | tax assumptions | deduction, filing, tax-related settings | partial | yes | partial | group later |
+  | ACA assumptions | MAGI floor/ceiling, premium/subsidy inputs | partial | yes | mostly missing | group later |
+  | Roth conversion strategy | first-row conversion only; no future strategy | partial | yes | missing | group later |
+  | Social Security | start ages and annual benefits at start | yes | yes | yes | group later |
+  | RMD | RMD start age only | partial | yes | yes | group later |
+  | draw strategy | account draw order and Year 1 draws | yes | yes | partial | flat ok |
+  | reporting/display config | output column order | yes | yes | not real input | keep separate |
+  | output-only fields | schema/report rows | yes | no | display only | not user inputs |
+
+  2. Master Input Table
+
+  | Category | Config key | Inputs field | GUI | Default/example | Type/unit/timing | Meaning | First consumed | Outputs
+  affected | Tests | Status |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | personal/timeline | birth_year_person1 | same | present | 1967 | int/year/projection-wide | person 1 birth year |
+  core.py:76 | ages, filing/lifestyle rows | baseline fixture | keep |
+  | personal/timeline | birth_year_person2 | same | present | 1969 | int/year/projection-wide | person 2 birth year |
+  core.py:77 | ages, survivor logic | baseline fixture | keep |
+  | personal/timeline | final_age_person1 | same | present | 75 | int/age/projection end | person 1 final projected age
+  | core.py:78 | row count | baseline fixture | keep |
+  | personal/timeline | final_age_person2 | same | present | 85 | int/age/projection end | person 2 final projected age
+  | core.py:79 | row count | baseline fixture | keep |
+  | personal/timeline | filing_status | same | present | MFJ | enum/projection-wide | tax filing status | core.py:153,
+  core.py:203 | Filing, taxes | baseline fixture | keep |
+  | account balances | balances.brokerage | balances_brokerage | present | 370000 | money/beginning balance | starting
+  brokerage balance | core.py:86 | balances/draws/assets | baseline fixture | keep |
+  | account balances | balances.ira | balances_ira | present | 950000 | money/beginning balance | starting IRA balance |
+  core.py:88 | balances/RMD/draws/assets | baseline fixture | keep |
+  | account balances | balances.roth | balances_roth | present | 330000 | money/beginning balance | starting Roth
+  balance | core.py:87 | balances/draws/assets | baseline fixture | keep |
+  | spending/year1 | spending.start_year | start_year | present | 2026 | int/year | first projection year | core.py:76 |
+  Year, ages | baseline fixture | keep |
+  | spending/year1 | spending.year1_spend | year1_spend | present | 40000 | money/first row | first projection row spend
+  seed | core.py:101 | Total_Spend, first-row shortfall | baseline fixture | unclear |
+  | spending/year1 | spending.year1_cash_events | same | present | 0 | money/first row | first projection row cash
+  events | core.py:125 | Cash_Events, balances | baseline fixture | keep |
+  | draw strategy/year1 | spending.year1_brokerage_draw | same | present | 0 | money/first row | manual first-row
+  brokerage draw | core.py:120 | draws/balances | baseline fixture | keep |
+  | draw strategy/year1 | spending.year1_ira_draw | same | present | 50000 | money/first row | manual first-row IRA draw
+  | core.py:121 | draws/balances/taxable income | baseline fixture | keep |
+  | draw strategy/year1 | spending.year1_roth_draw | same | present | 0 | money/first row | manual first-row Roth draw |
+  core.py:122 | draws/balances | baseline fixture | keep |
+  | Roth/year1 | spending.year1_roth_conversion | same | GUI missing | 0 | money/first row | manual first-row Roth
+  conversion | core.py:104 | conversion, balances, MAGI | ACA/MAGI test | keep |
+  | MAGI/year1 | spending.year1_magi_income | same | GUI missing | 0 | money/first row | first-row MAGI income seed |
+  core.py:106 | MAGI, ACA status | ACA/MAGI test | keep |
+  | MAGI/year1 | spending.year1_magi_losses | same | GUI missing | 0 | money/first row | first-row MAGI loss offset |
+  core.py:107 | MAGI, ACA status | ACA/MAGI test | keep |
+  | spending | spending.target_spend | same | present | 108000 | money/baseline annual | later-year spending baseline |
+  core.py:205 | Target_Spend, Total_Spend | baseline fixture | rename candidate: likely _base |
+  | spending | spending.gogo_percent | same | present | 100 | whole percent/phase | go-go phase spend percent |
+  core.py:207 | spend rows | baseline fixture | keep |
+  | spending | spending.slow_percent | same | present | 90 | whole percent/phase | slow-go spend percent | core.py:210 |
+  spend rows | baseline fixture | keep |
+  | spending | spending.nogo_percent | same | present | 80 | whole percent/phase | no-go spend percent | core.py:213 |
+  spend rows | baseline fixture | keep |
+  | spending | spending.gogo_years | same | present | 15 | count/years | length of go-go phase | core.py:80, core.py:206
+  | lifestyle/spend | baseline fixture | keep |
+  | spending | spending.slow_years | same | present | 10 | count/years | length of slow-go phase | core.py:81,
+  core.py:209 | lifestyle/spend | baseline fixture | keep |
+  | spending | spending.survivor_percent | same | present | 70 | whole percent/later years | survivor spend percent |
+  core.py:214 | spend after death | baseline fixture | keep |
+  | Social Security | social_security.person1_start_age | ss_person1_start_age | present | 62 | age | person 1 SS start
+  age | core.py:227 | Social_Security, MAGI | baseline fixture | keep |
+  | Social Security | social_security.person1_annual_at_start | ss_person1_annual_at_start | present | 32500 | annual
+  money | person 1 SS benefit at start age | core.py:228 | Social_Security, MAGI | baseline fixture | keep |
+  | Social Security | social_security.person2_start_age | ss_person2_start_age | present | 62 | age | person 2 SS start
+  age | core.py:238 | Social_Security, MAGI | baseline fixture | keep |
+  | Social Security | social_security.person2_annual_at_start | ss_person2_annual_at_start | present | 7000 | annual
+  money | person 2 SS benefit at start age | core.py:239 | Social_Security, MAGI | baseline fixture | keep |
+  | rates | rates.inflation_rate | same | present | 0.035 | decimal annual rate | inflation rate | core.py:184,
+  core.py:230 | spend, SS, deduction | baseline fixture | keep |
+  | rates | rates.brokerage_growth_rate | same | present | 0.04 | decimal annual rate | brokerage growth rate |
+  core.py:137, core.py:337 | brokerage balance/assets | baseline fixture | keep |
+  | rates | rates.roth_growth_rate | same | present | 0.06 | decimal annual rate | Roth growth rate | core.py:138,
+  core.py:338 | Roth balance/assets | baseline fixture | keep |
+  | rates | rates.ira_growth_rate | same | present | 0.07 | decimal annual rate | IRA growth rate | core.py:139,
+  core.py:339 | IRA balance/assets | baseline fixture | keep |
+  | tax | tax_health.magi_target_base | same | present | 80000 | annual money/baseline | baseline target MAGI |
+  core.py:110, core.py:198 | Target_MAGI, conversions | ACA/MAGI test | keep for now |
+  | tax | tax_health.standard_deduction_base | same | present | 30000 | annual money/baseline | base standard deduction
+  | core.py:190 | Std_Deduction, taxes | baseline fixture | keep |
+  | RMD | tax_health.rmd_start_age | same | present | 75 | age | RMD start age | core.py:270 | RMD, IRA draw | baseline
+  fixture | keep |
+  | ACA | tax_health.aca_end_age | same | present | 65 | age | last ACA eligibility age threshold | core.py:199,
+  core.py:309 | ACA status/subsidy | baseline fixture | keep |
+  | ACA | tax_health.aca_magi_floor | same | GUI missing | 40000 | annual money | ACA floor MAGI | core.py:115 | first-
+  row MAGI_Status | ACA/MAGI test | keep |
+  | ACA | tax_health.aca_magi_ceiling | same | GUI missing | 80000 | annual money | ACA ceiling/cliff MAGI | core.py:116
+  | first-row MAGI_Status | ACA/MAGI test | keep |
+  | ACA | tax_health.aca_full_premium_monthly | same | GUI missing | 2400 | monthly money | full ACA premium | not
+  clearly consumed | none/currently absent | fixture only | remove/deprecate later or define |
+  | ACA | tax_health.aca_expected_subsidy_monthly | same | GUI missing | 1500 | monthly money | user-entered monthly
+  subsidy estimate | core.py:112 | first-row ACA_Subsidy | ACA/MAGI test | rename candidate |
+  | ACA/internal-ish | no YAML default | aca_subsidy_annual | config manager only | 0 dataclass default | annual money |
+  annual ACA subsidy field, unclear source | not clearly consumed from config | possible config save only | none |
+  remove/deprecate later |
+  | draw strategy | draw_order | same | present | Brokerage, IRA, Roth | list/order | draw account priority | core.py:91
+  | draw allocation/balances | baseline fixture | keep |
+  | reporting/display | column_order | not dataclass field | GUI main only | schema list | list of output columns |
+  display/report column order | gui/main_window.py:46 | GUI display only | not core tests | keep separate |
+
+  3. Missing Source Inputs Needed For Intended Model
+
+  | Proposed input | Category | Meaning | Why needed | Evidence | Current behavior | Priority | GUI eventually |
+  |---|---|---|---|---|---|---|---|
+  | aca_full_subsidy_monthly | ACA | required monthly subsidy at floor MAGI for selected ACA plan | user clarified this
+  is the real user source; current name says “expected” | docs use stale aca_subsidy_monthly_full in docs/
+  ACA_Subsidy_Calculation_Notes.md:80 | faked via aca_expected_subsidy_monthly | foundation | yes |
+  | year1 earned/ordinary income component | year1 MAGI | first-row income source component | current year1_magi_income
+  is aggregated and hides source | user clarification | aggregated | soon | yes |
+  | year1 gains | year1 MAGI/tax | first-row capital gains | needed for taxable brokerage/MAGI/tax model | docs/
+  TODO_260501.txt:48 | absent | soon | yes |
+  | year1 losses | year1 MAGI/tax | first-row capital losses | current losses are generic MAGI losses | current
+  year1_magi_losses | partial/aggregated | soon | yes |
+  | future planned Roth conversion amount | Roth strategy | planned conversion amount after first row | docs call future
+  strategy missing | docs/PROJECT_AUDIT.md:152 | derived opportunistically from MAGI target | soon | yes |
+  | future planned Roth conversion years | Roth strategy | number of years planned conversions run | needed if strategy
+  is user-driven | user clarification | absent | soon | yes |
+  | future MAGI strategy controls | MAGI strategy | target/floor/ceiling behavior after first row | current target-only
+  logic is simplistic | core.py:198 | partially derived from magi_target_base | soon | yes |
+  | state tax inputs | tax | state tax assumptions | docs flag Oregon/state tax missing | docs/TODO_260501.txt:52 |
+  absent | later | yes |
+  | taxable brokerage basis/gain assumptions | tax/draw | basis or gain percentage for brokerage draws | brokerage draws
+  currently non-taxable | docs/TODO_260501.txt:48 | absent | soon | yes |
+  | Social Security COLA/control | Social Security | benefit inflation or COLA assumption | current uses general
+  inflation | core.py:230, core.py:241 | derived from inflation_rate | later | maybe |
+  | person-specific IRA/RMD ownership | RMD/accounts | whose IRA balance drives RMD | docs note person1-only behavior |
+  docs/TODO_260501.txt:44 | simplified | later | maybe |
+
+  4. Boundary Conflicts
+
+  | Name/value | Conflict | Location | Why it matters | Recommendation |
+  |---|---|---|---|---|
+  | aca_expected_subsidy_monthly | user source vs calculated expectation | inputs.py:68, core.py:112 | user clarified
+  the source should be full subsidy at floor MAGI, not model-calculated expected subsidy | rename later after meaning is
+  locked |
+  | aca_subsidy_annual | input field vs derived annual value | inputs.py:69, config_manager.py:50 | annual subsidy
+  should generally be derived internally; field has no clear YAML default | remove/deprecate later or make output-only |
+  | ACA_Subsidy | output/schema vs calculation variable | schema.py:27, core.py:176, core.py:370 | must remain schema
+  boundary; should not drive input naming | keep output-only |
+  | target_spend | baseline input vs output-ish target | default_config.yaml:49, core.py:205, schema.py:14 | input name
+  resembles output Target_Spend and lacks _base | rename candidate later |
+  | year1_spend | GUI “remaining spend” vs first-row spend seed | input_panel.py:226, core.py:101 | ambiguous whether
+  this is total spend, remaining spend, or override | decide meaning before rename |
+  | year1_magi_income | aggregate MAGI input vs future component model | inputs.py:38, core.py:106 | intended model
+  needs multiple MAGI components | keep short-term; split later as feature work |
+  | aca_full_premium_monthly | configured but not clearly consumed | default_config.yaml:61, inputs.py:67 | user may
+  think it affects subsidy; current model does not use it meaningfully | either wire later or deprecate after ACA design
+  |
+  | examples/sample_inputs.yaml top-level start_year | duplicate/stale config path | examples/sample_inputs.yaml:2 and
+  spending.start_year | loader uses spending.start_year; top-level example is misleading | cleanup later |
+
+  5. Flat Vs Grouped Containers
+
+  Flat Inputs is acceptable for now. The field count is high, but the current loader, tests, GUI, and engine all expect
+  one simple object, and a grouping refactor would touch too many boundaries before the input meanings are stable.
+
+  Grouped containers would solve discoverability, category validation, and GUI/YAML alignment. They would also make it
+  harder to confuse ACA inputs with tax outputs or Year 1 seeds with projection-wide assumptions.
+
+  Grouped containers would create migration risk: loader changes, GUI mapping changes, fixture churn, and likely
+  compatibility decisions. The current evidence supports future groups for personal, balances, spending, year1, rates,
+  tax, aca, social_security, rmd, and draw_strategy, but not yet.
+
+  Safest trigger for grouping: after rename-only cleanup and after ACA/Year 1 source inputs are defined, but before
+  adding a larger second wave of feature inputs.
+
+  6. Rename-Only Cleanup Roadmap
+
+  | Group | Fields | Reason | Risk | Expected files | Expected tests | Behavior |
+  |---|---|---|---|---|---|---|
+  | 1 | completed _rate group | foundational rate suffix cleanup | low | config, inputs, core, GUI, tests, examples |
+  full pytest | unchanged |
+  | 2 | Social Security annual benefit names if desired | make annual money frequency explicit and readable | low-medium
+  | YAML, inputs, GUI, config manager, core, tests, examples | full pytest | unchanged |
+  | 3 | target_spend to baseline-style name | separate input baseline from output Target_Spend | medium | YAML, inputs,
+  GUI, core, tests, examples | full pytest | unchanged |
+  | 4 | ACA subsidy source name | align with user-owned monthly floor subsidy | medium | YAML, inputs, core, tests,
+  examples, GUI if exposed | focused ACA tests plus full pytest | unchanged if only rename |
+  | 5 | Year 1 MAGI aggregate names | clarify first-row override/source semantics | medium-high | YAML, inputs, core,
+  tests, examples, GUI if exposed | full pytest | unchanged if only rename |
+  | 6 | deprecation/removal pass | remove unused/derived config fields | high | config, inputs, GUI manager, tests,
+  examples | full pytest | behavior/config compatibility may change |
+
+  Do not mix Group 4 or Group 5 with new ACA/MAGI logic. Those should remain rename-only if performed.
+
+  7. First Next Action
+
+  Choose: decide meaning of unclear input.
+
+  The specific first ambiguity to resolve is year1_spend: whether it is total first projection row spend, remaining
+  spend after known spending, or a manual override. It is already user-facing in the GUI and affects first-row behavior
+  directly, so renaming or adding related Year 1 inputs before this is settled risks encoding the wrong model boundary.

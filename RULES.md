@@ -9,7 +9,7 @@ Execute what I ask. Do not creatively overhaul things I didn't ask about.
 ## Before Every Task
 1. Read this file
 2. Restate my request in your own words to confirm understanding
-3. For anything beyond a few lines: present a plan and wait for me to say PROCEED
+3. For anything beyond a few lines: present a plan and wait for me to say GO
 4. Never write code until I approve the plan
 
 ---

@@ -11,5 +11,5 @@ __pycache__/
 dist/
 build/
 out/
-docs/
+docs/archive/
 tools/

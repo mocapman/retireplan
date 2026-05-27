@@ -1,0 +1,35 @@
+Future note: Year 1 handling
+
+Current model:
+Year 1 inputs manually seed the first projection row. This was a practical shortcut so the tool could avoid calculating a partial first year from today’s date.
+
+Current Year 1 values may include:
+- remaining spend for the first projection year
+- known cash events, such as taxes, car purchase, wedding, or other one-time expenses
+- manual brokerage / IRA / Roth draws so balances stay accurate
+- planned Roth conversion
+- MAGI-related values that still need better input structure
+
+Important:
+Do not treat year1_ as simply “current-year actuals.” Year 1 can include actuals, estimates, planned events, manual overrides, and partial-year assumptions.
+
+Better long-term model:
+Replace or reduce manual year1_ inputs by using:
+- plan_start_date or today’s date
+- annual spending target
+- current account balances
+- known one-time cash events
+- known income / gains / losses
+- planned Roth conversions
+- draw order
+- MAGI and ACA constraints
+
+Then the engine can calculate the first partial year automatically:
+- prorated Year 1 spending
+- Year 1 cash needs
+- Year 1 MAGI
+- Year 1 withdrawals
+- Year 1 ending balances
+
+Design direction:
+Keep year1_ inputs for now as a valid manual first-row seed/override system. Do not rename or redesign them until we intentionally decide whether Year 1 remains manual or becomes calculated from plan_start_date and annual assumptions.
