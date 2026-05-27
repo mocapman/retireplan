@@ -24,6 +24,9 @@ class Inputs:
 
     # Balances
     balances_brokerage: float
+    brokerage_cash: float
+    brokerage_cost_basis: float
+    brokerage_unrealized_gain: float
     balances_roth: float
     balances_ira: float
 
@@ -37,6 +40,28 @@ class Inputs:
     year1_roth_conversion: float
     year1_magi_income: float
     year1_magi_losses: float
+    year1_income_to_date: float
+    year1_projected_income: float
+    year1_capital_gains_to_date: float
+    year1_projected_capital_gains: float
+    year1_capital_losses_to_date: float
+    year1_projected_capital_losses: float
+    magi_income_ytd: float
+    magi_income_projected: float
+    magi_income_annual: float
+    magi_income_years: float
+    magi_gains_ytd: float
+    magi_gains_projected: float
+    magi_gains_annual: float
+    magi_gains_years: float
+    magi_losses_ytd: float
+    magi_losses_projected: float
+    magi_losses_annual: float
+    magi_losses_years: float
+    magi_conversions_ytd: float
+    magi_conversions_projected: float
+    magi_conversions_annual: float
+    magi_conversions_years: float
     target_spend: float
     gogo_percent: float
     slow_percent: float
@@ -88,6 +113,9 @@ def load_yaml(path: str) -> Inputs:
         final_age_person2=raw.get("final_age_person2"),
         filing_status=raw["filing_status"],
         balances_brokerage=b["brokerage"],
+        brokerage_cash=b.get("brokerage_cash", 0),
+        brokerage_cost_basis=b.get("brokerage_cost_basis", 0),
+        brokerage_unrealized_gain=b.get("brokerage_unrealized_gain", 0),
         balances_roth=b["roth"],
         balances_ira=b["ira"],
         # start_year now from spending
@@ -100,6 +128,28 @@ def load_yaml(path: str) -> Inputs:
         year1_roth_conversion=s.get("year1_roth_conversion", 0),
         year1_magi_income=s.get("year1_magi_income", 0),
         year1_magi_losses=s.get("year1_magi_losses", 0),
+        year1_income_to_date=s.get("year1_income_to_date", 0),
+        year1_projected_income=s.get("year1_projected_income", 0),
+        year1_capital_gains_to_date=s.get("year1_capital_gains_to_date", 0),
+        year1_projected_capital_gains=s.get("year1_projected_capital_gains", 0),
+        year1_capital_losses_to_date=s.get("year1_capital_losses_to_date", 0),
+        year1_projected_capital_losses=s.get("year1_projected_capital_losses", 0),
+        magi_income_ytd=s.get("magi_income_ytd", 0),
+        magi_income_projected=s.get("magi_income_projected", 0),
+        magi_income_annual=s.get("magi_income_annual", 0),
+        magi_income_years=s.get("magi_income_years", 0),
+        magi_gains_ytd=s.get("magi_gains_ytd", 0),
+        magi_gains_projected=s.get("magi_gains_projected", 0),
+        magi_gains_annual=s.get("magi_gains_annual", 0),
+        magi_gains_years=s.get("magi_gains_years", 0),
+        magi_losses_ytd=s.get("magi_losses_ytd", 0),
+        magi_losses_projected=s.get("magi_losses_projected", 0),
+        magi_losses_annual=s.get("magi_losses_annual", 0),
+        magi_losses_years=s.get("magi_losses_years", 0),
+        magi_conversions_ytd=s.get("magi_conversions_ytd", 0),
+        magi_conversions_projected=s.get("magi_conversions_projected", 0),
+        magi_conversions_annual=s.get("magi_conversions_annual", 0),
+        magi_conversions_years=s.get("magi_conversions_years", 0),
         target_spend=s["target_spend"],
         gogo_percent=s.get("gogo_percent", 100.0),
         slow_percent=s.get("slow_percent", 80.0),

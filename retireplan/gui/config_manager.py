@@ -17,6 +17,9 @@ class ConfigManager:
             "filing_status": cfg.filing_status,
             "balances": {
                 "brokerage": cfg.balances_brokerage,
+                "brokerage_cash": cfg.brokerage_cash,
+                "brokerage_cost_basis": cfg.brokerage_cost_basis,
+                "brokerage_unrealized_gain": cfg.brokerage_unrealized_gain,
                 "roth": cfg.balances_roth,
                 "ira": cfg.balances_ira,
             },
@@ -56,7 +59,7 @@ class ConfigManager:
                 "magi_conversions_projected": cfg.magi_conversions_projected,
                 "magi_conversions_annual": cfg.magi_conversions_annual,
                 "magi_conversions_years": cfg.magi_conversions_years,
-                "target_spend_base": cfg.target_spend_base,
+                "target_spend": cfg.target_spend,
                 "gogo_percent": cfg.gogo_percent,
                 "slow_percent": cfg.slow_percent,
                 "nogo_percent": cfg.nogo_percent,
@@ -66,26 +69,22 @@ class ConfigManager:
             },
             "social_security": {
                 "person1_start_age": cfg.ss_person1_start_age,
-                "ss_person1_benefit_annual_at_start": (
-                    cfg.ss_person1_benefit_annual_at_start
-                ),
+                "person1_annual_at_start": cfg.ss_person1_annual_at_start,
                 "person2_start_age": cfg.ss_person2_start_age,
-                "ss_person2_benefit_annual_at_start": (
-                    cfg.ss_person2_benefit_annual_at_start
-                ),
+                "person2_annual_at_start": cfg.ss_person2_annual_at_start,
             },
             "rates": {
-                "inflation_rate": cfg.inflation_rate,
-                "brokerage_growth_rate": cfg.brokerage_growth_rate,
-                "roth_growth_rate": cfg.roth_growth_rate,
-                "ira_growth_rate": cfg.ira_growth_rate,
+                "inflation": cfg.inflation,
+                "brokerage_growth": cfg.brokerage_growth,
+                "roth_growth": cfg.roth_growth,
+                "ira_growth": cfg.ira_growth,
             },
             "tax_health": {
                 "magi_target_base": cfg.magi_target_base,
-                "standard_deduction_annual_base": cfg.standard_deduction_annual_base,
+                "standard_deduction_base": cfg.standard_deduction_base,
                 "rmd_start_age": cfg.rmd_start_age,
                 "aca_end_age": cfg.aca_end_age,
-                "aca_full_subsidy_monthly": cfg.aca_full_subsidy_monthly,
+                "aca_expected_subsidy_monthly": cfg.aca_expected_subsidy_monthly,
                 "aca_full_premium_monthly": cfg.aca_full_premium_monthly,
                 "aca_magi_floor": cfg.aca_magi_floor,
                 "aca_magi_ceiling": cfg.aca_magi_ceiling,
@@ -100,6 +99,11 @@ class ConfigManager:
         for key, value in config_dict.items():
             if key == "balances":
                 cfg.balances_brokerage = value["brokerage"]
+                cfg.brokerage_cash = value.get("brokerage_cash", 0)
+                cfg.brokerage_cost_basis = value.get("brokerage_cost_basis", 0)
+                cfg.brokerage_unrealized_gain = value.get(
+                    "brokerage_unrealized_gain", 0
+                )
                 cfg.balances_roth = value["roth"]
                 cfg.balances_ira = value["ira"]
             elif key == "spending":
@@ -110,12 +114,12 @@ class ConfigManager:
                 for k, v in value.items():
                     if k == "person1_start_age":
                         cfg.ss_person1_start_age = v
-                    elif k == "ss_person1_benefit_annual_at_start":
-                        cfg.ss_person1_benefit_annual_at_start = v
+                    elif k == "person1_annual_at_start":
+                        cfg.ss_person1_annual_at_start = v
                     elif k == "person2_start_age":
                         cfg.ss_person2_start_age = v
-                    elif k == "ss_person2_benefit_annual_at_start":
-                        cfg.ss_person2_benefit_annual_at_start = v
+                    elif k == "person2_annual_at_start":
+                        cfg.ss_person2_annual_at_start = v
             elif key == "rates":
                 for k, v in value.items():
                     if hasattr(cfg, k):

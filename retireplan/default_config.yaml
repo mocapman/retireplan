@@ -1,7 +1,10 @@
 balances:
-  brokerage: 528000.0
-  ira: 1201000.0
-  roth: 125000.0
+  brokerage: 538753.0
+  brokerage_cash: 250000.0
+  brokerage_cost_basis: 230000.0
+  brokerage_unrealized_gain: 63000.0
+  ira: 1227253.0
+  roth: 145890.0
 birth_year_person1: 1967
 birth_year_person2: 1969
 column_order:
@@ -32,7 +35,7 @@ rates:
   brokerage_growth: 0.04
   inflation: 0.035
   ira_growth: 0.07
-  roth_growth: 0.06
+  roth_growth: 0.08
 social_security:
   person1_annual_at_start: 32500.0
   person1_start_age: 62
@@ -40,25 +43,47 @@ social_security:
   person2_start_age: 62
 spending:
   gogo_percent: 100.0
-  gogo_years: 10
+  gogo_years: 8
+  magi_conversions_annual: 0.0
+  magi_conversions_projected: 0.0
+  magi_conversions_years: 0.0
+  magi_conversions_ytd: 15000.0
+  magi_gains_annual: 0.0
+  magi_gains_projected: 0.0
+  magi_gains_years: 0.0
+  magi_gains_ytd: 29631.0
+  magi_income_annual: 0.0
+  magi_income_projected: 2500.0
+  magi_income_years: 0.0
+  magi_income_ytd: 0.0
+  magi_losses_annual: 0.0
+  magi_losses_projected: 0.0
+  magi_losses_years: 0.0
+  magi_losses_ytd: 5332.0
   nogo_percent: 70.0
-  slow_percent: 80.0
-  slow_years: 6
+  slow_percent: 75.0
+  slow_years: 8
   start_year: 2026
   survivor_percent: 70.0
-  target_spend: 120000.0
+  target_spend: 145000.0
   year1_brokerage_draw: 80000.0
+  year1_capital_gains_to_date: 0.0
+  year1_capital_losses_to_date: 0.0
   year1_cash_events: 0.0
+  year1_income_to_date: 0.0
   year1_ira_draw: 0.0
   year1_magi_income: 0.0
   year1_magi_losses: 0.0
-  year1_roth_draw: 0.0
+  year1_projected_capital_gains: 0.0
+  year1_projected_capital_losses: 0.0
+  year1_projected_income: 0.0
   year1_roth_conversion: 0.0
+  year1_roth_draw: 0.0
   year1_spend: 80000.0
 tax_health:
   aca_end_age: 65
-  aca_expected_subsidy_monthly: 0.0
-  aca_full_premium_monthly: 0.0
+  aca_expected_subsidy_monthly: 1954.0
+  aca_full_premium_monthly: 2555.0
   aca_magi_ceiling: 85000.0
   aca_magi_floor: 43000.0
   magi_target_base: 85000.0

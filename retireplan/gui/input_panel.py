@@ -249,7 +249,7 @@ class InputPanel(tb.Frame):
         self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 4)
         self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 5)
         self.create_currency_field(
-            parent, "Target Spend (today's $)", "target_spend_base", "", 6
+            parent, "Target Spend (today's $)", "target_spend", "", 6
         )
         self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 7)
         self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 8)
@@ -290,6 +290,12 @@ class InputPanel(tb.Frame):
             row=2, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2)
         )
         guardrails_frame.columnconfigure(1, weight=1, minsize=180)
+
+        brokerage_frame = tb.Frame(parent)
+        brokerage_frame.grid(
+            row=3, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2)
+        )
+        brokerage_frame.columnconfigure(1, weight=1, minsize=180)
 
         tb.Label(grid_frame, text="").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
         for col, label in enumerate(("YTD", "Projected", "Annual", "Years"), start=1):
@@ -391,7 +397,7 @@ class InputPanel(tb.Frame):
         self.create_currency_field(
             guardrails_frame,
             "ACA Max Subsidy Monthly",
-            "aca_full_subsidy_monthly",
+            "aca_expected_subsidy_monthly",
             "",
             guardrails_row + 2,
         )
@@ -406,33 +412,68 @@ class InputPanel(tb.Frame):
             guardrails_row + 4,
         )
 
+        brokerage_row = 0
+        tb.Label(
+            brokerage_frame,
+            text="Taxable Brokerage",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(
+            row=brokerage_row,
+            column=0,
+            columnspan=2,
+            sticky=tk.W,
+            padx=5,
+            pady=(16, 4),
+        )
+        self.create_currency_field(
+            brokerage_frame,
+            "Brokerage Cash",
+            "brokerage_cash",
+            "",
+            brokerage_row + 1,
+        )
+        self.create_currency_field(
+            brokerage_frame,
+            "Brokerage Cost Basis",
+            "brokerage_cost_basis",
+            "",
+            brokerage_row + 2,
+        )
+        self.create_currency_field(
+            brokerage_frame,
+            "Brokerage Unrealized Gain",
+            "brokerage_unrealized_gain",
+            "",
+            brokerage_row + 3,
+        )
+
     def create_ss_section(self, parent):
         parent.columnconfigure(1, weight=1)
         self.create_input_field(
             parent, "Person 1 Start Age", "ss_person1_start_age", "", 0
         )
         self.create_currency_field(
-            parent, "Person 1 Annual", "ss_person1_benefit_annual_at_start", "", 1
+            parent, "Person 1 Annual", "ss_person1_annual_at_start", "", 1
         )
         self.create_input_field(
             parent, "Person 2 Start Age", "ss_person2_start_age", "", 2
         )
         self.create_currency_field(
-            parent, "Person 2 Annual", "ss_person2_benefit_annual_at_start", "", 3
+            parent, "Person 2 Annual", "ss_person2_annual_at_start", "", 3
         )
 
     def create_rates_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_percent_field(parent, "Inflation", "inflation_rate", "", 0)
-        self.create_percent_field(parent, "Brokerage Growth", "brokerage_growth_rate", "", 1)
-        self.create_percent_field(parent, "Roth Growth", "roth_growth_rate", "", 2)
-        self.create_percent_field(parent, "IRA Growth", "ira_growth_rate", "", 3)
+        self.create_percent_field(parent, "Inflation", "inflation", "", 0)
+        self.create_percent_field(parent, "Brokerage Growth", "brokerage_growth", "", 1)
+        self.create_percent_field(parent, "Roth Growth", "roth_growth", "", 2)
+        self.create_percent_field(parent, "IRA Growth", "ira_growth", "", 3)
 
     def create_tax_section(self, parent):
         parent.columnconfigure(1, weight=1)
         self.create_currency_field(parent, "MAGI Target", "magi_target_base", "", 0)
         self.create_currency_field(
-            parent, "Standard Deduction", "standard_deduction_annual_base", "", 1
+            parent, "Standard Deduction", "standard_deduction_base", "", 1
         )
         self.create_input_field(parent, "RMD Start Age", "rmd_start_age", "", 2)
         self.create_input_field(parent, "ACA End Age", "aca_end_age", "", 3)
@@ -483,6 +524,15 @@ class InputPanel(tb.Frame):
             "balances": {
                 "brokerage": safe_float(
                     strip_currency(self.variables["balances_brokerage"].get())
+                ),
+                "brokerage_cash": safe_float(
+                    strip_currency(self.variables["brokerage_cash"].get())
+                ),
+                "brokerage_cost_basis": safe_float(
+                    strip_currency(self.variables["brokerage_cost_basis"].get())
+                ),
+                "brokerage_unrealized_gain": safe_float(
+                    strip_currency(self.variables["brokerage_unrealized_gain"].get())
                 ),
                 "roth": safe_float(
                     strip_currency(self.variables["balances_roth"].get())
@@ -589,8 +639,8 @@ class InputPanel(tb.Frame):
                 "magi_conversions_years": safe_float(
                     self.variables["magi_conversions_years"].get()
                 ),
-                "target_spend_base": safe_float(
-                    strip_currency(self.variables["target_spend_base"].get())
+                "target_spend": safe_float(
+                    strip_currency(self.variables["target_spend"].get())
                 ),
                 "gogo_percent": safe_float(
                     strip_percent(self.variables["gogo_percent"].get())
@@ -611,39 +661,39 @@ class InputPanel(tb.Frame):
                 "person1_start_age": safe_int(
                     self.variables["ss_person1_start_age"].get()
                 ),
-                "ss_person1_benefit_annual_at_start": safe_float(
+                "person1_annual_at_start": safe_float(
                     strip_currency(
-                        self.variables["ss_person1_benefit_annual_at_start"].get()
+                        self.variables["ss_person1_annual_at_start"].get()
                     )
                 ),
                 "person2_start_age": safe_int(
                     self.variables["ss_person2_start_age"].get()
                 ),
-                "ss_person2_benefit_annual_at_start": safe_float(
+                "person2_annual_at_start": safe_float(
                     strip_currency(
-                        self.variables["ss_person2_benefit_annual_at_start"].get()
+                        self.variables["ss_person2_annual_at_start"].get()
                     )
                 ),
             },
             "rates": {
-                "inflation_rate": percent_to_float(self.variables["inflation_rate"].get()),
-                "brokerage_growth_rate": percent_to_float(
-                    self.variables["brokerage_growth_rate"].get()
+                "inflation": percent_to_float(self.variables["inflation"].get()),
+                "brokerage_growth": percent_to_float(
+                    self.variables["brokerage_growth"].get()
                 ),
-                "roth_growth_rate": percent_to_float(self.variables["roth_growth_rate"].get()),
-                "ira_growth_rate": percent_to_float(self.variables["ira_growth_rate"].get()),
+                "roth_growth": percent_to_float(self.variables["roth_growth"].get()),
+                "ira_growth": percent_to_float(self.variables["ira_growth"].get()),
             },
             "tax_health": {
                 "magi_target_base": safe_float(
                     strip_currency(self.variables["magi_target_base"].get())
                 ),
-                "standard_deduction_annual_base": safe_float(
-                    strip_currency(self.variables["standard_deduction_annual_base"].get())
+                "standard_deduction_base": safe_float(
+                    strip_currency(self.variables["standard_deduction_base"].get())
                 ),
                 "rmd_start_age": safe_int(self.variables["rmd_start_age"].get()),
                 "aca_end_age": safe_int(self.variables["aca_end_age"].get()),
-                "aca_full_subsidy_monthly": safe_float(
-                    strip_currency(self.variables["aca_full_subsidy_monthly"].get())
+                "aca_expected_subsidy_monthly": safe_float(
+                    strip_currency(self.variables["aca_expected_subsidy_monthly"].get())
                 ),
                 "aca_full_premium_monthly": safe_float(
                     strip_currency(self.variables["aca_full_premium_monthly"].get())
@@ -670,6 +720,15 @@ class InputPanel(tb.Frame):
             "filing_status": config.get("filing_status"),
             "balances_brokerage": format_currency(
                 config.get("balances", {}).get("brokerage", "")
+            ),
+            "brokerage_cash": format_currency(
+                config.get("balances", {}).get("brokerage_cash", "")
+            ),
+            "brokerage_cost_basis": format_currency(
+                config.get("balances", {}).get("brokerage_cost_basis", "")
+            ),
+            "brokerage_unrealized_gain": format_currency(
+                config.get("balances", {}).get("brokerage_unrealized_gain", "")
             ),
             "balances_roth": format_currency(
                 config.get("balances", {}).get("roth", "")
@@ -729,7 +788,7 @@ class InputPanel(tb.Frame):
                 s.get("magi_conversions_annual", "")
             ),
             "magi_conversions_years": s.get("magi_conversions_years", ""),
-            "target_spend_base": format_currency(s.get("target_spend_base", "")),
+            "target_spend": format_currency(s.get("target_spend", "")),
             "gogo_percent": format_percent(s.get("gogo_percent", 100)),
             "slow_percent": format_percent(s.get("slow_percent", 80)),
             "nogo_percent": format_percent(s.get("nogo_percent", 70)),
@@ -739,41 +798,39 @@ class InputPanel(tb.Frame):
             "ss_person1_start_age": config.get("social_security", {}).get(
                 "person1_start_age"
             ),
-            "ss_person1_benefit_annual_at_start": format_currency(
-                config.get("social_security", {}).get(
-                    "ss_person1_benefit_annual_at_start", ""
-                )
+            "ss_person1_annual_at_start": format_currency(
+                config.get("social_security", {}).get("person1_annual_at_start", "")
             ),
             "ss_person2_start_age": config.get("social_security", {}).get(
                 "person2_start_age"
             ),
-            "ss_person2_benefit_annual_at_start": format_currency(
-                config.get("social_security", {}).get(
-                    "ss_person2_benefit_annual_at_start", ""
+            "ss_person2_annual_at_start": format_currency(
+                config.get("social_security", {}).get("person2_annual_at_start", "")
+            ),
+            "inflation": format_percent(
+                float_to_percent(config.get("rates", {}).get("inflation", ""))
+            ),
+            "brokerage_growth": format_percent(
+                float_to_percent(
+                    config.get("rates", {}).get("brokerage_growth", "")
                 )
             ),
-            "inflation_rate": format_percent(
-                float_to_percent(config.get("rates", {}).get("inflation_rate", ""))
+            "roth_growth": format_percent(
+                float_to_percent(config.get("rates", {}).get("roth_growth", ""))
             ),
-            "brokerage_growth_rate": format_percent(
-                float_to_percent(config.get("rates", {}).get("brokerage_growth_rate", ""))
-            ),
-            "roth_growth_rate": format_percent(
-                float_to_percent(config.get("rates", {}).get("roth_growth_rate", ""))
-            ),
-            "ira_growth_rate": format_percent(
-                float_to_percent(config.get("rates", {}).get("ira_growth_rate", ""))
+            "ira_growth": format_percent(
+                float_to_percent(config.get("rates", {}).get("ira_growth", ""))
             ),
             "magi_target_base": format_currency(
                 config.get("tax_health", {}).get("magi_target_base", "")
             ),
-            "standard_deduction_annual_base": format_currency(
-                config.get("tax_health", {}).get("standard_deduction_annual_base", "")
+            "standard_deduction_base": format_currency(
+                config.get("tax_health", {}).get("standard_deduction_base", "")
             ),
             "rmd_start_age": config.get("tax_health", {}).get("rmd_start_age"),
             "aca_end_age": config.get("tax_health", {}).get("aca_end_age"),
-            "aca_full_subsidy_monthly": format_currency(
-                config.get("tax_health", {}).get("aca_full_subsidy_monthly", "")
+            "aca_expected_subsidy_monthly": format_currency(
+                config.get("tax_health", {}).get("aca_expected_subsidy_monthly", "")
             ),
             "aca_full_premium_monthly": format_currency(
                 config.get("tax_health", {}).get("aca_full_premium_monthly", "")
