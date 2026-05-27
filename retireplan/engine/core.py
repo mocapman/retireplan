@@ -14,7 +14,7 @@ Last Updated: 2024-01-10
 """
 from __future__ import annotations
 
-from typing import Iterable, Tuple
+from typing import Iterable
 from decimal import Decimal, getcontext
 
 # Set precision for decimal calculations
@@ -48,9 +48,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             - Spending targets and lifestyle phases
             - Tax and Social Security parameters
             - Timeline parameters (birth years, final ages)
-        events: Optional list of cash events by year with structure:
-            [{"year": int, "amount": float}, ...] where positive amounts
-            are extra spending, negative amounts are cash inflows
+        events: Reserved for a future annual cash-event model. Ignored for now.
 
     Returns:
         List of dictionaries, one per year, containing:
@@ -70,11 +68,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         - Account withdrawals follow configured draw order
         - Surplus RMD (beyond spending need) goes to brokerage account
     """
-    # Events by year (amount >0 = extra spend; <0 = inflow). Cash-only.
-    ev_by_year: dict[int, list[dict]] = {}
-    for e in events or []:
-        ev_by_year.setdefault(int(e["year"]), []).append(e)
-
     # Generate complete timeline with ages, phases, and survival status
     years = make_years(
         cfg.start_year,
@@ -288,10 +281,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         else:
             ss_income = Decimal(0)
 
-        # Sum all cash events for this year
+        # Annual cash events are not modeled yet. Year 1 has a manual field only.
         events_cash = Decimal(0)
-        for e in ev_by_year.get(yc.year, []):
-            events_cash += Decimal(str(e.get("amount", 0)))
 
         # BUSINESS RULE: Required Minimum Distribution (RMD) calculation
         # RMD required when a living person is at/above RMD start age.
@@ -325,7 +316,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         unmet = Decimal(0)
         tax_stable = False
 
-        # BUSINESS RULE: Taxes and cash events are part of the annual cash need.
+        # BUSINESS RULE: Taxes are part of the annual cash need.
         # Because taxes depend on draws, solve by bounded iteration from the same
         # pre-draw balances each pass and commit only the final pass.
         for _ in range(8):

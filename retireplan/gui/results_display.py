@@ -4,10 +4,12 @@ import tkinter as tk
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from tksheet import Sheet
-from typing import List
+from typing import Any, List
 
 from retireplan.projections import to_2d_for_table
 
+
+APP_GEOMETRY = "2525x1150"
 
 SUMMARY_FIELDS = (
     ("Federal Tax", "Federal_Tax", "#0f172a", "#e0f2fe"),
@@ -54,6 +56,46 @@ def _as_number(value) -> float:
         return 0
 
 
+def format_input_snapshot(cfg: Any) -> str:
+    """Return a compact scenario-input summary for the results history."""
+    if cfg is None:
+        return "Inputs: unavailable"
+
+    parts = (
+        ("Target Spend", format_currency(getattr(cfg, "target_spend", 0))),
+        ("GoGo Years", _format_number(getattr(cfg, "gogo_years", 0))),
+        ("GoGo %", _format_percent(getattr(cfg, "gogo_percent", 0), scale=False)),
+        ("SlowGo Years", _format_number(getattr(cfg, "slow_years", 0))),
+        ("SlowGo %", _format_percent(getattr(cfg, "slow_percent", 0), scale=False)),
+        ("Brokerage", format_currency(getattr(cfg, "balances_brokerage", 0))),
+        ("Roth", format_currency(getattr(cfg, "balances_roth", 0))),
+        ("IRA", format_currency(getattr(cfg, "balances_ira", 0))),
+    )
+    return "Inputs: " + " | ".join(f"{label}: {value}" for label, value in parts)
+
+
+def _format_percent(value: Any, scale: bool = True) -> str:
+    try:
+        value = float(value)
+        if scale:
+            value *= 100
+        if value == int(value):
+            return f"{int(value)}%"
+        return f"{value:.2f}%"
+    except (TypeError, ValueError):
+        return "0%"
+
+
+def _format_number(value: Any) -> str:
+    try:
+        value = float(value)
+        if value == int(value):
+            return str(int(value))
+        return f"{value:g}"
+    except (TypeError, ValueError):
+        return "0"
+
+
 class ResultsDisplay(tb.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
@@ -61,6 +103,7 @@ class ResultsDisplay(tb.Frame):
         self.current_rows: List[dict] = []
         self.summary_var = tk.StringVar(value=self.format_summary_text({}))
         self.summary_vars: dict[str, tk.StringVar] = {}
+        self._history_lines: list[str] = []
         self._row_h = 24
         self._hdr_h = 28
         self.create_widgets()
@@ -97,6 +140,27 @@ class ResultsDisplay(tb.Frame):
                 padx=12,
                 pady=5,
             ).pack(side=tk.LEFT, padx=(0, 8))
+
+        history_frame = tk.Frame(self, bg="#0b1120")
+        history_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
+        history_scrollbar = tk.Scrollbar(history_frame, orient=tk.VERTICAL)
+        history_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.history_text = tk.Text(
+            history_frame,
+            height=7,
+            wrap=tk.WORD,
+            bg="#0b1120",
+            fg="#e5e7eb",
+            insertbackground="#e5e7eb",
+            relief=tk.FLAT,
+            font=("Consolas", 10),
+            padx=10,
+            pady=8,
+            yscrollcommand=history_scrollbar.set,
+        )
+        self.history_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        history_scrollbar.configure(command=self.history_text.yview)
+        self.history_text.configure(state=tk.DISABLED)
 
         self.style_sheet()
         self.setup_bindings()
@@ -220,6 +284,17 @@ class ResultsDisplay(tb.Frame):
                     f"{label}: {format_currency(summary.get(key, 0))}"
                 )
 
+    def append_summary_history(self, cfg: Any) -> None:
+        entry = [format_input_snapshot(cfg), f"Status: {self.summary_var.get()}", ""]
+        self._history_lines.extend(entry)
+        self._history_lines = self._history_lines[-60:]
+
+        self.history_text.configure(state=tk.NORMAL)
+        self.history_text.delete("1.0", tk.END)
+        self.history_text.insert(tk.END, "\n".join(self._history_lines).strip())
+        self.history_text.configure(state=tk.DISABLED)
+        self.history_text.see(tk.END)
+
     def apply_alternate_row_colors(self):
         try:
             bg = "#2e2e2e"
@@ -240,11 +315,11 @@ class ResultsDisplay(tb.Frame):
         try:
             self.sheet.set_all_column_widths()
             root = self.winfo_toplevel()
-            root.geometry("2525x950")
+            root.geometry(APP_GEOMETRY)
         except Exception as e:
             print(f"Error in autosize: {e}")
             root = self.winfo_toplevel()
-            root.geometry("2525x950")
+            root.geometry(APP_GEOMETRY)
 
     def export_csv(self):
         if hasattr(self.app, "export_csv"):

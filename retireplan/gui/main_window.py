@@ -19,6 +19,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(SCRIPT_DIR), "default_config.yaml")
 
 APP_TITLE = "My Retirement Plan"
+APP_GEOMETRY = "2525x1150"
 
 
 class RetirePlanApp:
@@ -61,7 +62,7 @@ class RetirePlanApp:
             raise
 
     def build_ui(self) -> None:
-        self.root.geometry("2525x950")
+        self.root.geometry(APP_GEOMETRY)
         self.paned = tb.Panedwindow(self.root, orient=tk.HORIZONTAL)
         self.paned.pack(fill=tk.BOTH, expand=True)
 
@@ -93,6 +94,7 @@ class RetirePlanApp:
             self.config_manager.update_config_from_dict(self.cfg, config_dict)
             rows = run_plan(self.cfg)
             self.results_display.load_results(rows)
+            self.results_display.append_summary_history(self.cfg)
         except Exception as e:
             messagebox.showerror("Calculation Error", f"Error running plan: {e}")
 

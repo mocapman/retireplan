@@ -15,7 +15,6 @@ column_order:
 - Target_Spend
 - Total_Spend
 - Taxes_Due
-- Cash_Events
 - Social_Security
 - IRA_Draw
 - Brokerage_Draw
@@ -57,10 +56,10 @@ spending:
   magi_losses_ytd: 5332.0
   nogo_percent: 70.0
   slow_percent: 75.0
-  slow_years: 8
+  slow_years: 6
   start_year: 2026
   survivor_percent: 70.0
-  target_spend: 145000.0
+  target_spend: 150000.0
   year1_brokerage_draw: 80000.0
   year1_capital_gains_to_date: 0.0
   year1_capital_losses_to_date: 0.0
@@ -83,6 +82,6 @@ tax_health:
   aca_magi_floor: 43000.0
   estimated_state_deduction: 5670.0
   estimated_state_tax_rate: 0.0875
-  magi_target_base: 43000.0
+  magi_target_base: 80000.0
   rmd_start_age: 73
   standard_deduction_base: 31500.0

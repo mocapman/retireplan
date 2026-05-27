@@ -267,7 +267,7 @@ def test_run_plan_estimated_state_tax_is_included_in_taxes_due_and_draws():
     assert state_tax_row["Shortfall"] == 0
 
 
-def test_run_plan_shortfall_is_based_on_total_spend_with_cash_events():
+def test_run_plan_ignores_annual_cash_events_until_event_model_exists():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 0
     cfg.year1_brokerage_draw = 0
@@ -279,14 +279,29 @@ def test_run_plan_shortfall_is_based_on_total_spend_with_cash_events():
     cfg.balances_ira = 0
 
     rows = run_plan(cfg, events=[{"year": 2026, "amount": 500}])
-    shortfall_row = rows[1]
+    ignored_event_row = rows[1]
 
-    assert shortfall_row["Target_Spend"] == 800
-    assert shortfall_row["Taxes_Due"] == 0
-    assert shortfall_row["Cash_Events"] == 500
-    assert shortfall_row["Total_Spend"] == 1300
-    assert shortfall_row["Brokerage_Draw"] == 500
-    assert shortfall_row["Shortfall"] == 800
+    assert ignored_event_row["Target_Spend"] == 800
+    assert ignored_event_row["Taxes_Due"] == 0
+    assert ignored_event_row["Cash_Events"] == 0
+    assert ignored_event_row["Total_Spend"] == 800
+    assert ignored_event_row["Brokerage_Draw"] == 500
+    assert ignored_event_row["Shortfall"] == 300
+
+
+def test_run_plan_year1_cash_events_are_output_only():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 1000
+    cfg.year1_cash_events = 250
+
+    rows = run_plan(cfg)
+    year1_row = rows[0]
+
+    assert year1_row["Target_Spend"] == 1000
+    assert year1_row["Cash_Events"] == 250
+    assert year1_row["Total_Spend"] == 1000
+    assert year1_row["Brokerage_Draw"] == 1000
+    assert year1_row["Shortfall"] == 0
 
 
 def test_clean_shortfall_treats_tiny_rounding_residual_as_zero():
