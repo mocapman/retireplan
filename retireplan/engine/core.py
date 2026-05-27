@@ -421,7 +421,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # Target_Spend: Core lifestyle spending goal (inflation-adjusted)
         target_spend = target_spend_lifestyle
         provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
-        shortfall = max(Decimal(0), total_spend - provided_cash)
+        shortfall = _clean_shortfall(total_spend - provided_cash)
 
         row_data = {
             "Year": round_year(yc.year),
@@ -470,6 +470,14 @@ def _magi_status(magi: Decimal, floor: Decimal, ceiling: Decimal) -> str:
     if magi < ceiling:
         return "IN_RANGE"
     return "ABOVE_CEILING"
+
+
+def _clean_shortfall(shortfall: Decimal) -> Decimal:
+    """Treat dollar-rounding residuals as zero while preserving real shortfalls."""
+    shortfall = max(Decimal(0), shortfall)
+    if shortfall <= Decimal("1.0"):
+        return Decimal(0)
+    return shortfall
 
 
 def _rmd_age_for_year(yc) -> int | None:

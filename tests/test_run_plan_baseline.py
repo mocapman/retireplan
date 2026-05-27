@@ -1,4 +1,6 @@
-from retireplan.engine.core import _rmd_age_for_year, run_plan
+from decimal import Decimal
+
+from retireplan.engine.core import _clean_shortfall, _rmd_age_for_year, run_plan
 from retireplan.engine.taxes import compute_tax_magi
 from retireplan.engine.timeline import YearCtx
 from retireplan.inputs import Inputs
@@ -243,6 +245,16 @@ def test_run_plan_shortfall_is_based_on_total_spend_with_cash_events():
     assert shortfall_row["Total_Spend"] == 1300
     assert shortfall_row["Brokerage_Draw"] == 500
     assert shortfall_row["Shortfall"] == 800
+
+
+def test_clean_shortfall_treats_tiny_rounding_residual_as_zero():
+    assert _clean_shortfall(Decimal("0.01")) == Decimal(0)
+    assert _clean_shortfall(Decimal("1.0")) == Decimal(0)
+
+
+def test_clean_shortfall_preserves_real_unfunded_amounts():
+    assert _clean_shortfall(Decimal("1.01")) == Decimal("1.01")
+    assert _clean_shortfall(Decimal("800")) == Decimal("800")
 
 
 def test_compute_tax_magi_includes_brokerage_capital_gains_in_taxable_income():
