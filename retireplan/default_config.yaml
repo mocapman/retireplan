@@ -81,7 +81,7 @@ tax_health:
   aca_full_premium_monthly: 2555.0
   aca_magi_ceiling: 85000.0
   aca_magi_floor: 43000.0
-  estimated_state_deduction: 0.0
+  estimated_state_deduction: 5670.0
   estimated_state_tax_rate: 0.0875
   magi_target_base: 43000.0
   rmd_start_age: 73

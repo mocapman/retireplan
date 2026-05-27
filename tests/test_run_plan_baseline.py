@@ -1,6 +1,11 @@
 from decimal import Decimal
 
-from retireplan.engine.core import _clean_shortfall, _rmd_age_for_year, run_plan
+from retireplan.engine.core import (
+    _clean_shortfall,
+    _estimated_state_tax,
+    _rmd_age_for_year,
+    run_plan,
+)
 from retireplan.engine.taxes import compute_tax_magi
 from retireplan.engine.timeline import YearCtx
 from retireplan.inputs import Inputs
@@ -181,6 +186,7 @@ def test_run_plan_brokerage_draw_beyond_cash_increases_magi_by_estimated_gain():
     cfg.brokerage_unrealized_gain = 2000
     cfg.balances_brokerage = 10000
     cfg.standard_deduction_base = 0
+    cfg.estimated_state_tax_rate = 0
 
     rows = run_plan(cfg)
 
@@ -189,9 +195,9 @@ def test_run_plan_brokerage_draw_beyond_cash_increases_magi_by_estimated_gain():
     assert rows[1]["Brokerage_Holdings_Sold"] == 306
     assert rows[1]["Brokerage_Basis_Used"] == 242
     assert rows[1]["Brokerage_Gain_Ratio"] == 0.2105
-    assert rows[1]["Brokerage_Capital_Gains"] == 65
-    assert rows[1]["Brokerage_MAGI_Income"] == 65
-    assert rows[1]["MAGI"] == 65
+    assert rows[1]["Brokerage_Capital_Gains"] == 64
+    assert rows[1]["Brokerage_MAGI_Income"] == 64
+    assert rows[1]["MAGI"] == 64
     assert rows[1]["Taxes_Due"] > 0
     assert rows[1]["Total_Spend"] == (
         rows[1]["Target_Spend"] + rows[1]["Taxes_Due"] + rows[1]["Cash_Events"]
@@ -212,6 +218,7 @@ def test_run_plan_positive_tax_is_funded_by_additional_draws_once():
     cfg.balances_ira = 100000
     cfg.draw_order = "IRA, Brokerage, Roth"
     cfg.standard_deduction_base = 0
+    cfg.estimated_state_tax_rate = 0
 
     rows = run_plan(cfg)
     funded_tax_row = rows[1]
@@ -223,6 +230,41 @@ def test_run_plan_positive_tax_is_funded_by_additional_draws_once():
     assert funded_tax_row["IRA_Draw"] == 889
     assert funded_tax_row["IRA_Balance"] == 99111
     assert funded_tax_row["Shortfall"] == 0
+
+
+def test_run_plan_estimated_state_tax_is_included_in_taxes_due_and_draws():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 0
+    cfg.brokerage_cash = 0
+    cfg.brokerage_cost_basis = 0
+    cfg.brokerage_unrealized_gain = 0
+    cfg.balances_roth = 0
+    cfg.balances_ira = 100000
+    cfg.draw_order = "IRA, Brokerage, Roth"
+    cfg.standard_deduction_base = 0
+    cfg.estimated_state_deduction = 100
+    cfg.estimated_state_tax_rate = 0.1
+
+    rows = run_plan(cfg)
+    state_tax_row = rows[1]
+
+    assert state_tax_row["Taxable_Income"] == 988
+    assert state_tax_row["Estimated_State_Taxable_Income"] == 888
+    assert state_tax_row["Estimated_State_Tax"] == 89
+    assert state_tax_row["Federal_Tax"] == 99
+    assert state_tax_row["Taxes_Due"] == 188
+    assert state_tax_row["Taxes_Due"] == (
+        state_tax_row["Federal_Tax"] + state_tax_row["Estimated_State_Tax"]
+    )
+    assert state_tax_row["Total_Spend"] == (
+        state_tax_row["Target_Spend"]
+        + state_tax_row["Taxes_Due"]
+        + state_tax_row["Cash_Events"]
+    )
+    assert state_tax_row["IRA_Draw"] == state_tax_row["Total_Spend"]
+    assert state_tax_row["Shortfall"] == 0
 
 
 def test_run_plan_shortfall_is_based_on_total_spend_with_cash_events():
@@ -255,6 +297,24 @@ def test_clean_shortfall_treats_tiny_rounding_residual_as_zero():
 def test_clean_shortfall_preserves_real_unfunded_amounts():
     assert _clean_shortfall(Decimal("1.01")) == Decimal("1.01")
     assert _clean_shortfall(Decimal("800")) == Decimal("800")
+
+
+def test_estimated_state_tax_helper_applies_deduction_and_rate():
+    state_taxable_income, state_tax = _estimated_state_tax(
+        Decimal("1000"), Decimal("250"), Decimal("0.1")
+    )
+
+    assert state_taxable_income == Decimal("750")
+    assert state_tax == Decimal("75.0")
+
+
+def test_estimated_state_tax_helper_floors_taxable_income_at_zero():
+    state_taxable_income, state_tax = _estimated_state_tax(
+        Decimal("100"), Decimal("250"), Decimal("0.1")
+    )
+
+    assert state_taxable_income == Decimal(0)
+    assert state_tax == Decimal("0.0")
 
 
 def test_compute_tax_magi_includes_brokerage_capital_gains_in_taxable_income():

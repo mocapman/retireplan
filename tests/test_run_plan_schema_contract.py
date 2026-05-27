@@ -38,3 +38,15 @@ def test_brokerage_diagnostic_fields_are_schema_export_fields_not_gui_default():
 
     assert diagnostic_fields.issubset(set(schema.keys()))
     assert diagnostic_fields.isdisjoint(set(schema.visible_keys()))
+
+
+def test_tax_diagnostic_fields_are_schema_export_fields_not_gui_default():
+    diagnostic_fields = {
+        "Federal_Tax",
+        "Taxable_Income",
+        "Estimated_State_Taxable_Income",
+        "Estimated_State_Tax",
+    }
+
+    assert diagnostic_fields.issubset(set(schema.keys()))
+    assert diagnostic_fields.isdisjoint(set(schema.visible_keys()))

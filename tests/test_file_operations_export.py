@@ -26,6 +26,10 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
             "Brokerage_Gain_Ratio": 0.2105263158,
             "Brokerage_Capital_Gains": 63,
             "Brokerage_MAGI_Income": 63,
+            "Federal_Tax": 99,
+            "Taxable_Income": 988,
+            "Estimated_State_Taxable_Income": 888,
+            "Estimated_State_Tax": 89,
         }
     )
     app = SimpleNamespace(
@@ -63,6 +67,10 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
     assert rows[0] == schema.labels()
     assert "Brokerage_Capital_Gains" in rows[0]
     assert "Brokerage_MAGI_Income" in rows[0]
+    assert "Federal_Tax" in rows[0]
+    assert "Taxable_Income" in rows[0]
+    assert "Estimated_State_Taxable_Income" in rows[0]
+    assert "Estimated_State_Tax" in rows[0]
     assert len(rows) == 2
     assert ["# Config Settings"] not in rows
     assert not any(row and row[0].startswith("tax_health.") for row in rows)

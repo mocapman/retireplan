@@ -182,6 +182,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Roth_Draw": round_dollar(draw_roth),
                 "Roth_Conversion": round_dollar(roth_conv),
                 "RMD": round_dollar(0),
+                "Federal_Tax": round_dollar(0),
+                "Taxable_Income": round_dollar(0),
+                "Estimated_State_Taxable_Income": round_dollar(0),
+                "Estimated_State_Tax": round_dollar(0),
                 "Brokerage_Cash_Used": round_dollar(brokerage_sale.cash_used),
                 "Brokerage_Holdings_Sold": round_dollar(
                     brokerage_sale.holdings_sold
@@ -303,6 +307,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
         estimated_tax = Decimal(0)
         tax = Decimal(0)
+        federal_tax = Decimal(0)
+        taxable_income = Decimal(0)
+        estimated_state_taxable_income = Decimal(0)
+        estimated_state_tax = Decimal(0)
         magi = Decimal(0)
         roth_conv = Decimal(0)
         brokerage_capital_gains = Decimal(0)
@@ -344,9 +352,16 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             )
             iter_brokerage_capital_gains = iter_brokerage_sale.capital_gain
 
-            def tax_and_magi(conv: Decimal) -> tuple[Decimal, Decimal]:
-                """Calculate tax and MAGI for given Roth conversion amount."""
-                tax_value, _ss_tax, _taxable, magi_value = compute_tax_magi(
+            def tax_and_magi(
+                conv: Decimal,
+            ) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal]:
+                """Calculate total tax, tax components, and MAGI for a conversion."""
+                (
+                    federal_tax_value,
+                    _ss_tax,
+                    taxable_income_value,
+                    magi_value,
+                ) = compute_tax_magi(
                     ira_ordinary=float(rmd + iter_draw_ira),
                     roth_conversion=float(conv),
                     ss_total=float(ss_income),
@@ -354,11 +369,27 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     filing=filing_status,
                     brokerage_capital_gains=float(iter_brokerage_capital_gains),
                 )
-                return Decimal(str(tax_value)), Decimal(str(magi_value))
+                federal_tax_decimal = Decimal(str(federal_tax_value))
+                taxable_income_decimal = Decimal(str(taxable_income_value))
+                state_taxable_income, state_tax = _estimated_state_tax(
+                    taxable_income_decimal,
+                    Decimal(str(cfg.estimated_state_deduction)),
+                    Decimal(str(cfg.estimated_state_tax_rate)),
+                )
+                total_tax = Decimal(round_dollar(federal_tax_decimal)) + Decimal(
+                    round_dollar(state_tax)
+                )
+                return (
+                    total_tax,
+                    federal_tax_decimal,
+                    taxable_income_decimal,
+                    state_taxable_income,
+                    Decimal(str(magi_value)),
+                )
 
             conv = Decimal(0)
             for _ in range(8):
-                tax0, magi0 = tax_and_magi(conv)
+                tax0, _fed0, _taxable0, _state_taxable0, magi0 = tax_and_magi(conv)
                 if (
                     target_magi <= Decimal(0)
                     or not yc.person1_alive
@@ -375,7 +406,14 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 conv += step
 
             iter_roth_conv = min(conv, max(Decimal(0), iter_i1))
-            iter_tax, iter_magi = tax_and_magi(iter_roth_conv)
+            (
+                iter_tax,
+                iter_federal_tax,
+                iter_taxable_income,
+                iter_estimated_state_taxable_income,
+                iter_magi,
+            ) = tax_and_magi(iter_roth_conv)
+            iter_estimated_state_tax = iter_tax - iter_federal_tax
 
             draw_broke = iter_draw_broke
             draw_roth = iter_draw_roth
@@ -388,6 +426,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             brokerage_capital_gains = iter_brokerage_capital_gains
             roth_conv = iter_roth_conv
             tax = iter_tax
+            federal_tax = iter_federal_tax
+            taxable_income = iter_taxable_income
+            estimated_state_taxable_income = iter_estimated_state_taxable_income
+            estimated_state_tax = iter_estimated_state_tax
             magi = iter_magi
 
             if abs(tax - estimated_tax) <= Decimal("1.0") and tax_stable:
@@ -439,6 +481,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Roth_Draw": round_dollar(draw_roth),
             "Roth_Conversion": round_dollar(roth_conv),
             "RMD": round_dollar(rmd),
+            "Federal_Tax": round_dollar(federal_tax),
+            "Taxable_Income": round_dollar(taxable_income),
+            "Estimated_State_Taxable_Income": round_dollar(
+                estimated_state_taxable_income
+            ),
+            "Estimated_State_Tax": round_dollar(estimated_state_tax),
             "Brokerage_Cash_Used": round_dollar(brokerage_sale.cash_used),
             "Brokerage_Holdings_Sold": round_dollar(brokerage_sale.holdings_sold),
             "Brokerage_Basis_Used": round_dollar(brokerage_sale.basis_used),
@@ -478,6 +526,18 @@ def _clean_shortfall(shortfall: Decimal) -> Decimal:
     if shortfall <= Decimal("1.0"):
         return Decimal(0)
     return shortfall
+
+
+def _estimated_state_tax(
+    taxable_income: Decimal,
+    estimated_state_deduction: Decimal,
+    estimated_state_tax_rate: Decimal,
+) -> tuple[Decimal, Decimal]:
+    """Apply the simplified state-tax assumption to federal taxable income."""
+    state_taxable_income = max(Decimal(0), taxable_income - estimated_state_deduction)
+    return state_taxable_income, state_taxable_income * max(
+        Decimal(0), estimated_state_tax_rate
+    )
 
 
 def _rmd_age_for_year(yc) -> int | None:

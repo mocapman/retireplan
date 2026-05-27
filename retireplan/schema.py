@@ -22,6 +22,14 @@ COLUMNS: List[Dict[str, Any]] = [
     {"key": "Roth_Conversion", "label": "Roth_Conversion", "visible": True},
     {"key": "RMD", "label": "RMD", "visible": True},
     # Default hidden in GUI
+    {"key": "Federal_Tax", "label": "Federal_Tax", "visible": False},
+    {"key": "Taxable_Income", "label": "Taxable_Income", "visible": False},
+    {
+        "key": "Estimated_State_Taxable_Income",
+        "label": "Estimated_State_Taxable_Income",
+        "visible": False,
+    },
+    {"key": "Estimated_State_Tax", "label": "Estimated_State_Tax", "visible": False},
     {"key": "Brokerage_Cash_Used", "label": "Brokerage_Cash_Used", "visible": False},
     {
         "key": "Brokerage_Holdings_Sold",
