@@ -182,6 +182,16 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Roth_Draw": round_dollar(draw_roth),
                 "Roth_Conversion": round_dollar(roth_conv),
                 "RMD": round_dollar(0),
+                "Brokerage_Cash_Used": round_dollar(brokerage_sale.cash_used),
+                "Brokerage_Holdings_Sold": round_dollar(
+                    brokerage_sale.holdings_sold
+                ),
+                "Brokerage_Basis_Used": round_dollar(brokerage_sale.basis_used),
+                "Brokerage_Gain_Ratio": round_percent(brokerage_sale.gain_ratio),
+                "Brokerage_Capital_Gains": round_dollar(
+                    brokerage_sale.capital_gain
+                ),
+                "Brokerage_MAGI_Income": round_dollar(brokerage_sale.capital_gain),
                 "MAGI": round_dollar(magi),
                 "Target_MAGI": round_dollar(target_magi),
                 "MAGI_Remaining": round_dollar(magi_remaining),
@@ -396,6 +406,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Roth_Draw": round_dollar(draw_roth),
             "Roth_Conversion": round_dollar(roth_conv),
             "RMD": round_dollar(rmd),
+            "Brokerage_Cash_Used": round_dollar(brokerage_sale.cash_used),
+            "Brokerage_Holdings_Sold": round_dollar(brokerage_sale.holdings_sold),
+            "Brokerage_Basis_Used": round_dollar(brokerage_sale.basis_used),
+            "Brokerage_Gain_Ratio": round_percent(brokerage_sale.gain_ratio),
+            "Brokerage_Capital_Gains": round_dollar(brokerage_capital_gains),
+            "Brokerage_MAGI_Income": round_dollar(brokerage_capital_gains),
             "MAGI": round_dollar(magi),
             "Target_MAGI": round_dollar(0),
             "MAGI_Remaining": round_dollar(0),

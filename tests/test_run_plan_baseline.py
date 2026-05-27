@@ -101,6 +101,12 @@ def test_run_plan_rows_include_current_schema_and_core_financial_fields():
         "Total_Spend",
         "Target_Spend",
         "Taxes_Due",
+        "Brokerage_Cash_Used",
+        "Brokerage_Holdings_Sold",
+        "Brokerage_Basis_Used",
+        "Brokerage_Gain_Ratio",
+        "Brokerage_Capital_Gains",
+        "Brokerage_MAGI_Income",
         "MAGI",
         "Target_MAGI",
         "MAGI_Remaining",
@@ -155,6 +161,12 @@ def test_run_plan_brokerage_draw_within_cash_does_not_increase_magi():
     rows = run_plan(cfg)
 
     assert rows[1]["Brokerage_Draw"] == 800
+    assert rows[1]["Brokerage_Cash_Used"] == 800
+    assert rows[1]["Brokerage_Holdings_Sold"] == 0
+    assert rows[1]["Brokerage_Basis_Used"] == 0
+    assert rows[1]["Brokerage_Gain_Ratio"] == 0.0
+    assert rows[1]["Brokerage_Capital_Gains"] == 0
+    assert rows[1]["Brokerage_MAGI_Income"] == 0
     assert rows[1]["MAGI"] == 0
 
 
@@ -171,6 +183,12 @@ def test_run_plan_brokerage_draw_beyond_cash_increases_magi_by_estimated_gain():
     rows = run_plan(cfg)
 
     assert rows[1]["Brokerage_Draw"] == 800
+    assert rows[1]["Brokerage_Cash_Used"] == 500
+    assert rows[1]["Brokerage_Holdings_Sold"] == 300
+    assert rows[1]["Brokerage_Basis_Used"] == 237
+    assert rows[1]["Brokerage_Gain_Ratio"] == 0.2105
+    assert rows[1]["Brokerage_Capital_Gains"] == 63
+    assert rows[1]["Brokerage_MAGI_Income"] == 63
     assert rows[1]["MAGI"] == 63
     assert rows[1]["Taxes_Due"] > 0
 

@@ -22,6 +22,24 @@ COLUMNS: List[Dict[str, Any]] = [
     {"key": "Roth_Conversion", "label": "Roth_Conversion", "visible": True},
     {"key": "RMD", "label": "RMD", "visible": True},
     # Default hidden in GUI
+    {"key": "Brokerage_Cash_Used", "label": "Brokerage_Cash_Used", "visible": False},
+    {
+        "key": "Brokerage_Holdings_Sold",
+        "label": "Brokerage_Holdings_Sold",
+        "visible": False,
+    },
+    {"key": "Brokerage_Basis_Used", "label": "Brokerage_Basis_Used", "visible": False},
+    {"key": "Brokerage_Gain_Ratio", "label": "Brokerage_Gain_Ratio", "visible": False},
+    {
+        "key": "Brokerage_Capital_Gains",
+        "label": "Brokerage_Capital_Gains",
+        "visible": False,
+    },
+    {
+        "key": "Brokerage_MAGI_Income",
+        "label": "Brokerage_MAGI_Income",
+        "visible": False,
+    },
     {"key": "MAGI", "label": "MAGI", "visible": False},
     {"key": "Target_MAGI", "label": "Target_MAGI", "visible": False},
     {"key": "MAGI_Remaining", "label": "MAGI_Remaining", "visible": False},

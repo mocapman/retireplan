@@ -60,7 +60,9 @@ class FileOperations:
             cfg = self.app.cfg
             settings_str = f"{cfg.draw_order.replace(', ', '_')}_{cfg.target_spend}"
 
-            out = Path(f"Projections_{settings_str}_{timestamp}.csv")
+            out_dir = Path("output")
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out = out_dir / f"Projections_{settings_str}_{timestamp}.csv"
 
             keys = schema.keys()
             headers = schema.labels()
@@ -70,26 +72,9 @@ class FileOperations:
                 for r in current_rows:
                     rounded_row = round_row(r)
                     w.writerow([rounded_row.get(k, None) for k in keys])
-                w.writerow([])
-                w.writerow(["# Config Settings"])
-                config = self.app.input_panel.get_config_dict()
-
-                def flatten(d, parent_key="", sep="."):
-                    items = []
-                    for k, v in d.items():
-                        new_key = f"{parent_key}{sep}{k}" if parent_key else k
-                        if isinstance(v, dict):
-                            items.extend(flatten(v, new_key, sep=sep))
-                        else:
-                            items.append((new_key, v))
-                    return items
-
-                flat = flatten(config)
-                for k, v in flat:
-                    w.writerow([k, v])
 
             messagebox.showinfo(
-                "Export Complete", f"Data and config exported to:\n{out}"
+                "Export Complete", f"Projection data exported to:\n{out}"
             )
 
         except Exception as e:

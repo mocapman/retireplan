@@ -24,3 +24,17 @@ def test_default_config_run_plan_rows_contain_all_schema_keys():
     rows = run_plan(cfg)
 
     assert_all_rows_contain_schema_keys(rows)
+
+
+def test_brokerage_diagnostic_fields_are_schema_export_fields_not_gui_default():
+    diagnostic_fields = {
+        "Brokerage_Cash_Used",
+        "Brokerage_Holdings_Sold",
+        "Brokerage_Basis_Used",
+        "Brokerage_Gain_Ratio",
+        "Brokerage_Capital_Gains",
+        "Brokerage_MAGI_Income",
+    }
+
+    assert diagnostic_fields.issubset(set(schema.keys()))
+    assert diagnostic_fields.isdisjoint(set(schema.visible_keys()))

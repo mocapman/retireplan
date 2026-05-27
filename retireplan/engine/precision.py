@@ -96,6 +96,11 @@ ROUNDING_RULES: Dict[str, Callable[[Any], Any]] = {
     "Social_Security": round_dollar,
     "IRA_Draw": round_dollar,
     "Brokerage_Draw": round_dollar,
+    "Brokerage_Cash_Used": round_dollar,
+    "Brokerage_Holdings_Sold": round_dollar,
+    "Brokerage_Basis_Used": round_dollar,
+    "Brokerage_Capital_Gains": round_dollar,
+    "Brokerage_MAGI_Income": round_dollar,
     "Roth_Draw": round_dollar,
     "Roth_Conversion": round_dollar,
     "RMD": round_dollar,
@@ -111,7 +116,7 @@ ROUNDING_RULES: Dict[str, Callable[[Any], Any]] = {
     "Person1_Age": round_year,
     "Person2_Age": round_year,
     # Percentages (if any)
-    # "Some_Percentage_Column": round_percent,
+    "Brokerage_Gain_Ratio": round_percent,
 }
 
 
