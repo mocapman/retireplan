@@ -5,6 +5,7 @@ import tkinter.filedialog as filedialog
 from datetime import datetime
 from pathlib import Path
 
+from retireplan import inputs
 from retireplan import schema
 from retireplan.engine.precision import round_row
 
@@ -23,6 +24,7 @@ class FileOperations:
             try:
                 with open(file_path, "r") as f:
                     config = yaml.safe_load(f)
+                self.app.cfg = inputs.load_yaml(file_path)
                 self.app.input_panel.set_config(config)
                 if "column_order" in config:
                     if hasattr(self.app, "cfg"):
@@ -56,7 +58,7 @@ class FileOperations:
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             cfg = self.app.cfg
-            settings_str = f"{cfg.draw_order.replace(', ', '_')}_{cfg.target_spend}"
+            settings_str = f"{cfg.draw_order.replace(', ', '_')}_{cfg.target_spend_base}"
 
             out = Path(f"Projections_{settings_str}_{timestamp}.csv")
 

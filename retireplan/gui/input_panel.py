@@ -81,36 +81,49 @@ class InputPanel(tb.Frame):
             bootstyle=SECONDARY,
         ).pack(side=tk.LEFT, padx=5)
 
-        notebook = tb.Notebook(self)
-        notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        body_frame = tb.Frame(self)
+        body_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        personal_frame = tb.Frame(notebook)
-        self.create_personal_section(personal_frame)
-        notebook.add(personal_frame, text="Personal")
+        nav_frame = tb.Frame(body_frame, width=160)
+        nav_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 8))
 
-        accounts_frame = tb.Frame(notebook)
-        self.create_accounts_section(accounts_frame)
-        notebook.add(accounts_frame, text="Accounts")
+        content_frame = tb.Frame(body_frame)
+        content_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        content_frame.rowconfigure(0, weight=1)
+        content_frame.columnconfigure(0, weight=1)
 
-        spending_frame = tb.Frame(notebook)
-        self.create_spending_section(spending_frame)
-        notebook.add(spending_frame, text="Spending")
+        sections = (
+            ("Personal", self.create_personal_section),
+            ("Accounts", self.create_accounts_section),
+            ("Spending", self.create_spending_section),
+            ("MAGI Planning", self.create_magi_planning_section),
+            ("Social Security", self.create_ss_section),
+            ("Rates", self.create_rates_section),
+            ("Tax & Health", self.create_tax_section),
+            ("Strategy", self.create_strategy_section),
+        )
 
-        ss_frame = tb.Frame(notebook)
-        self.create_ss_section(ss_frame)
-        notebook.add(ss_frame, text="Social Security")
+        self.section_frames = {}
+        self.nav_buttons = {}
+        for row, (label, builder) in enumerate(sections):
+            frame = tb.Frame(content_frame)
+            frame.grid(row=0, column=0, sticky="nsew")
+            builder(frame)
+            self.section_frames[label] = frame
 
-        rates_frame = tb.Frame(notebook)
-        self.create_rates_section(rates_frame)
-        notebook.add(rates_frame, text="Rates")
+            button = tb.Button(
+                nav_frame,
+                text=label,
+                command=lambda name=label: self.show_section(name),
+                bootstyle=SECONDARY,
+            )
+            button.grid(row=row, column=0, sticky=(tk.W, tk.E), padx=5, pady=2)
+            self.nav_buttons[label] = button
+        nav_frame.columnconfigure(0, weight=1)
+        self.show_section("Personal")
 
-        tax_frame = tb.Frame(notebook)
-        self.create_tax_section(tax_frame)
-        notebook.add(tax_frame, text="Tax & Health")
-
-        strategy_frame = tb.Frame(notebook)
-        self.create_strategy_section(strategy_frame)
-        notebook.add(strategy_frame, text="Strategy")
+    def show_section(self, name):
+        self.section_frames[name].tkraise()
 
     def create_currency_field(self, parent, label, key, default, row, col=0):
         tb.Label(parent, text=label).grid(
@@ -236,7 +249,7 @@ class InputPanel(tb.Frame):
         self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 4)
         self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 5)
         self.create_currency_field(
-            parent, "Target Spend (today's $)", "target_spend", "", 6
+            parent, "Target Spend (today's $)", "target_spend_base", "", 6
         )
         self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 7)
         self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 8)
@@ -247,33 +260,179 @@ class InputPanel(tb.Frame):
             parent, "Survivor Spending %", "survivor_percent", "", 12
         )
 
+    def create_magi_planning_section(self, parent):
+        parent.columnconfigure(0, weight=1)
+
+        for key in (
+            "year1_magi_income",
+            "year1_magi_losses",
+            "year1_roth_conversion",
+            "year1_income_to_date",
+            "year1_projected_income",
+            "year1_capital_gains_to_date",
+            "year1_projected_capital_gains",
+            "year1_capital_losses_to_date",
+            "year1_projected_capital_losses",
+        ):
+            self.variables[key] = tk.StringVar(value="")
+
+        grid_frame = tb.Frame(parent)
+        grid_frame.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=2)
+        for col in range(1, 5):
+            grid_frame.columnconfigure(col, weight=1, minsize=115)
+
+        summary_frame = tb.Frame(parent)
+        summary_frame.grid(row=1, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2))
+        summary_frame.columnconfigure(1, weight=1, minsize=180)
+
+        guardrails_frame = tb.Frame(parent)
+        guardrails_frame.grid(
+            row=2, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2)
+        )
+        guardrails_frame.columnconfigure(1, weight=1, minsize=180)
+
+        tb.Label(grid_frame, text="").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
+        for col, label in enumerate(("YTD", "Projected", "Annual", "Years"), start=1):
+            tb.Label(grid_frame, text=label).grid(
+                row=0, column=col, sticky=tk.W, padx=5, pady=2
+            )
+
+        grid = (
+            (
+                "Income",
+                "magi_income_ytd",
+                "magi_income_projected",
+                "magi_income_annual",
+                "magi_income_years",
+            ),
+            (
+                "Gains",
+                "magi_gains_ytd",
+                "magi_gains_projected",
+                "magi_gains_annual",
+                "magi_gains_years",
+            ),
+            (
+                "Losses",
+                "magi_losses_ytd",
+                "magi_losses_projected",
+                "magi_losses_annual",
+                "magi_losses_years",
+            ),
+            (
+                "Conversions",
+                "magi_conversions_ytd",
+                "magi_conversions_projected",
+                "magi_conversions_annual",
+                "magi_conversions_years",
+            ),
+        )
+
+        for row, cells in enumerate(grid, start=1):
+            label, *keys = cells
+            tb.Label(grid_frame, text=label).grid(
+                row=row, column=0, sticky=tk.W, padx=5, pady=2
+            )
+            for col, key in enumerate(keys, start=1):
+                var = tk.StringVar(value="")
+                entry = tb.Entry(grid_frame, textvariable=var, font=INPUT_FONT, width=14)
+                entry.grid(row=row, column=col, sticky=(tk.W, tk.E), padx=5, pady=2)
+                self.variables[key] = var
+
+        summary_row = 0
+        tb.Label(
+            summary_frame,
+            text="MAGI Summary",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=summary_row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
+
+        self.magi_summary_target = tk.StringVar(value="$0")
+        self.magi_summary_projected = tk.StringVar(value="$0")
+        self.magi_summary_remaining = tk.StringVar(value="$0")
+        self.magi_summary_status = tk.StringVar(value="")
+        summary_rows = (
+            ("Target MAGI", self.magi_summary_target),
+            ("Projected MAGI", self.magi_summary_projected),
+            ("MAGI Remaining", self.magi_summary_remaining),
+            ("MAGI Status", self.magi_summary_status),
+        )
+        for offset, (label, var) in enumerate(summary_rows, start=1):
+            tb.Label(summary_frame, text=label).grid(
+                row=summary_row + offset, column=0, sticky=tk.W, padx=5, pady=2
+            )
+            tb.Label(summary_frame, textvariable=var).grid(
+                row=summary_row + offset,
+                column=1,
+                sticky=tk.W,
+                padx=5,
+                pady=2,
+            )
+
+        guardrails_row = 0
+        tb.Label(
+            guardrails_frame,
+            text="ACA Guardrails",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(
+            row=guardrails_row,
+            column=0,
+            columnspan=2,
+            sticky=tk.W,
+            padx=5,
+            pady=(16, 4),
+        )
+        self.create_currency_field(
+            guardrails_frame,
+            "ACA Full Premium Monthly",
+            "aca_full_premium_monthly",
+            "",
+            guardrails_row + 1,
+        )
+        self.create_currency_field(
+            guardrails_frame,
+            "ACA Max Subsidy Monthly",
+            "aca_full_subsidy_monthly",
+            "",
+            guardrails_row + 2,
+        )
+        self.create_currency_field(
+            guardrails_frame, "ACA MAGI Floor", "aca_magi_floor", "", guardrails_row + 3
+        )
+        self.create_currency_field(
+            guardrails_frame,
+            "ACA MAGI Ceiling",
+            "aca_magi_ceiling",
+            "",
+            guardrails_row + 4,
+        )
+
     def create_ss_section(self, parent):
         parent.columnconfigure(1, weight=1)
         self.create_input_field(
             parent, "Person 1 Start Age", "ss_person1_start_age", "", 0
         )
         self.create_currency_field(
-            parent, "Person 1 Annual", "ss_person1_annual_at_start", "", 1
+            parent, "Person 1 Annual", "ss_person1_benefit_annual_at_start", "", 1
         )
         self.create_input_field(
             parent, "Person 2 Start Age", "ss_person2_start_age", "", 2
         )
         self.create_currency_field(
-            parent, "Person 2 Annual", "ss_person2_annual_at_start", "", 3
+            parent, "Person 2 Annual", "ss_person2_benefit_annual_at_start", "", 3
         )
 
     def create_rates_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_percent_field(parent, "Inflation", "inflation", "", 0)
-        self.create_percent_field(parent, "Brokerage Growth", "brokerage_growth", "", 1)
-        self.create_percent_field(parent, "Roth Growth", "roth_growth", "", 2)
-        self.create_percent_field(parent, "IRA Growth", "ira_growth", "", 3)
+        self.create_percent_field(parent, "Inflation", "inflation_rate", "", 0)
+        self.create_percent_field(parent, "Brokerage Growth", "brokerage_growth_rate", "", 1)
+        self.create_percent_field(parent, "Roth Growth", "roth_growth_rate", "", 2)
+        self.create_percent_field(parent, "IRA Growth", "ira_growth_rate", "", 3)
 
     def create_tax_section(self, parent):
         parent.columnconfigure(1, weight=1)
         self.create_currency_field(parent, "MAGI Target", "magi_target_base", "", 0)
         self.create_currency_field(
-            parent, "Standard Deduction", "standard_deduction_base", "", 1
+            parent, "Standard Deduction", "standard_deduction_annual_base", "", 1
         )
         self.create_input_field(parent, "RMD Start Age", "rmd_start_age", "", 2)
         self.create_input_field(parent, "ACA End Age", "aca_end_age", "", 3)
@@ -347,8 +506,91 @@ class InputPanel(tb.Frame):
                 "year1_roth_draw": safe_float(
                     strip_currency(self.variables["year1_roth_draw"].get())
                 ),
-                "target_spend": safe_float(
-                    strip_currency(self.variables["target_spend"].get())
+                "year1_magi_income": safe_float(
+                    strip_currency(self.variables["year1_magi_income"].get())
+                ),
+                "year1_magi_losses": safe_float(
+                    strip_currency(self.variables["year1_magi_losses"].get())
+                ),
+                "year1_roth_conversion": safe_float(
+                    strip_currency(self.variables["year1_roth_conversion"].get())
+                ),
+                "year1_income_to_date": safe_float(
+                    strip_currency(self.variables["year1_income_to_date"].get())
+                ),
+                "year1_projected_income": safe_float(
+                    strip_currency(self.variables["year1_projected_income"].get())
+                ),
+                "year1_capital_gains_to_date": safe_float(
+                    strip_currency(
+                        self.variables["year1_capital_gains_to_date"].get()
+                    )
+                ),
+                "year1_projected_capital_gains": safe_float(
+                    strip_currency(
+                        self.variables["year1_projected_capital_gains"].get()
+                    )
+                ),
+                "year1_capital_losses_to_date": safe_float(
+                    strip_currency(
+                        self.variables["year1_capital_losses_to_date"].get()
+                    )
+                ),
+                "year1_projected_capital_losses": safe_float(
+                    strip_currency(
+                        self.variables["year1_projected_capital_losses"].get()
+                    )
+                ),
+                "magi_income_ytd": safe_float(
+                    strip_currency(self.variables["magi_income_ytd"].get())
+                ),
+                "magi_income_projected": safe_float(
+                    strip_currency(self.variables["magi_income_projected"].get())
+                ),
+                "magi_income_annual": safe_float(
+                    strip_currency(self.variables["magi_income_annual"].get())
+                ),
+                "magi_income_years": safe_float(
+                    self.variables["magi_income_years"].get()
+                ),
+                "magi_gains_ytd": safe_float(
+                    strip_currency(self.variables["magi_gains_ytd"].get())
+                ),
+                "magi_gains_projected": safe_float(
+                    strip_currency(self.variables["magi_gains_projected"].get())
+                ),
+                "magi_gains_annual": safe_float(
+                    strip_currency(self.variables["magi_gains_annual"].get())
+                ),
+                "magi_gains_years": safe_float(
+                    self.variables["magi_gains_years"].get()
+                ),
+                "magi_losses_ytd": safe_float(
+                    strip_currency(self.variables["magi_losses_ytd"].get())
+                ),
+                "magi_losses_projected": safe_float(
+                    strip_currency(self.variables["magi_losses_projected"].get())
+                ),
+                "magi_losses_annual": safe_float(
+                    strip_currency(self.variables["magi_losses_annual"].get())
+                ),
+                "magi_losses_years": safe_float(
+                    self.variables["magi_losses_years"].get()
+                ),
+                "magi_conversions_ytd": safe_float(
+                    strip_currency(self.variables["magi_conversions_ytd"].get())
+                ),
+                "magi_conversions_projected": safe_float(
+                    strip_currency(self.variables["magi_conversions_projected"].get())
+                ),
+                "magi_conversions_annual": safe_float(
+                    strip_currency(self.variables["magi_conversions_annual"].get())
+                ),
+                "magi_conversions_years": safe_float(
+                    self.variables["magi_conversions_years"].get()
+                ),
+                "target_spend_base": safe_float(
+                    strip_currency(self.variables["target_spend_base"].get())
                 ),
                 "gogo_percent": safe_float(
                     strip_percent(self.variables["gogo_percent"].get())
@@ -369,33 +611,49 @@ class InputPanel(tb.Frame):
                 "person1_start_age": safe_int(
                     self.variables["ss_person1_start_age"].get()
                 ),
-                "person1_annual_at_start": safe_float(
-                    strip_currency(self.variables["ss_person1_annual_at_start"].get())
+                "ss_person1_benefit_annual_at_start": safe_float(
+                    strip_currency(
+                        self.variables["ss_person1_benefit_annual_at_start"].get()
+                    )
                 ),
                 "person2_start_age": safe_int(
                     self.variables["ss_person2_start_age"].get()
                 ),
-                "person2_annual_at_start": safe_float(
-                    strip_currency(self.variables["ss_person2_annual_at_start"].get())
+                "ss_person2_benefit_annual_at_start": safe_float(
+                    strip_currency(
+                        self.variables["ss_person2_benefit_annual_at_start"].get()
+                    )
                 ),
             },
             "rates": {
-                "inflation": percent_to_float(self.variables["inflation"].get()),
-                "brokerage_growth": percent_to_float(
-                    self.variables["brokerage_growth"].get()
+                "inflation_rate": percent_to_float(self.variables["inflation_rate"].get()),
+                "brokerage_growth_rate": percent_to_float(
+                    self.variables["brokerage_growth_rate"].get()
                 ),
-                "roth_growth": percent_to_float(self.variables["roth_growth"].get()),
-                "ira_growth": percent_to_float(self.variables["ira_growth"].get()),
+                "roth_growth_rate": percent_to_float(self.variables["roth_growth_rate"].get()),
+                "ira_growth_rate": percent_to_float(self.variables["ira_growth_rate"].get()),
             },
             "tax_health": {
                 "magi_target_base": safe_float(
                     strip_currency(self.variables["magi_target_base"].get())
                 ),
-                "standard_deduction_base": safe_float(
-                    strip_currency(self.variables["standard_deduction_base"].get())
+                "standard_deduction_annual_base": safe_float(
+                    strip_currency(self.variables["standard_deduction_annual_base"].get())
                 ),
                 "rmd_start_age": safe_int(self.variables["rmd_start_age"].get()),
                 "aca_end_age": safe_int(self.variables["aca_end_age"].get()),
+                "aca_full_subsidy_monthly": safe_float(
+                    strip_currency(self.variables["aca_full_subsidy_monthly"].get())
+                ),
+                "aca_full_premium_monthly": safe_float(
+                    strip_currency(self.variables["aca_full_premium_monthly"].get())
+                ),
+                "aca_magi_floor": safe_float(
+                    strip_currency(self.variables["aca_magi_floor"].get())
+                ),
+                "aca_magi_ceiling": safe_float(
+                    strip_currency(self.variables["aca_magi_ceiling"].get())
+                ),
             },
             "draw_order": self.variables["draw_order"].get(),
         }
@@ -422,7 +680,56 @@ class InputPanel(tb.Frame):
             "year1_brokerage_draw": format_currency(s.get("year1_brokerage_draw", "")),
             "year1_ira_draw": format_currency(s.get("year1_ira_draw", "")),
             "year1_roth_draw": format_currency(s.get("year1_roth_draw", "")),
-            "target_spend": format_currency(s.get("target_spend", "")),
+            "year1_magi_income": format_currency(s.get("year1_magi_income", "")),
+            "year1_magi_losses": format_currency(s.get("year1_magi_losses", "")),
+            "year1_roth_conversion": format_currency(
+                s.get("year1_roth_conversion", "")
+            ),
+            "year1_income_to_date": format_currency(s.get("year1_income_to_date", "")),
+            "year1_projected_income": format_currency(
+                s.get("year1_projected_income", "")
+            ),
+            "year1_capital_gains_to_date": format_currency(
+                s.get("year1_capital_gains_to_date", "")
+            ),
+            "year1_projected_capital_gains": format_currency(
+                s.get("year1_projected_capital_gains", "")
+            ),
+            "year1_capital_losses_to_date": format_currency(
+                s.get("year1_capital_losses_to_date", "")
+            ),
+            "year1_projected_capital_losses": format_currency(
+                s.get("year1_projected_capital_losses", "")
+            ),
+            "magi_income_ytd": format_currency(s.get("magi_income_ytd", "")),
+            "magi_income_projected": format_currency(
+                s.get("magi_income_projected", "")
+            ),
+            "magi_income_annual": format_currency(s.get("magi_income_annual", "")),
+            "magi_income_years": s.get("magi_income_years", ""),
+            "magi_gains_ytd": format_currency(s.get("magi_gains_ytd", "")),
+            "magi_gains_projected": format_currency(
+                s.get("magi_gains_projected", "")
+            ),
+            "magi_gains_annual": format_currency(s.get("magi_gains_annual", "")),
+            "magi_gains_years": s.get("magi_gains_years", ""),
+            "magi_losses_ytd": format_currency(s.get("magi_losses_ytd", "")),
+            "magi_losses_projected": format_currency(
+                s.get("magi_losses_projected", "")
+            ),
+            "magi_losses_annual": format_currency(s.get("magi_losses_annual", "")),
+            "magi_losses_years": s.get("magi_losses_years", ""),
+            "magi_conversions_ytd": format_currency(
+                s.get("magi_conversions_ytd", "")
+            ),
+            "magi_conversions_projected": format_currency(
+                s.get("magi_conversions_projected", "")
+            ),
+            "magi_conversions_annual": format_currency(
+                s.get("magi_conversions_annual", "")
+            ),
+            "magi_conversions_years": s.get("magi_conversions_years", ""),
+            "target_spend_base": format_currency(s.get("target_spend_base", "")),
             "gogo_percent": format_percent(s.get("gogo_percent", 100)),
             "slow_percent": format_percent(s.get("slow_percent", 80)),
             "nogo_percent": format_percent(s.get("nogo_percent", 70)),
@@ -432,37 +739,57 @@ class InputPanel(tb.Frame):
             "ss_person1_start_age": config.get("social_security", {}).get(
                 "person1_start_age"
             ),
-            "ss_person1_annual_at_start": format_currency(
-                config.get("social_security", {}).get("person1_annual_at_start", "")
+            "ss_person1_benefit_annual_at_start": format_currency(
+                config.get("social_security", {}).get(
+                    "ss_person1_benefit_annual_at_start", ""
+                )
             ),
             "ss_person2_start_age": config.get("social_security", {}).get(
                 "person2_start_age"
             ),
-            "ss_person2_annual_at_start": format_currency(
-                config.get("social_security", {}).get("person2_annual_at_start", "")
+            "ss_person2_benefit_annual_at_start": format_currency(
+                config.get("social_security", {}).get(
+                    "ss_person2_benefit_annual_at_start", ""
+                )
             ),
-            "inflation": format_percent(
-                float_to_percent(config.get("rates", {}).get("inflation", ""))
+            "inflation_rate": format_percent(
+                float_to_percent(config.get("rates", {}).get("inflation_rate", ""))
             ),
-            "brokerage_growth": format_percent(
-                float_to_percent(config.get("rates", {}).get("brokerage_growth", ""))
+            "brokerage_growth_rate": format_percent(
+                float_to_percent(config.get("rates", {}).get("brokerage_growth_rate", ""))
             ),
-            "roth_growth": format_percent(
-                float_to_percent(config.get("rates", {}).get("roth_growth", ""))
+            "roth_growth_rate": format_percent(
+                float_to_percent(config.get("rates", {}).get("roth_growth_rate", ""))
             ),
-            "ira_growth": format_percent(
-                float_to_percent(config.get("rates", {}).get("ira_growth", ""))
+            "ira_growth_rate": format_percent(
+                float_to_percent(config.get("rates", {}).get("ira_growth_rate", ""))
             ),
             "magi_target_base": format_currency(
                 config.get("tax_health", {}).get("magi_target_base", "")
             ),
-            "standard_deduction_base": format_currency(
-                config.get("tax_health", {}).get("standard_deduction_base", "")
+            "standard_deduction_annual_base": format_currency(
+                config.get("tax_health", {}).get("standard_deduction_annual_base", "")
             ),
             "rmd_start_age": config.get("tax_health", {}).get("rmd_start_age"),
             "aca_end_age": config.get("tax_health", {}).get("aca_end_age"),
+            "aca_full_subsidy_monthly": format_currency(
+                config.get("tax_health", {}).get("aca_full_subsidy_monthly", "")
+            ),
+            "aca_full_premium_monthly": format_currency(
+                config.get("tax_health", {}).get("aca_full_premium_monthly", "")
+            ),
+            "aca_magi_floor": format_currency(
+                config.get("tax_health", {}).get("aca_magi_floor", "")
+            ),
+            "aca_magi_ceiling": format_currency(
+                config.get("tax_health", {}).get("aca_magi_ceiling", "")
+            ),
             "draw_order": config.get("draw_order"),
         }
         for key, value in mapping.items():
             if key in self.variables and value is not None:
                 self.variables[key].set(str(value))
+        if hasattr(self, "magi_summary_target"):
+            self.magi_summary_target.set(
+                format_currency(config.get("tax_health", {}).get("magi_target_base", 0))
+            )
