@@ -64,6 +64,8 @@ def minimal_two_person_config() -> Inputs:
         ira_growth=0,
         magi_target_base=0,
         standard_deduction_base=1000,
+        estimated_state_deduction=0,
+        estimated_state_tax_rate=0.0875,
         rmd_start_age=73,
         aca_end_age=65,
         aca_magi_floor=0,

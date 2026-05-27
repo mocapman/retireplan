@@ -85,6 +85,8 @@ class Inputs:
     # Tax/health
     magi_target_base: float
     standard_deduction_base: float
+    estimated_state_deduction: float
+    estimated_state_tax_rate: float
     rmd_start_age: int
     aca_end_age: int
     aca_magi_floor: float
@@ -185,6 +187,8 @@ def load_yaml(path: str) -> Inputs:
         ira_growth=r["ira_growth"],
         magi_target_base=th["magi_target_base"],
         standard_deduction_base=th["standard_deduction_base"],
+        estimated_state_deduction=th.get("estimated_state_deduction", 0),
+        estimated_state_tax_rate=th.get("estimated_state_tax_rate", 0.0875),
         rmd_start_age=th["rmd_start_age"],
         aca_end_age=th["aca_end_age"],
         aca_magi_floor=th.get("aca_magi_floor", 0),

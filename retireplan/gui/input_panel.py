@@ -291,6 +291,58 @@ class InputPanel(tb.Frame):
                 format_currency(self.brokerage_detail_total())
             )
 
+    def magi_planning_amount(self, key):
+        try:
+            return float(strip_currency(self.variables[key].get()))
+        except Exception:
+            return 0.0
+
+    def update_magi_planning_display(self):
+        if not all(
+            key in self.variables
+            for key in (
+                "magi_income_annual",
+                "magi_gains_annual",
+                "magi_losses_annual",
+                "magi_conversions_annual",
+            )
+        ):
+            return
+
+        annuals = {
+            "magi_income_annual": (
+                self.magi_planning_amount("magi_income_ytd")
+                + self.magi_planning_amount("magi_income_projected")
+            ),
+            "magi_gains_annual": (
+                self.magi_planning_amount("magi_gains_ytd")
+                + self.magi_planning_amount("magi_gains_projected")
+            ),
+            "magi_losses_annual": (
+                self.magi_planning_amount("magi_losses_ytd")
+                + self.magi_planning_amount("magi_losses_projected")
+            ),
+            "magi_conversions_annual": (
+                self.magi_planning_amount("magi_conversions_ytd")
+                + self.magi_planning_amount("magi_conversions_projected")
+            ),
+        }
+        for key, value in annuals.items():
+            self.variables[key].set(format_currency(value))
+
+        projected_magi = (
+            annuals["magi_income_annual"]
+            + annuals["magi_gains_annual"]
+            + annuals["magi_conversions_annual"]
+            - annuals["magi_losses_annual"]
+        )
+        magi_remaining = (
+            self.magi_planning_amount("magi_target_base") - projected_magi
+        )
+        if hasattr(self, "magi_summary_projected"):
+            self.magi_summary_projected.set(format_currency(projected_magi))
+            self.magi_summary_remaining.set(format_currency(magi_remaining))
+
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
         self.create_input_field(parent, "Start Year", "start_year", "", 0)
@@ -392,9 +444,30 @@ class InputPanel(tb.Frame):
             )
             for col, key in enumerate(keys, start=1):
                 var = tk.StringVar(value="")
-                entry = tb.Entry(grid_frame, textvariable=var, font=INPUT_FONT, width=14)
+                entry_state = "readonly" if key.endswith("_annual") else "normal"
+                entry = tb.Entry(
+                    grid_frame,
+                    textvariable=var,
+                    font=INPUT_FONT,
+                    width=14,
+                    state=entry_state,
+                )
                 entry.grid(row=row, column=col, sticky=(tk.W, tk.E), padx=5, pady=2)
                 self.variables[key] = var
+
+        for key in (
+            "magi_income_ytd",
+            "magi_income_projected",
+            "magi_gains_ytd",
+            "magi_gains_projected",
+            "magi_losses_ytd",
+            "magi_losses_projected",
+            "magi_conversions_ytd",
+            "magi_conversions_projected",
+        ):
+            self.variables[key].trace_add(
+                "write", lambda *_: self.update_magi_planning_display()
+            )
 
         summary_row = 0
         tb.Label(
@@ -403,17 +476,21 @@ class InputPanel(tb.Frame):
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
         ).grid(row=summary_row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
 
-        self.magi_summary_target = tk.StringVar(value="$0")
+        self.create_currency_field(
+            summary_frame, "MAGI Target", "magi_target_base", "", summary_row + 1
+        )
+        self.variables["magi_target_base"].trace_add(
+            "write", lambda *_: self.update_magi_planning_display()
+        )
         self.magi_summary_projected = tk.StringVar(value="$0")
         self.magi_summary_remaining = tk.StringVar(value="$0")
         self.magi_summary_status = tk.StringVar(value="")
         summary_rows = (
-            ("Target MAGI", self.magi_summary_target),
             ("Projected MAGI", self.magi_summary_projected),
             ("MAGI Remaining", self.magi_summary_remaining),
             ("MAGI Status", self.magi_summary_status),
         )
-        for offset, (label, var) in enumerate(summary_rows, start=1):
+        for offset, (label, var) in enumerate(summary_rows, start=2):
             tb.Label(summary_frame, text=label).grid(
                 row=summary_row + offset, column=0, sticky=tk.W, padx=5, pady=2
             )
@@ -487,12 +564,22 @@ class InputPanel(tb.Frame):
 
     def create_tax_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_currency_field(parent, "MAGI Target", "magi_target_base", "", 0)
+        tb.Label(
+            parent,
+            text="Tax Assumptions",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
         self.create_currency_field(
-            parent, "Standard Deduction", "standard_deduction_base", "", 1
+            parent, "Estimated State Deduction", "estimated_state_deduction", "", 1
         )
-        self.create_input_field(parent, "RMD Start Age", "rmd_start_age", "", 2)
-        self.create_input_field(parent, "ACA End Age", "aca_end_age", "", 3)
+        self.create_percent_field(
+            parent, "Estimated State Tax Rate", "estimated_state_tax_rate", "", 2
+        )
+        self.create_currency_field(
+            parent, "Standard Deduction", "standard_deduction_base", "", 3
+        )
+        self.create_input_field(parent, "RMD Start Age", "rmd_start_age", "", 4)
+        self.create_input_field(parent, "ACA End Age", "aca_end_age", "", 5)
 
     def create_strategy_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -610,9 +697,6 @@ class InputPanel(tb.Frame):
                 "magi_income_projected": safe_float(
                     strip_currency(self.variables["magi_income_projected"].get())
                 ),
-                "magi_income_annual": safe_float(
-                    strip_currency(self.variables["magi_income_annual"].get())
-                ),
                 "magi_income_years": safe_float(
                     self.variables["magi_income_years"].get()
                 ),
@@ -621,9 +705,6 @@ class InputPanel(tb.Frame):
                 ),
                 "magi_gains_projected": safe_float(
                     strip_currency(self.variables["magi_gains_projected"].get())
-                ),
-                "magi_gains_annual": safe_float(
-                    strip_currency(self.variables["magi_gains_annual"].get())
                 ),
                 "magi_gains_years": safe_float(
                     self.variables["magi_gains_years"].get()
@@ -634,9 +715,6 @@ class InputPanel(tb.Frame):
                 "magi_losses_projected": safe_float(
                     strip_currency(self.variables["magi_losses_projected"].get())
                 ),
-                "magi_losses_annual": safe_float(
-                    strip_currency(self.variables["magi_losses_annual"].get())
-                ),
                 "magi_losses_years": safe_float(
                     self.variables["magi_losses_years"].get()
                 ),
@@ -645,9 +723,6 @@ class InputPanel(tb.Frame):
                 ),
                 "magi_conversions_projected": safe_float(
                     strip_currency(self.variables["magi_conversions_projected"].get())
-                ),
-                "magi_conversions_annual": safe_float(
-                    strip_currency(self.variables["magi_conversions_annual"].get())
                 ),
                 "magi_conversions_years": safe_float(
                     self.variables["magi_conversions_years"].get()
@@ -702,6 +777,12 @@ class InputPanel(tb.Frame):
                 ),
                 "standard_deduction_base": safe_float(
                     strip_currency(self.variables["standard_deduction_base"].get())
+                ),
+                "estimated_state_deduction": safe_float(
+                    strip_currency(self.variables["estimated_state_deduction"].get())
+                ),
+                "estimated_state_tax_rate": percent_to_float(
+                    self.variables["estimated_state_tax_rate"].get()
                 ),
                 "rmd_start_age": safe_int(self.variables["rmd_start_age"].get()),
                 "aca_end_age": safe_int(self.variables["aca_end_age"].get()),
@@ -783,28 +864,22 @@ class InputPanel(tb.Frame):
             "magi_income_projected": format_currency(
                 s.get("magi_income_projected", "")
             ),
-            "magi_income_annual": format_currency(s.get("magi_income_annual", "")),
             "magi_income_years": s.get("magi_income_years", ""),
             "magi_gains_ytd": format_currency(s.get("magi_gains_ytd", "")),
             "magi_gains_projected": format_currency(
                 s.get("magi_gains_projected", "")
             ),
-            "magi_gains_annual": format_currency(s.get("magi_gains_annual", "")),
             "magi_gains_years": s.get("magi_gains_years", ""),
             "magi_losses_ytd": format_currency(s.get("magi_losses_ytd", "")),
             "magi_losses_projected": format_currency(
                 s.get("magi_losses_projected", "")
             ),
-            "magi_losses_annual": format_currency(s.get("magi_losses_annual", "")),
             "magi_losses_years": s.get("magi_losses_years", ""),
             "magi_conversions_ytd": format_currency(
                 s.get("magi_conversions_ytd", "")
             ),
             "magi_conversions_projected": format_currency(
                 s.get("magi_conversions_projected", "")
-            ),
-            "magi_conversions_annual": format_currency(
-                s.get("magi_conversions_annual", "")
             ),
             "magi_conversions_years": s.get("magi_conversions_years", ""),
             "target_spend": format_currency(s.get("target_spend", "")),
@@ -846,6 +921,14 @@ class InputPanel(tb.Frame):
             "standard_deduction_base": format_currency(
                 config.get("tax_health", {}).get("standard_deduction_base", "")
             ),
+            "estimated_state_deduction": format_currency(
+                config.get("tax_health", {}).get("estimated_state_deduction", "")
+            ),
+            "estimated_state_tax_rate": format_percent(
+                float_to_percent(
+                    config.get("tax_health", {}).get("estimated_state_tax_rate", "")
+                )
+            ),
             "rmd_start_age": config.get("tax_health", {}).get("rmd_start_age"),
             "aca_end_age": config.get("tax_health", {}).get("aca_end_age"),
             "aca_expected_subsidy_monthly": format_currency(
@@ -866,7 +949,4 @@ class InputPanel(tb.Frame):
             if key in self.variables and value is not None:
                 self.variables[key].set(str(value))
         self.update_brokerage_balance_display()
-        if hasattr(self, "magi_summary_target"):
-            self.magi_summary_target.set(
-                format_currency(config.get("tax_health", {}).get("magi_target_base", 0))
-            )
+        self.update_magi_planning_display()

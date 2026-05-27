@@ -43,19 +43,15 @@ social_security:
 spending:
   gogo_percent: 100.0
   gogo_years: 8
-  magi_conversions_annual: 0.0
   magi_conversions_projected: 0.0
   magi_conversions_years: 0.0
   magi_conversions_ytd: 15000.0
-  magi_gains_annual: 0.0
   magi_gains_projected: 0.0
   magi_gains_years: 0.0
   magi_gains_ytd: 29631.0
-  magi_income_annual: 0.0
   magi_income_projected: 2500.0
   magi_income_years: 0.0
   magi_income_ytd: 0.0
-  magi_losses_annual: 0.0
   magi_losses_projected: 0.0
   magi_losses_years: 0.0
   magi_losses_ytd: 5332.0
@@ -85,6 +81,8 @@ tax_health:
   aca_full_premium_monthly: 2555.0
   aca_magi_ceiling: 85000.0
   aca_magi_floor: 43000.0
-  magi_target_base: 85000.0
+  estimated_state_deduction: 0.0
+  estimated_state_tax_rate: 0.0875
+  magi_target_base: 43000.0
   rmd_start_age: 73
   standard_deduction_base: 31500.0
