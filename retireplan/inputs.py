@@ -105,6 +105,24 @@ def load_yaml(path: str) -> Inputs:
     ss = raw["social_security"]
     r = raw["rates"]
     th = raw["tax_health"]
+    brokerage_cash = b.get("brokerage_cash")
+    brokerage_cost_basis = b.get("brokerage_cost_basis")
+    brokerage_unrealized_gain = b.get("brokerage_unrealized_gain")
+    if (
+        brokerage_cash is None
+        and brokerage_cost_basis is None
+        and brokerage_unrealized_gain is None
+    ):
+        brokerage_cash = b.get("brokerage", 0)
+        brokerage_cost_basis = 0
+        brokerage_unrealized_gain = 0
+    else:
+        brokerage_cash = brokerage_cash or 0
+        brokerage_cost_basis = brokerage_cost_basis or 0
+        brokerage_unrealized_gain = brokerage_unrealized_gain or 0
+    balances_brokerage = (
+        brokerage_cash + brokerage_cost_basis + brokerage_unrealized_gain
+    )
 
     i = Inputs(
         birth_year_person1=raw["birth_year_person1"],
@@ -112,10 +130,10 @@ def load_yaml(path: str) -> Inputs:
         final_age_person1=raw["final_age_person1"],
         final_age_person2=raw.get("final_age_person2"),
         filing_status=raw["filing_status"],
-        balances_brokerage=b["brokerage"],
-        brokerage_cash=b.get("brokerage_cash", 0),
-        brokerage_cost_basis=b.get("brokerage_cost_basis", 0),
-        brokerage_unrealized_gain=b.get("brokerage_unrealized_gain", 0),
+        balances_brokerage=balances_brokerage,
+        brokerage_cash=brokerage_cash,
+        brokerage_cost_basis=brokerage_cost_basis,
+        brokerage_unrealized_gain=brokerage_unrealized_gain,
         balances_roth=b["roth"],
         balances_ira=b["ira"],
         # start_year now from spending

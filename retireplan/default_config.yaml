@@ -1,5 +1,4 @@
 balances:
-  brokerage: 538753.0
   brokerage_cash: 250000.0
   brokerage_cost_basis: 230000.0
   brokerage_unrealized_gain: 63000.0

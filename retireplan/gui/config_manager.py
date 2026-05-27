@@ -16,7 +16,6 @@ class ConfigManager:
             "final_age_person2": cfg.final_age_person2,
             "filing_status": cfg.filing_status,
             "balances": {
-                "brokerage": cfg.balances_brokerage,
                 "brokerage_cash": cfg.brokerage_cash,
                 "brokerage_cost_basis": cfg.brokerage_cost_basis,
                 "brokerage_unrealized_gain": cfg.brokerage_unrealized_gain,
@@ -98,11 +97,24 @@ class ConfigManager:
         """Update the configuration object from a dictionary"""
         for key, value in config_dict.items():
             if key == "balances":
-                cfg.balances_brokerage = value["brokerage"]
-                cfg.brokerage_cash = value.get("brokerage_cash", 0)
-                cfg.brokerage_cost_basis = value.get("brokerage_cost_basis", 0)
-                cfg.brokerage_unrealized_gain = value.get(
-                    "brokerage_unrealized_gain", 0
+                if (
+                    "brokerage_cash" not in value
+                    and "brokerage_cost_basis" not in value
+                    and "brokerage_unrealized_gain" not in value
+                ):
+                    cfg.brokerage_cash = value.get("brokerage", 0)
+                    cfg.brokerage_cost_basis = 0
+                    cfg.brokerage_unrealized_gain = 0
+                else:
+                    cfg.brokerage_cash = value.get("brokerage_cash", 0)
+                    cfg.brokerage_cost_basis = value.get("brokerage_cost_basis", 0)
+                    cfg.brokerage_unrealized_gain = value.get(
+                        "brokerage_unrealized_gain", 0
+                    )
+                cfg.balances_brokerage = (
+                    cfg.brokerage_cash
+                    + cfg.brokerage_cost_basis
+                    + cfg.brokerage_unrealized_gain
                 )
                 cfg.balances_roth = value["roth"]
                 cfg.balances_ira = value["ira"]

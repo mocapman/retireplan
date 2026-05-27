@@ -197,6 +197,17 @@ class InputPanel(tb.Frame):
         self.variables[key] = var
         return var
 
+    def create_display_field(self, parent, label, key, default, row, col=0):
+        tb.Label(parent, text=label).grid(
+            row=row, column=col, sticky=tk.W, padx=5, pady=2
+        )
+        var = tk.StringVar(value=str(default) if default is not None else "")
+        entry = tb.Entry(parent, textvariable=var, font=INPUT_FONT, state="readonly")
+        entry.grid(row=row, column=col + 1, sticky=(tk.W, tk.E), padx=5, pady=2)
+        parent.columnconfigure(col + 1, weight=1)
+        self.variables[key] = var
+        return var
+
     def create_combobox(self, parent, label, key, values, default, row, col=0):
         tb.Label(parent, text=label).grid(
             row=row, column=col, sticky=tk.W, padx=5, pady=2
@@ -228,11 +239,57 @@ class InputPanel(tb.Frame):
 
     def create_accounts_section(self, parent):
         parent.columnconfigure(1, weight=1)
+        tb.Label(
+            parent,
+            text="Taxable Brokerage",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
+        self.create_currency_field(parent, "Cash", "brokerage_cash", "", 1)
         self.create_currency_field(
-            parent, "Brokerage Balance", "balances_brokerage", "", 0
+            parent, "Holdings Cost Basis", "brokerage_cost_basis", "", 2
         )
-        self.create_currency_field(parent, "Roth Balance", "balances_roth", "", 1)
-        self.create_currency_field(parent, "IRA Balance", "balances_ira", "", 2)
+        self.create_currency_field(
+            parent, "Unrealized Gains", "brokerage_unrealized_gain", "", 3
+        )
+        self.create_display_field(
+            parent, "Total Balance", "balances_brokerage", "", 4
+        )
+        for key in (
+            "brokerage_cash",
+            "brokerage_cost_basis",
+            "brokerage_unrealized_gain",
+        ):
+            self.variables[key].trace_add(
+                "write", lambda *_: self.update_brokerage_balance_display()
+            )
+
+        tb.Label(
+            parent,
+            text="Retirement Accounts",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(16, 4))
+        self.create_currency_field(parent, "Roth Balance", "balances_roth", "", 6)
+        self.create_currency_field(parent, "IRA Balance", "balances_ira", "", 7)
+        self.update_brokerage_balance_display()
+
+    def brokerage_detail_total(self):
+        total = 0.0
+        for key in (
+            "brokerage_cash",
+            "brokerage_cost_basis",
+            "brokerage_unrealized_gain",
+        ):
+            try:
+                total += float(strip_currency(self.variables[key].get()))
+            except Exception:
+                pass
+        return total
+
+    def update_brokerage_balance_display(self):
+        if "balances_brokerage" in self.variables:
+            self.variables["balances_brokerage"].set(
+                format_currency(self.brokerage_detail_total())
+            )
 
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -290,12 +347,6 @@ class InputPanel(tb.Frame):
             row=2, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2)
         )
         guardrails_frame.columnconfigure(1, weight=1, minsize=180)
-
-        brokerage_frame = tb.Frame(parent)
-        brokerage_frame.grid(
-            row=3, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2)
-        )
-        brokerage_frame.columnconfigure(1, weight=1, minsize=180)
 
         tb.Label(grid_frame, text="").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
         for col, label in enumerate(("YTD", "Projected", "Annual", "Years"), start=1):
@@ -412,41 +463,6 @@ class InputPanel(tb.Frame):
             guardrails_row + 4,
         )
 
-        brokerage_row = 0
-        tb.Label(
-            brokerage_frame,
-            text="Taxable Brokerage",
-            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
-        ).grid(
-            row=brokerage_row,
-            column=0,
-            columnspan=2,
-            sticky=tk.W,
-            padx=5,
-            pady=(16, 4),
-        )
-        self.create_currency_field(
-            brokerage_frame,
-            "Brokerage Cash",
-            "brokerage_cash",
-            "",
-            brokerage_row + 1,
-        )
-        self.create_currency_field(
-            brokerage_frame,
-            "Brokerage Cost Basis",
-            "brokerage_cost_basis",
-            "",
-            brokerage_row + 2,
-        )
-        self.create_currency_field(
-            brokerage_frame,
-            "Brokerage Unrealized Gain",
-            "brokerage_unrealized_gain",
-            "",
-            brokerage_row + 3,
-        )
-
     def create_ss_section(self, parent):
         parent.columnconfigure(1, weight=1)
         self.create_input_field(
@@ -522,9 +538,6 @@ class InputPanel(tb.Frame):
             "final_age_person2": safe_int(self.variables["final_age_person2"].get()),
             "filing_status": self.variables["filing_status"].get(),
             "balances": {
-                "brokerage": safe_float(
-                    strip_currency(self.variables["balances_brokerage"].get())
-                ),
                 "brokerage_cash": safe_float(
                     strip_currency(self.variables["brokerage_cash"].get())
                 ),
@@ -711,6 +724,19 @@ class InputPanel(tb.Frame):
 
     def set_config(self, config):
         s = config.get("spending", {})
+        balances = config.get("balances", {})
+        if (
+            "brokerage_cash" not in balances
+            and "brokerage_cost_basis" not in balances
+            and "brokerage_unrealized_gain" not in balances
+        ):
+            brokerage_cash = balances.get("brokerage", "")
+            brokerage_cost_basis = 0
+            brokerage_unrealized_gain = 0
+        else:
+            brokerage_cash = balances.get("brokerage_cash", 0)
+            brokerage_cost_basis = balances.get("brokerage_cost_basis", 0)
+            brokerage_unrealized_gain = balances.get("brokerage_unrealized_gain", 0)
         mapping = {
             "start_year": s.get("start_year"),
             "birth_year_person1": config.get("birth_year_person1"),
@@ -718,17 +744,10 @@ class InputPanel(tb.Frame):
             "final_age_person1": config.get("final_age_person1"),
             "final_age_person2": config.get("final_age_person2"),
             "filing_status": config.get("filing_status"),
-            "balances_brokerage": format_currency(
-                config.get("balances", {}).get("brokerage", "")
-            ),
-            "brokerage_cash": format_currency(
-                config.get("balances", {}).get("brokerage_cash", "")
-            ),
-            "brokerage_cost_basis": format_currency(
-                config.get("balances", {}).get("brokerage_cost_basis", "")
-            ),
+            "brokerage_cash": format_currency(brokerage_cash),
+            "brokerage_cost_basis": format_currency(brokerage_cost_basis),
             "brokerage_unrealized_gain": format_currency(
-                config.get("balances", {}).get("brokerage_unrealized_gain", "")
+                brokerage_unrealized_gain
             ),
             "balances_roth": format_currency(
                 config.get("balances", {}).get("roth", "")
@@ -846,6 +865,7 @@ class InputPanel(tb.Frame):
         for key, value in mapping.items():
             if key in self.variables and value is not None:
                 self.variables[key].set(str(value))
+        self.update_brokerage_balance_display()
         if hasattr(self, "magi_summary_target"):
             self.magi_summary_target.set(
                 format_currency(config.get("tax_health", {}).get("magi_target_base", 0))
