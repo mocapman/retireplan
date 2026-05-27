@@ -1,4 +1,5 @@
 from retireplan.engine.core import run_plan
+from retireplan.engine.taxes import compute_tax_magi
 from retireplan.inputs import Inputs
 from retireplan import schema
 
@@ -139,6 +140,52 @@ def test_run_plan_baseline_tax_magi_conversion_and_shortfall_outputs():
     assert [row["Shortfall"] for row in rows] == [0, 0, 0]
     assert [row["Social_Security"] for row in rows] == [0, 0, 0]
     assert [row["RMD"] for row in rows] == [0, 0, 0]
+
+
+def test_run_plan_brokerage_draw_within_cash_does_not_increase_magi():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.brokerage_cash = 10000
+    cfg.brokerage_cost_basis = 0
+    cfg.brokerage_unrealized_gain = 0
+    cfg.balances_brokerage = 10000
+
+    rows = run_plan(cfg)
+
+    assert rows[1]["Brokerage_Draw"] == 800
+    assert rows[1]["MAGI"] == 0
+
+
+def test_run_plan_brokerage_draw_beyond_cash_increases_magi_by_estimated_gain():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.brokerage_cash = 500
+    cfg.brokerage_cost_basis = 7500
+    cfg.brokerage_unrealized_gain = 2000
+    cfg.balances_brokerage = 10000
+    cfg.standard_deduction_base = 0
+
+    rows = run_plan(cfg)
+
+    assert rows[1]["Brokerage_Draw"] == 800
+    assert rows[1]["MAGI"] == 63
+    assert rows[1]["Taxes_Due"] > 0
+
+
+def test_compute_tax_magi_includes_brokerage_capital_gains_in_taxable_income():
+    _tax, _ss_tax, taxable_income, magi = compute_tax_magi(
+        ira_ordinary=0,
+        roth_conversion=0,
+        ss_total=0,
+        std_deduction=0,
+        filing="MFJ",
+        brokerage_capital_gains=1234,
+    )
+
+    assert taxable_income == 1234
+    assert magi == 1234
 
 
 def test_run_plan_year1_magi_aca_seed_outputs_are_user_driven():

@@ -114,6 +114,7 @@ def compute_tax_magi(
     ss_total: float,
     std_deduction: float,
     filing: str,
+    brokerage_capital_gains: float = 0.0,
 ) -> Tuple[float, float, float, float]:
     """
     Calculate comprehensive tax and MAGI for retirement planning.
@@ -128,6 +129,7 @@ def compute_tax_magi(
         ss_total: Total Social Security benefits received
         std_deduction: Standard deduction amount (inflation-adjusted)
         filing: Filing status - "Single" or "MFJ"
+        brokerage_capital_gains: Estimated taxable capital gain from brokerage sales
         
     Returns:
         Tuple containing:
@@ -138,7 +140,8 @@ def compute_tax_magi(
         
     Business Rules:
         - IRA distributions and Roth conversions are fully taxable as ordinary income
-        - Brokerage draws assumed to be return of basis (not modeled as taxable)
+        - Brokerage cash creates no taxable income; estimated brokerage capital
+          gains are included in taxable income and MAGI
         - Social Security taxation uses complex provisional income rules
         - MAGI approximates AGI for our simplified model (excludes municipal interest)
         - Standard deduction reduces taxable income but not MAGI
@@ -148,22 +151,24 @@ def compute_tax_magi(
         2. Determine taxable SS amount using provisional income method
         3. Apply standard deduction to get taxable income
         4. Calculate federal tax using progressive brackets
-        5. MAGI = ordinary income + taxable SS (simplified)
+        5. MAGI = ordinary income + brokerage gains + taxable SS (simplified)
     """
     # Total ordinary income subject to federal tax
     ordinary = max(0.0, ira_ordinary + roth_conversion)
+    brokerage_capital_gains = max(0.0, brokerage_capital_gains)
+    taxable_non_ss = ordinary + brokerage_capital_gains
     
     # Calculate taxable portion of Social Security benefits
-    ss_tax = ss_taxable_amount(ss_total, ordinary, filing)
+    ss_tax = ss_taxable_amount(ss_total, taxable_non_ss, filing)
     
     # Taxable income after standard deduction
-    taxable_income = max(0.0, ordinary + ss_tax - max(0.0, std_deduction))
+    taxable_income = max(0.0, taxable_non_ss + ss_tax - max(0.0, std_deduction))
     
     # Federal income tax using progressive brackets
     tax = progressive_tax(taxable_income, filing)
     
     # MAGI for ACA premium subsidy calculations
     # Simplified: AGI approximation (excludes municipal bond interest, etc.)
-    magi = ordinary + ss_tax
+    magi = taxable_non_ss + ss_tax
     
     return tax, ss_tax, taxable_income, magi

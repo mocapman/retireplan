@@ -124,6 +124,57 @@ class Accounts:
         self.ira *= 1.0 + self.gr_ira
 
 
+@dataclass(frozen=True)
+class BrokerageSaleTaxCharacter:
+    cash_used: Decimal
+    holdings_sold: Decimal
+    basis_used: Decimal
+    capital_gain: Decimal
+    gain_ratio: Decimal
+
+
+def _to_decimal(value) -> Decimal:
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
+def calculate_brokerage_sale_tax_character(
+    draw, cash, cost_basis, unrealized_gain
+) -> BrokerageSaleTaxCharacter:
+    """
+    Estimate the tax character of a brokerage draw using the simple bucket model.
+
+    Brokerage cash is spent first and creates no MAGI. Any draw above available
+    cash is treated as a taxable-holdings sale with gain estimated by the current
+    unrealized-gain ratio.
+    """
+    draw = max(Decimal(0), _to_decimal(draw))
+    cash = max(Decimal(0), _to_decimal(cash))
+    cost_basis = max(Decimal(0), _to_decimal(cost_basis))
+    unrealized_gain = max(Decimal(0), _to_decimal(unrealized_gain))
+
+    holdings_value = cost_basis + unrealized_gain
+    cash_used = min(draw, cash)
+    holdings_sold = max(Decimal(0), draw - cash_used)
+
+    if holdings_value <= Decimal(0):
+        gain_ratio = Decimal(0)
+        capital_gain = Decimal(0)
+    else:
+        gain_ratio = unrealized_gain / holdings_value
+        capital_gain = min(unrealized_gain, holdings_sold * gain_ratio)
+
+    basis_used = min(cost_basis, max(Decimal(0), holdings_sold - capital_gain))
+    return BrokerageSaleTaxCharacter(
+        cash_used=cash_used,
+        holdings_sold=holdings_sold,
+        basis_used=basis_used,
+        capital_gain=capital_gain,
+        gain_ratio=gain_ratio,
+    )
+
+
 def withdraw_with_order(
     brokerage_balance: Decimal, 
     roth_balance: Decimal, 

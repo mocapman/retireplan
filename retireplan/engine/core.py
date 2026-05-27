@@ -26,7 +26,11 @@ from retireplan.engine.spending import spend_target, infl_factor_decimal
 from retireplan.engine.taxes import compute_tax_magi
 from retireplan.engine.timeline import make_years
 from retireplan.engine.precision import round_dollar, round_percent, round_year
-from retireplan.engine.accounts import withdraw_with_order, parse_draw_order
+from retireplan.engine.accounts import (
+    calculate_brokerage_sale_tax_character,
+    withdraw_with_order,
+    parse_draw_order,
+)
 
 
 def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
@@ -86,6 +90,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
     brokerage_end = Decimal(str(cfg.balances_brokerage))
     roth_end = Decimal(str(cfg.balances_roth))
     ira_end = Decimal(str(cfg.balances_ira))
+    brokerage_cash_end = Decimal(str(cfg.brokerage_cash))
+    brokerage_cost_basis_end = Decimal(str(cfg.brokerage_cost_basis))
+    brokerage_unrealized_gain_end = Decimal(str(cfg.brokerage_unrealized_gain))
 
     # Parse the draw order for account withdrawal sequencing
     order = parse_draw_order(cfg.draw_order)
@@ -132,11 +139,22 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             ira_end -= draw_ira
             brokerage_end -= draw_broke
             roth_end -= draw_roth
+            brokerage_sale = calculate_brokerage_sale_tax_character(
+                draw_broke,
+                brokerage_cash_end,
+                brokerage_cost_basis_end,
+                brokerage_unrealized_gain_end,
+            )
+            brokerage_cash_end -= brokerage_sale.cash_used
+            brokerage_cost_basis_end -= brokerage_sale.basis_used
+            brokerage_unrealized_gain_end -= brokerage_sale.capital_gain
 
             # Apply growth at end of year
+            brokerage_pre_growth = brokerage_end
             brokerage_end *= Decimal(1) + Decimal(str(cfg.brokerage_growth))
             roth_end *= Decimal(1) + Decimal(str(cfg.roth_growth))
             ira_end *= Decimal(1) + Decimal(str(cfg.ira_growth))
+            brokerage_unrealized_gain_end += brokerage_end - brokerage_pre_growth
 
             # Calculate final spending values for output
             # Target_Spend: Actual lifestyle spending for Year 1
@@ -280,6 +298,13 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         draw_broke, draw_roth, draw_ira, b1, r1, i1, unmet = withdraw_with_order(
             brokerage_end, roth_end, ira_end - rmd, need_for_budget, order
         )
+        brokerage_sale = calculate_brokerage_sale_tax_character(
+            draw_broke,
+            brokerage_cash_end,
+            brokerage_cost_basis_end,
+            brokerage_unrealized_gain_end,
+        )
+        brokerage_capital_gains = brokerage_sale.capital_gain
 
         # Calculate total cash provided and any shortfall
         provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
@@ -296,6 +321,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 ss_total=float(ss_income),
                 std_deduction=float(std_ded),
                 filing=filing_status,
+                brokerage_capital_gains=float(brokerage_capital_gains),
             )
             return Decimal(str(tax)), Decimal(str(magi))
 
@@ -332,11 +358,17 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         need_after_ss = max(Decimal(0), target_spend_lifestyle - ss_income)
         rmd_surplus = max(Decimal(0), rmd - need_after_ss)
         b1 += rmd_surplus
+        brokerage_cash_end = (
+            brokerage_cash_end - brokerage_sale.cash_used + rmd_surplus
+        )
+        brokerage_cost_basis_end -= brokerage_sale.basis_used
+        brokerage_unrealized_gain_end -= brokerage_sale.capital_gain
 
         # Apply end-of-year growth to all accounts
         broke_bal = b1 * (Decimal(1) + Decimal(str(cfg.brokerage_growth)))
         roth_bal = r1 * (Decimal(1) + Decimal(str(cfg.roth_growth)))
         ira_bal = i1 * (Decimal(1) + Decimal(str(cfg.ira_growth)))
+        brokerage_unrealized_gain_end += broke_bal - b1
 
         # Update running balances for next year
         brokerage_end, roth_end, ira_end = broke_bal, roth_bal, ira_bal
