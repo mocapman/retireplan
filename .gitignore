@@ -8,8 +8,11 @@ __pycache__/
 .env
 .DS_Store
 *.csv
+config_*.yaml
+retireplan/default_config_*.yaml
 dist/
 build/
 out/
+output/
 docs/archive/
 tools/
