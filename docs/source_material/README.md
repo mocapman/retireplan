@@ -1,5 +1,13 @@
 # Source Material
 
+This folder contains historical planning notes and reference material.
+
+These files are not controlling project requirements.
+
+The controlling project contract is:
+
+../PROJECT_CONTRACT.md
+
 These files preserve project-specific design reasoning that is still useful for
 future development.
 
