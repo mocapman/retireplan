@@ -182,15 +182,67 @@ def test_run_plan_brokerage_draw_beyond_cash_increases_magi_by_estimated_gain():
 
     rows = run_plan(cfg)
 
-    assert rows[1]["Brokerage_Draw"] == 800
+    assert rows[1]["Brokerage_Draw"] == 806
     assert rows[1]["Brokerage_Cash_Used"] == 500
-    assert rows[1]["Brokerage_Holdings_Sold"] == 300
-    assert rows[1]["Brokerage_Basis_Used"] == 237
+    assert rows[1]["Brokerage_Holdings_Sold"] == 306
+    assert rows[1]["Brokerage_Basis_Used"] == 242
     assert rows[1]["Brokerage_Gain_Ratio"] == 0.2105
-    assert rows[1]["Brokerage_Capital_Gains"] == 63
-    assert rows[1]["Brokerage_MAGI_Income"] == 63
-    assert rows[1]["MAGI"] == 63
+    assert rows[1]["Brokerage_Capital_Gains"] == 65
+    assert rows[1]["Brokerage_MAGI_Income"] == 65
+    assert rows[1]["MAGI"] == 65
     assert rows[1]["Taxes_Due"] > 0
+    assert rows[1]["Total_Spend"] == (
+        rows[1]["Target_Spend"] + rows[1]["Taxes_Due"] + rows[1]["Cash_Events"]
+    )
+    assert rows[1]["Brokerage_Draw"] == rows[1]["Total_Spend"]
+    assert rows[1]["Shortfall"] == 0
+
+
+def test_run_plan_positive_tax_is_funded_by_additional_draws_once():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 0
+    cfg.brokerage_cash = 0
+    cfg.brokerage_cost_basis = 0
+    cfg.brokerage_unrealized_gain = 0
+    cfg.balances_roth = 0
+    cfg.balances_ira = 100000
+    cfg.draw_order = "IRA, Brokerage, Roth"
+    cfg.standard_deduction_base = 0
+
+    rows = run_plan(cfg)
+    funded_tax_row = rows[1]
+
+    assert funded_tax_row["Target_Spend"] == 800
+    assert funded_tax_row["Taxes_Due"] == 89
+    assert funded_tax_row["Cash_Events"] == 0
+    assert funded_tax_row["Total_Spend"] == 889
+    assert funded_tax_row["IRA_Draw"] == 889
+    assert funded_tax_row["IRA_Balance"] == 99111
+    assert funded_tax_row["Shortfall"] == 0
+
+
+def test_run_plan_shortfall_is_based_on_total_spend_with_cash_events():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 500
+    cfg.brokerage_cash = 500
+    cfg.brokerage_cost_basis = 0
+    cfg.brokerage_unrealized_gain = 0
+    cfg.balances_roth = 0
+    cfg.balances_ira = 0
+
+    rows = run_plan(cfg, events=[{"year": 2026, "amount": 500}])
+    shortfall_row = rows[1]
+
+    assert shortfall_row["Target_Spend"] == 800
+    assert shortfall_row["Taxes_Due"] == 0
+    assert shortfall_row["Cash_Events"] == 500
+    assert shortfall_row["Total_Spend"] == 1300
+    assert shortfall_row["Brokerage_Draw"] == 500
+    assert shortfall_row["Shortfall"] == 800
 
 
 def test_compute_tax_magi_includes_brokerage_capital_gains_in_taxable_income():

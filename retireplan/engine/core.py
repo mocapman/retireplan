@@ -301,72 +301,105 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         ):
             rmd = ira_end / Decimal(str(rmd_factor(rmd_age)))
 
-        # Calculate how much we need from accounts after SS and RMD
-        need_for_budget = max(Decimal(0), target_spend_lifestyle - ss_income - rmd)
-
-        # Withdraw from accounts in specified order to meet budget need
-        # Note: RMD amount is excluded from IRA balance for withdrawal calculation
-        draw_broke, draw_roth, draw_ira, b1, r1, i1, unmet = withdraw_with_order(
-            brokerage_end, roth_end, ira_end - rmd, need_for_budget, order
-        )
+        estimated_tax = Decimal(0)
+        tax = Decimal(0)
+        magi = Decimal(0)
+        roth_conv = Decimal(0)
+        brokerage_capital_gains = Decimal(0)
         brokerage_sale = calculate_brokerage_sale_tax_character(
-            draw_broke,
+            Decimal(0),
             brokerage_cash_end,
             brokerage_cost_basis_end,
             brokerage_unrealized_gain_end,
         )
-        brokerage_capital_gains = brokerage_sale.capital_gain
+        draw_broke = draw_roth = draw_ira = Decimal(0)
+        b1, r1, i1 = brokerage_end, roth_end, ira_end - rmd
+        unmet = Decimal(0)
+        tax_stable = False
 
-        # Calculate total cash provided and any shortfall
-        provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
-        shortfall = max(Decimal(0), target_spend_lifestyle - provided_cash)
-
-        # BUSINESS RULE: Roth conversion targeting for MAGI limits
-        # Iteratively adjust Roth conversion to hit MAGI target for ACA subsidies
-        # Only applies when person1 is alive and under ACA end age
-        def tax_and_magi(conv: Decimal) -> tuple[Decimal, Decimal]:
-            """Calculate tax and MAGI for given Roth conversion amount."""
-            tax, _ss_tax, _taxable, magi = compute_tax_magi(
-                ira_ordinary=float(rmd + draw_ira),
-                roth_conversion=float(conv),
-                ss_total=float(ss_income),
-                std_deduction=float(std_ded),
-                filing=filing_status,
-                brokerage_capital_gains=float(brokerage_capital_gains),
-            )
-            return Decimal(str(tax)), Decimal(str(magi))
-
-        conv = Decimal(0)
-        # Iterative approach to hit MAGI target (limit iterations to prevent infinite loop)
+        # BUSINESS RULE: Taxes and cash events are part of the annual cash need.
+        # Because taxes depend on draws, solve by bounded iteration from the same
+        # pre-draw balances each pass and commit only the final pass.
         for _ in range(8):
-            tax0, magi0 = tax_and_magi(conv)
-            if (
-                target_magi <= Decimal(0)
-                or not yc.person1_alive
-                or yc.age_person1 >= cfg.aca_end_age
-            ):
-                break
-            gap = target_magi - magi0
-            if gap <= Decimal("1.0"):  # Close enough to target
-                break
-            cap = max(Decimal(0), i1)  # Available IRA balance for conversion
-            step = min(gap, cap - conv)  # Don't exceed available balance
-            if step <= Decimal("1.0"):  # Minimal remaining step
-                break
-            conv += step
+            annual_need = target_spend_lifestyle + estimated_tax + events_cash
+            need_for_budget = max(Decimal(0), annual_need - ss_income - rmd)
 
-        # Apply final Roth conversion (limited by available IRA balance)
-        roth_conv = min(conv, max(Decimal(0), i1))
-        i1 -= roth_conv
-        r1 += roth_conv
+            # Note: RMD amount is excluded from normal draw-order withdrawals.
+            (
+                iter_draw_broke,
+                iter_draw_roth,
+                iter_draw_ira,
+                iter_b1,
+                iter_r1,
+                iter_i1,
+                iter_unmet,
+            ) = withdraw_with_order(
+                brokerage_end, roth_end, ira_end - rmd, need_for_budget, order
+            )
+            iter_brokerage_sale = calculate_brokerage_sale_tax_character(
+                iter_draw_broke,
+                brokerage_cash_end,
+                brokerage_cost_basis_end,
+                brokerage_unrealized_gain_end,
+            )
+            iter_brokerage_capital_gains = iter_brokerage_sale.capital_gain
 
-        # Calculate final tax and MAGI with chosen conversion amount
-        tax, magi = tax_and_magi(roth_conv)
+            def tax_and_magi(conv: Decimal) -> tuple[Decimal, Decimal]:
+                """Calculate tax and MAGI for given Roth conversion amount."""
+                tax_value, _ss_tax, _taxable, magi_value = compute_tax_magi(
+                    ira_ordinary=float(rmd + iter_draw_ira),
+                    roth_conversion=float(conv),
+                    ss_total=float(ss_income),
+                    std_deduction=float(std_ded),
+                    filing=filing_status,
+                    brokerage_capital_gains=float(iter_brokerage_capital_gains),
+                )
+                return Decimal(str(tax_value)), Decimal(str(magi_value))
+
+            conv = Decimal(0)
+            for _ in range(8):
+                tax0, magi0 = tax_and_magi(conv)
+                if (
+                    target_magi <= Decimal(0)
+                    or not yc.person1_alive
+                    or yc.age_person1 >= cfg.aca_end_age
+                ):
+                    break
+                gap = target_magi - magi0
+                if gap <= Decimal("1.0"):
+                    break
+                cap = max(Decimal(0), iter_i1)
+                step = min(gap, cap - conv)
+                if step <= Decimal("1.0"):
+                    break
+                conv += step
+
+            iter_roth_conv = min(conv, max(Decimal(0), iter_i1))
+            iter_tax, iter_magi = tax_and_magi(iter_roth_conv)
+
+            draw_broke = iter_draw_broke
+            draw_roth = iter_draw_roth
+            draw_ira = iter_draw_ira
+            b1 = iter_b1
+            r1 = iter_r1 + iter_roth_conv
+            i1 = iter_i1 - iter_roth_conv
+            unmet = iter_unmet
+            brokerage_sale = iter_brokerage_sale
+            brokerage_capital_gains = iter_brokerage_capital_gains
+            roth_conv = iter_roth_conv
+            tax = iter_tax
+            magi = iter_magi
+
+            if abs(tax - estimated_tax) <= Decimal("1.0") and tax_stable:
+                break
+            tax_stable = abs(tax - estimated_tax) <= Decimal("1.0")
+            estimated_tax = tax
 
         # BUSINESS RULE: Surplus RMD handling
-        # If RMD exceeds spending need (after SS), put surplus in brokerage
+        # If RMD exceeds annual cash need (after SS), put surplus in brokerage
         # This ensures required distributions are taken but excess goes to taxable account
-        need_after_ss = max(Decimal(0), target_spend_lifestyle - ss_income)
+        total_spend = target_spend_lifestyle + tax + events_cash
+        need_after_ss = max(Decimal(0), total_spend - ss_income)
         rmd_surplus = max(Decimal(0), rmd - need_after_ss)
         b1 += rmd_surplus
         brokerage_cash_end = (
@@ -387,8 +420,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # Calculate final spending values for output
         # Target_Spend: Core lifestyle spending goal (inflation-adjusted)
         target_spend = target_spend_lifestyle
-        # Total_Spend: Total amount needed including taxes and events
-        total_spend = target_spend_lifestyle + tax + events_cash
+        provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
+        shortfall = max(Decimal(0), total_spend - provided_cash)
 
         row_data = {
             "Year": round_year(yc.year),
