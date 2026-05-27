@@ -280,15 +280,16 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             events_cash += Decimal(str(e.get("amount", 0)))
 
         # BUSINESS RULE: Required Minimum Distribution (RMD) calculation
-        # RMD required when person1 is alive and at/above RMD start age (usually 73)
-        # Uses IRS Uniform Lifetime Table factors
+        # RMD required when a living person is at/above RMD start age.
+        # Uses IRS Uniform Lifetime Table factors.
         rmd = Decimal(0)
+        rmd_age = _rmd_age_for_year(yc)
         if (
-            yc.person1_alive
-            and yc.age_person1 >= cfg.rmd_start_age
+            rmd_age is not None
+            and rmd_age >= cfg.rmd_start_age
             and ira_end > Decimal(0)
         ):
-            rmd = ira_end / Decimal(str(rmd_factor(yc.age_person1)))
+            rmd = ira_end / Decimal(str(rmd_factor(rmd_age)))
 
         # Calculate how much we need from accounts after SS and RMD
         need_for_budget = max(Decimal(0), target_spend_lifestyle - ss_income - rmd)
@@ -420,3 +421,12 @@ def _magi_status(magi: Decimal, floor: Decimal, ceiling: Decimal) -> str:
     if magi < ceiling:
         return "IN_RANGE"
     return "ABOVE_CEILING"
+
+
+def _rmd_age_for_year(yc) -> int | None:
+    """Select the RMD age from the living person for this projection year."""
+    if yc.person1_alive:
+        return yc.age_person1
+    if yc.person2_alive:
+        return yc.age_person2
+    return None

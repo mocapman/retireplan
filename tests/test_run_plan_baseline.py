@@ -1,5 +1,6 @@
-from retireplan.engine.core import run_plan
+from retireplan.engine.core import _rmd_age_for_year, run_plan
 from retireplan.engine.taxes import compute_tax_magi
+from retireplan.engine.timeline import YearCtx
 from retireplan.inputs import Inputs
 from retireplan import schema
 
@@ -186,6 +187,69 @@ def test_compute_tax_magi_includes_brokerage_capital_gains_in_taxable_income():
 
     assert taxable_income == 1234
     assert magi == 1234
+
+
+def rmd_survivor_config() -> Inputs:
+    cfg = minimal_two_person_config()
+    cfg.start_year = 2025
+    cfg.birth_year_person1 = 1952
+    cfg.birth_year_person2 = 1952
+    cfg.final_age_person1 = 75
+    cfg.final_age_person2 = 75
+    cfg.balances_brokerage = 0
+    cfg.brokerage_cash = 0
+    cfg.brokerage_cost_basis = 0
+    cfg.brokerage_unrealized_gain = 0
+    cfg.balances_roth = 0
+    cfg.balances_ira = 26500
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.target_spend = 0
+    cfg.standard_deduction_base = 0
+    cfg.rmd_start_age = 73
+    return cfg
+
+
+def test_rmd_still_occurs_when_person1_is_alive_at_rmd_age():
+    cfg = rmd_survivor_config()
+
+    rows = run_plan(cfg)
+
+    assert rows[1]["Person1_Age"] == 74
+    assert rows[1]["RMD"] > 0
+    assert rows[1]["IRA_Draw"] == 0
+    assert rows[1]["MAGI"] == rows[1]["RMD"]
+    assert rows[1]["Taxes_Due"] > 0
+
+
+def test_rmd_continues_when_only_person2_survives_at_rmd_age():
+    cfg = rmd_survivor_config()
+    cfg.final_age_person1 = 73
+    cfg.final_age_person2 = 75
+
+    rows = run_plan(cfg)
+    survivor_row = rows[1]
+
+    assert survivor_row["Person1_Age"] == 74
+    assert survivor_row["Person2_Age"] == 74
+    assert survivor_row["Filing"] == "Single"
+    assert survivor_row["RMD"] > 0
+    assert survivor_row["IRA_Draw"] == 0
+    assert survivor_row["MAGI"] == survivor_row["RMD"]
+    assert survivor_row["Taxes_Due"] > 0
+
+
+def test_rmd_age_is_none_when_neither_person_is_alive():
+    yc = YearCtx(
+        year=2030,
+        age_person1=78,
+        age_person2=78,
+        phase="NoGo",
+        person1_alive=False,
+        person2_alive=False,
+    )
+
+    assert _rmd_age_for_year(yc) is None
 
 
 def test_run_plan_year1_magi_aca_seed_outputs_are_user_driven():
