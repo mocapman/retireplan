@@ -9,6 +9,14 @@ from typing import List
 from retireplan.projections import to_2d_for_table
 
 
+SUMMARY_FIELDS = (
+    ("Federal Tax", "Federal_Tax", "#0f172a", "#e0f2fe"),
+    ("State Tax", "Estimated_State_Tax", "#172554", "#dbeafe"),
+    ("Total Taxes", "Taxes_Due", "#312e81", "#ede9fe"),
+    ("Ending Assets", "Total_Assets", "#064e3b", "#dcfce7"),
+)
+
+
 def format_currency(val):
     try:
         val = float(val)
@@ -17,11 +25,42 @@ def format_currency(val):
         return val
 
 
+def calculate_results_summary(rows: List[dict]) -> dict[str, float]:
+    """Summarize existing projection rows for the results status bar."""
+    if not rows:
+        return {
+            "Federal_Tax": 0,
+            "Estimated_State_Tax": 0,
+            "Taxes_Due": 0,
+            "Total_Assets": 0,
+        }
+
+    return {
+        "Federal_Tax": sum(_as_number(row.get("Federal_Tax")) for row in rows),
+        "Estimated_State_Tax": sum(
+            _as_number(row.get("Estimated_State_Tax")) for row in rows
+        ),
+        "Taxes_Due": sum(_as_number(row.get("Taxes_Due")) for row in rows),
+        "Total_Assets": _as_number(rows[-1].get("Total_Assets")),
+    }
+
+
+def _as_number(value) -> float:
+    try:
+        if value in ("", None):
+            return 0
+        return float(value)
+    except (TypeError, ValueError):
+        return 0
+
+
 class ResultsDisplay(tb.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
         self.current_rows: List[dict] = []
+        self.summary_var = tk.StringVar(value=self.format_summary_text({}))
+        self.summary_vars: dict[str, tk.StringVar] = {}
         self._row_h = 24
         self._hdr_h = 28
         self.create_widgets()
@@ -42,6 +81,22 @@ class ResultsDisplay(tb.Frame):
             bootstyle=SECONDARY,
             command=self.export_csv,
         ).pack(side=tk.LEFT, padx=5)
+
+        status_frame = tk.Frame(self, bg="#111827", padx=10, pady=8)
+        status_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
+        for label, key, bg, fg in SUMMARY_FIELDS:
+            var = tk.StringVar(value=f"{label}: $0")
+            self.summary_vars[key] = var
+            tk.Label(
+                status_frame,
+                textvariable=var,
+                anchor=tk.W,
+                bg=bg,
+                fg=fg,
+                font=("Segoe UI", 13, "bold"),
+                padx=12,
+                pady=5,
+            ).pack(side=tk.LEFT, padx=(0, 8))
 
         self.style_sheet()
         self.setup_bindings()
@@ -146,6 +201,24 @@ class ResultsDisplay(tb.Frame):
         self.sheet.headers(headers)
         self.apply_alternate_row_colors()
         self.autosize()
+        self.update_summary(calculate_results_summary(rows))
+
+    def format_summary_text(self, summary: dict[str, float]) -> str:
+        summary = summary or {}
+        return " | ".join(
+            f"{label}: {format_currency(summary.get(key, 0))}"
+            for label, key, _bg, _fg in SUMMARY_FIELDS
+        )
+
+    def update_summary(self, summary: dict[str, float]) -> None:
+        summary = summary or {}
+        text = self.format_summary_text(summary)
+        self.summary_var.set(text)
+        for label, key, _bg, _fg in SUMMARY_FIELDS:
+            if key in self.summary_vars:
+                self.summary_vars[key].set(
+                    f"{label}: {format_currency(summary.get(key, 0))}"
+                )
 
     def apply_alternate_row_colors(self):
         try:
