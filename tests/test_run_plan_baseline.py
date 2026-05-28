@@ -423,7 +423,7 @@ def test_run_plan_ignores_annual_cash_events_until_event_model_exists():
     assert ignored_event_row["Shortfall"] == 300
 
 
-def test_run_plan_year1_cash_events_are_output_only():
+def test_run_plan_year1_cash_events_are_ignored():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 1000
     cfg.year1_cash_events = 250
@@ -432,7 +432,7 @@ def test_run_plan_year1_cash_events_are_output_only():
     year1_row = rows[0]
 
     assert year1_row["Target_Spend"] == 1000
-    assert year1_row["Cash_Events"] == 250
+    assert year1_row["Cash_Events"] == 0
     assert year1_row["Total_Spend"] == 1000
     assert year1_row["Brokerage_Draw"] == 1000
     assert year1_row["Shortfall"] == 0

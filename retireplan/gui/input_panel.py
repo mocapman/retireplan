@@ -347,26 +347,28 @@ class InputPanel(tb.Frame):
         parent.columnconfigure(1, weight=1)
         self.create_input_field(parent, "Start Year", "start_year", "", 0)
         self.create_currency_field(
-            parent, "Year 1 Remaining Spend", "year1_spend", "", 1
+            parent,
+            "Year 1 Remaining Spend",
+            "year1_spend",
+            "",
+            1,
         )
-        self.create_input_field(
-            parent, "Year 1 Cash Events", "year1_cash_events", "", 2
-        )
+        self.variables["year1_cash_events"] = tk.StringVar(value="0")
         self.create_currency_field(
-            parent, "Year 1 Brokerage Draw", "year1_brokerage_draw", "", 3
+            parent, "Year 1 Brokerage Draw", "year1_brokerage_draw", "", 2
         )
-        self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 4)
-        self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 5)
+        self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 3)
+        self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 4)
         self.create_currency_field(
-            parent, "Target Spend (today's $)", "target_spend", "", 6
+            parent, "Target Spend (today's $)", "target_spend", "", 5
         )
-        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 7)
-        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 8)
-        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 9)
-        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 10)
-        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 11)
+        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 6)
+        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 7)
+        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 8)
+        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 9)
+        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 10)
         self.create_percent_field(
-            parent, "Survivor Spending %", "survivor_percent", "", 12
+            parent, "Survivor Spending %", "survivor_percent", "", 11
         )
 
     def create_magi_planning_section(self, parent):
@@ -644,9 +646,7 @@ class InputPanel(tb.Frame):
                 "year1_spend": safe_float(
                     strip_currency(self.variables["year1_spend"].get())
                 ),
-                "year1_cash_events": safe_float(
-                    self.variables["year1_cash_events"].get()
-                ),
+                "year1_cash_events": 0.0,
                 "year1_brokerage_draw": safe_float(
                     strip_currency(self.variables["year1_brokerage_draw"].get())
                 ),
@@ -835,7 +835,7 @@ class InputPanel(tb.Frame):
             ),
             "balances_ira": format_currency(config.get("balances", {}).get("ira", "")),
             "year1_spend": format_currency(s.get("year1_spend", "")),
-            "year1_cash_events": s.get("year1_cash_events", ""),
+            "year1_cash_events": 0,
             "year1_brokerage_draw": format_currency(s.get("year1_brokerage_draw", "")),
             "year1_ira_draw": format_currency(s.get("year1_ira_draw", "")),
             "year1_roth_draw": format_currency(s.get("year1_roth_draw", "")),

@@ -56,13 +56,11 @@ class FileOperations:
             return
 
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            cfg = self.app.cfg
-            settings_str = f"{cfg.draw_order.replace(', ', '_')}_{cfg.target_spend}"
+            timestamp = datetime.now().strftime("%y%m%d_%H%M")
 
             out_dir = Path("output")
             out_dir.mkdir(parents=True, exist_ok=True)
-            out = out_dir / f"Projections_{settings_str}_{timestamp}.csv"
+            out = out_dir / f"{timestamp}_plan-output.csv"
 
             keys = schema.keys()
             headers = schema.labels()

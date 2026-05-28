@@ -1,4 +1,5 @@
 import csv
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -55,7 +56,17 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
     )
     info_messages = []
 
+    class FixedDatetime:
+        @classmethod
+        def now(cls):
+            return cls()
+
+        def strftime(self, fmt):
+            assert fmt == "%y%m%d_%H%M"
+            return "260528_1207"
+
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(file_operations, "datetime", FixedDatetime)
     monkeypatch.setattr(
         file_operations.messagebox,
         "showinfo",
@@ -74,9 +85,13 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
 
     FileOperations(app).export_csv()
 
-    exported_files = list((tmp_path / "output").glob("Projections_*.csv"))
+    exported_files = list((tmp_path / "output").glob("*.csv"))
     assert len(exported_files) == 1
     assert info_messages
+    assert exported_files[0].name == "260528_1207_plan-output.csv"
+    assert re.match(r"^\d{6}_\d{4}_plan-output\.csv$", exported_files[0].name)
+    assert "Brokerage" not in exported_files[0].name
+    assert "1000" not in exported_files[0].name
 
     with exported_files[0].open(newline="", encoding="utf-8") as f:
         rows = list(csv.reader(f))

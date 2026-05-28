@@ -25,7 +25,7 @@ class ConfigManager:
             "spending": {
                 "start_year": cfg.start_year,
                 "year1_spend": cfg.year1_spend,
-                "year1_cash_events": cfg.year1_cash_events,
+                "year1_cash_events": 0.0,
                 "year1_brokerage_draw": cfg.year1_brokerage_draw,
                 "year1_ira_draw": cfg.year1_ira_draw,
                 "year1_roth_draw": cfg.year1_roth_draw,
@@ -119,7 +119,7 @@ class ConfigManager:
             elif key == "spending":
                 for k, v in value.items():
                     if hasattr(cfg, k):
-                        setattr(cfg, k, v)
+                        setattr(cfg, k, 0.0 if k == "year1_cash_events" else v)
             elif key == "social_security":
                 for k, v in value.items():
                     if k == "person1_start_age":

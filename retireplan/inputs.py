@@ -141,7 +141,7 @@ def load_yaml(path: str) -> Inputs:
         # start_year now from spending
         start_year=s["start_year"],
         year1_spend=s.get("year1_spend", 0),
-        year1_cash_events=s.get("year1_cash_events", 0),
+        year1_cash_events=0,
         year1_brokerage_draw=s.get("year1_brokerage_draw", 0),
         year1_ira_draw=s.get("year1_ira_draw", 0),
         year1_roth_draw=s.get("year1_roth_draw", 0),

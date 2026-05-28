@@ -60,10 +60,10 @@ spending:
   start_year: 2026
   survivor_percent: 70.0
   target_spend: 150000.0
-  year1_brokerage_draw: 80000.0
+  year1_brokerage_draw: 120000.0
   year1_capital_gains_to_date: 0.0
   year1_capital_losses_to_date: 0.0
-  year1_cash_events: 40000.0
+  year1_cash_events: 0.0
   year1_income_to_date: 0.0
   year1_ira_draw: 0.0
   year1_magi_income: 0.0
@@ -73,7 +73,7 @@ spending:
   year1_projected_income: 0.0
   year1_roth_conversion: 0.0
   year1_roth_draw: 0.0
-  year1_spend: 80000.0
+  year1_spend: 120000.0
 tax_health:
   aca_end_age: 65
   aca_expected_subsidy_monthly: 1954.0

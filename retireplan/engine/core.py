@@ -124,8 +124,8 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             draw_broke = Decimal(str(cfg.year1_brokerage_draw))
             draw_roth = Decimal(str(cfg.year1_roth_draw))
 
-            # Apply cash events (as one value)
-            events_cash = Decimal(str(cfg.year1_cash_events))
+            # Year 1 one-time spending should be included in year1_spend.
+            events_cash = Decimal(0)
 
             # Apply Roth conversion (IRA -> Roth transfer)
             ira_end -= roth_conv
