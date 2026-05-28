@@ -16,7 +16,6 @@ def test_build_diagnostic_report_includes_current_math_fields():
         "Lifestyle",
         "Target_Spend",
         "Total_Spend",
-        "Cash_Events",
         "Social_Security",
         "IRA_Draw",
         "Brokerage_Draw",

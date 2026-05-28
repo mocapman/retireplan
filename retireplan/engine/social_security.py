@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-/home/runner/work/retireplan/retireplan/retireplan/social_security.py
-
 Social Security benefit calculations.
 
 This module calculates annual Social Security benefits based on starting age,

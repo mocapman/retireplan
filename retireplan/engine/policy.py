@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-/home/runner/work/retireplan/retireplan/retireplan/policy.py
-
 Tax policy constants and Required Minimum Distribution (RMD) tables.
 
 This module contains federal tax brackets, Social Security taxation thresholds,

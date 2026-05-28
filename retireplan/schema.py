@@ -13,7 +13,6 @@ COLUMNS: List[Dict[str, Any]] = [
     {"key": "Lifestyle", "label": "Lifestyle", "visible": True},
     {"key": "Total_Spend", "label": "Total_Spend", "visible": True},
     {"key": "Taxes_Due", "label": "Taxes_Due", "visible": True},
-    {"key": "Cash_Events", "label": "Cash_Events", "visible": False},
     {"key": "Target_Spend", "label": "Target_Spend", "visible": True},
     {"key": "Social_Security", "label": "Social_Security", "visible": True},
     {"key": "IRA_Draw", "label": "IRA_Draw", "visible": True},

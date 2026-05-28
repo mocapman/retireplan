@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-/home/runner/work/retireplan/retireplan/retireplan/precision.py
-
 Precision control and rounding utilities for financial calculations.
 
 This module ensures consistent rounding behavior across all financial calculations,
@@ -91,7 +89,6 @@ ROUNDING_RULES: Dict[str, Callable[[Any], Any]] = {
     # Dollar amounts
     "Total_Spend": round_dollar,
     "Taxes_Due": round_dollar,
-    "Cash_Events": round_dollar,
     "Target_Spend": round_dollar,
     "Social_Security": round_dollar,
     "IRA_Draw": round_dollar,

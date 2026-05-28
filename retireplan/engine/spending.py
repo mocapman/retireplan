@@ -194,7 +194,7 @@ def calculate_inflation_factor(inflation_rate: float, years_since_start: int) ->
         - Formula: (1 + rate) ^ years  
         - Year 0 returns factor of 1.0 (no adjustment)
         - Provides high precision for multi-year compounding calculations
-        - Replaces legacy float-based inflation calculations
+        - Uses Decimal precision for consistent financial calculations
         
     Example:
         calculate_inflation_factor(0.03, 5) returns 1.159274074 for 3% over 5 years
@@ -271,29 +271,9 @@ def calculate_spending_target(
     
     return final_amount
 
-
-# Legacy function maintained for backward compatibility  
-def infl_factor(infl: float, years_since_start: int) -> float:
-    """
-    Calculate compound inflation factor (legacy function).
-    
-    Args:
-        infl: Annual inflation rate as decimal (e.g., 0.03 for 3%)
-        years_since_start: Number of years since start (0 = no adjustment)
-        
-    Returns:
-        Compound inflation factor to multiply base amount
-        
-    Note:
-        This function is deprecated. Use calculate_inflation_factor() for new code
-        as it provides Decimal precision. Maintained for backward compatibility.
-    """
-    return (1.0 + infl) ** years_since_start
-
-
 def infl_factor_decimal(rate: float, idx: int) -> Decimal:
     """
-    Calculate inflation adjustment factor returning Decimal for precision (legacy name).
+    Calculate inflation adjustment factor returning Decimal for precision.
     
     Args:
         rate: Annual inflation rate as decimal (e.g., 0.03 for 3%)
@@ -302,10 +282,8 @@ def infl_factor_decimal(rate: float, idx: int) -> Decimal:
     Returns:
         Decimal factor to multiply base amount for inflation adjustment
         
-    Note:
-        This function is deprecated. Use calculate_inflation_factor() for new code
-        which has a clearer name and consistent parameter naming. Maintained for
-        backward compatibility.
+    This wrapper preserves the engine-facing name while delegating to
+    calculate_inflation_factor().
     """
     return calculate_inflation_factor(rate, idx)
 
@@ -323,7 +301,7 @@ def spend_target(
     person2_alive: bool,
 ) -> Decimal:
     """
-    Calculate inflation-adjusted spending target (legacy function name).
+    Calculate inflation-adjusted spending target.
     
     Args:
         phase: Lifecycle phase - "GoGo", "Slow", or "NoGo"  
@@ -340,10 +318,8 @@ def spend_target(
     Returns:
         Decimal amount representing target spending for the year
         
-    Note:
-        This function is maintained for backward compatibility. The logic has been
-        refactored into modular functions but the interface remains unchanged.
-        Uses calculate_spending_target() internally.
+    This wrapper preserves the engine-facing name while delegating to
+    calculate_spending_target().
     """
     return calculate_spending_target(
         phase=phase,

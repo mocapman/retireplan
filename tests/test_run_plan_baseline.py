@@ -27,7 +27,6 @@ def minimal_two_person_config() -> Inputs:
         balances_ira=20000,
         start_year=2025,
         year1_spend=1000,
-        year1_cash_events=0,
         year1_brokerage_draw=1000,
         year1_ira_draw=0,
         year1_roth_draw=0,
@@ -203,7 +202,7 @@ def test_run_plan_brokerage_draw_beyond_cash_increases_magi_by_estimated_gain():
     assert rows[1]["MAGI"] == 64
     assert rows[1]["Taxes_Due"] > 0
     assert rows[1]["Total_Spend"] == (
-        rows[1]["Target_Spend"] + rows[1]["Taxes_Due"] + rows[1]["Cash_Events"]
+        rows[1]["Target_Spend"] + rows[1]["Taxes_Due"]
     )
     assert rows[1]["Brokerage_Draw"] == rows[1]["Total_Spend"]
     assert rows[1]["Shortfall"] == 0
@@ -228,7 +227,6 @@ def test_run_plan_positive_tax_is_funded_by_additional_draws_once():
 
     assert funded_tax_row["Target_Spend"] == 800
     assert funded_tax_row["Taxes_Due"] == 89
-    assert funded_tax_row["Cash_Events"] == 0
     assert funded_tax_row["Total_Spend"] == 889
     assert funded_tax_row["IRA_Draw"] == 889
     assert funded_tax_row["IRA_Balance"] == 99111
@@ -263,9 +261,7 @@ def test_run_plan_estimated_state_tax_is_included_in_taxes_due_and_draws():
         state_tax_row["Federal_Tax"] + state_tax_row["Estimated_State_Tax"]
     )
     assert state_tax_row["Total_Spend"] == (
-        state_tax_row["Target_Spend"]
-        + state_tax_row["Taxes_Due"]
-        + state_tax_row["Cash_Events"]
+        state_tax_row["Target_Spend"] + state_tax_row["Taxes_Due"]
     )
     assert state_tax_row["IRA_Draw"] == state_tax_row["Total_Spend"]
     assert state_tax_row["Shortfall"] == 0
@@ -401,7 +397,7 @@ def test_tax_and_magi_audit_components_reconcile_to_summary_fields():
     )
 
 
-def test_run_plan_ignores_annual_cash_events_until_event_model_exists():
+def test_run_plan_ignores_reserved_events_parameter_until_event_model_exists():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 0
     cfg.year1_brokerage_draw = 0
@@ -417,22 +413,19 @@ def test_run_plan_ignores_annual_cash_events_until_event_model_exists():
 
     assert ignored_event_row["Target_Spend"] == 800
     assert ignored_event_row["Taxes_Due"] == 0
-    assert ignored_event_row["Cash_Events"] == 0
     assert ignored_event_row["Total_Spend"] == 800
     assert ignored_event_row["Brokerage_Draw"] == 500
     assert ignored_event_row["Shortfall"] == 300
 
 
-def test_run_plan_year1_cash_events_are_ignored():
+def test_run_plan_year1_spend_is_single_manual_spending_value():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 1000
-    cfg.year1_cash_events = 250
 
     rows = run_plan(cfg)
     year1_row = rows[0]
 
     assert year1_row["Target_Spend"] == 1000
-    assert year1_row["Cash_Events"] == 0
     assert year1_row["Total_Spend"] == 1000
     assert year1_row["Brokerage_Draw"] == 1000
     assert year1_row["Shortfall"] == 0

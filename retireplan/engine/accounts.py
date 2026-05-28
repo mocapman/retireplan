@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-/home/runner/work/retireplan/retireplan/retireplan/accounts.py
-
 Retirement account management and withdrawal logic.
 
 This module manages the three main retirement account types (Brokerage, Roth IRA,

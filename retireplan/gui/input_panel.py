@@ -353,7 +353,6 @@ class InputPanel(tb.Frame):
             "",
             1,
         )
-        self.variables["year1_cash_events"] = tk.StringVar(value="0")
         self.create_currency_field(
             parent, "Year 1 Brokerage Draw", "year1_brokerage_draw", "", 2
         )
@@ -646,7 +645,6 @@ class InputPanel(tb.Frame):
                 "year1_spend": safe_float(
                     strip_currency(self.variables["year1_spend"].get())
                 ),
-                "year1_cash_events": 0.0,
                 "year1_brokerage_draw": safe_float(
                     strip_currency(self.variables["year1_brokerage_draw"].get())
                 ),
@@ -835,7 +833,6 @@ class InputPanel(tb.Frame):
             ),
             "balances_ira": format_currency(config.get("balances", {}).get("ira", "")),
             "year1_spend": format_currency(s.get("year1_spend", "")),
-            "year1_cash_events": 0,
             "year1_brokerage_draw": format_currency(s.get("year1_brokerage_draw", "")),
             "year1_ira_draw": format_currency(s.get("year1_ira_draw", "")),
             "year1_roth_draw": format_currency(s.get("year1_roth_draw", "")),

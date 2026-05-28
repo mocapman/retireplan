@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-/home/runner/work/retireplan/retireplan/retireplan/timeline.py
-
 Timeline and lifecycle phase management for retirement planning.
 
 This module defines the year-by-year context for retirement planning, including

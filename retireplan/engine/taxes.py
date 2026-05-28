@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-/home/runner/work/retireplan/retireplan/retireplan/taxes.py
-
 Federal tax calculations for retirement planning.
 
 This module provides comprehensive tax calculations including progressive federal

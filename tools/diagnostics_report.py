@@ -11,7 +11,6 @@ DIAGNOSTIC_FIELDS = [
     "Lifestyle",
     "Target_Spend",
     "Total_Spend",
-    "Cash_Events",
     "Social_Security",
     "IRA_Draw",
     "Brokerage_Draw",

@@ -63,7 +63,6 @@ spending:
   year1_brokerage_draw: 120000.0
   year1_capital_gains_to_date: 0.0
   year1_capital_losses_to_date: 0.0
-  year1_cash_events: 0.0
   year1_income_to_date: 0.0
   year1_ira_draw: 0.0
   year1_magi_income: 0.0

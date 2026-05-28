@@ -25,7 +25,6 @@ this checkout.
 | `balances.ira` -> `balances_ira` | same | dollars | start of projection | Starting Traditional IRA balance | `run_plan()` initializes `ira_end` | `IRA_Draw`, `Roth_Conversion`, `RMD`, `IRA_Balance`, `MAGI`, `Taxes_Due` |
 | `spending.start_year` -> `start_year` | `default_config.yaml`, `inputs.py` | calendar year | projection start | First projected year | `make_years()` via `run_plan()` | `Year`, ages, phase sequencing |
 | `spending.year1_spend` -> `year1_spend` | same | dollars | first projection row only | Manual Year 1 lifestyle spend seed | Year 1 branch in `run_plan()` | Year 1 `Target_Spend`, `Total_Spend` |
-| `spending.year1_cash_events` -> `year1_cash_events` | same | dollars | first projection row only | Manual Year 1 cash event amount | Year 1 branch in `run_plan()` | Year 1 `Cash_Events` |
 | `spending.year1_brokerage_draw` | same | dollars | first projection row only | Manual Year 1 brokerage draw | Year 1 branch in `run_plan()` | Year 1 `Brokerage_Draw`, `Brokerage_Balance` |
 | `spending.year1_ira_draw` | same | dollars | first projection row only | Manual Year 1 IRA draw | Year 1 branch in `run_plan()` | Year 1 `IRA_Draw`, `IRA_Balance` |
 | `spending.year1_roth_draw` | same | dollars | first projection row only | Manual Year 1 Roth draw | Year 1 branch in `run_plan()` | Year 1 `Roth_Draw`, `Roth_Balance` |
@@ -63,8 +62,8 @@ this checkout.
 The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=None)`.
 
 1. Event setup
-   - Optional `events` are grouped by year into `ev_by_year`.
-   - These events are only used in Year 2+ rows. Year 1 uses `cfg.year1_cash_events`.
+   - Optional `events` are reserved for a future model and are ignored by the
+     current engine.
 
 2. Timeline/year setup
    - `make_years()` receives `start_year`, birth years, final ages, `gogo_years`,
@@ -80,8 +79,8 @@ The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=N
 
 4. Year 1 branch
    - Uses manual seed values: `year1_spend`, `year1_roth_conversion`,
-     `year1_magi_income`, `year1_magi_losses`, manual account draws, and
-     `year1_cash_events`.
+     `year1_magi_income`, `year1_magi_losses`, and manual account draws.
+   - Known one-time Year 1 spending is included directly in `year1_spend`.
    - Sets Social Security, taxes, RMD, standard deduction, and shortfall to zero.
    - Computes Year 1 MAGI as:
      `year1_magi_income - year1_magi_losses + year1_roth_conversion`.
@@ -114,18 +113,13 @@ The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=N
    - If both are alive, benefits are summed. If one survives, the survivor gets
      the higher of the two calculated benefits.
 
-9. Cash events
-   - Year 2+ events are summed from the optional `events` argument.
-   - Events affect `Total_Spend` but are not routed through account balances in
-     a distinct tax-aware event model.
-
-10. RMD logic
+9. RMD logic
     - RMD applies when person1 is alive, person1 age is at/above `rmd_start_age`,
       and IRA balance is positive.
     - Amount is `ira_end / rmd_factor(person1_age)`.
     - RMD is excluded from the balance passed to normal draw-order withdrawals.
 
-11. Draw strategy
+10. Draw strategy
     - Need before ordinary draws is:
       `target_spend_lifestyle - Social_Security - RMD`, floored at zero.
     - `withdraw_with_order()` draws from Brokerage, Roth, and IRA in configured
@@ -133,7 +127,7 @@ The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=N
     - `Shortfall` is the remaining gap between lifestyle target and cash
       provided by Social Security, RMD, and account draws.
 
-12. Roth conversion logic
+11. Roth conversion logic
     - An inner `tax_and_magi(conv)` calls `compute_tax_magi()`.
     - `ira_ordinary` is `RMD + IRA_Draw`.
     - `roth_conversion` is passed separately.
@@ -141,7 +135,7 @@ The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=N
       exceeding available IRA balance.
     - Final conversion reduces IRA balance and increases Roth balance.
 
-13. MAGI, taxable income, and tax calculation
+12. MAGI, taxable income, and tax calculation
     - `compute_tax_magi()` calculates:
       - ordinary income = IRA ordinary distributions + Roth conversions
       - taxable Social Security via provisional income thresholds
@@ -151,19 +145,19 @@ The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=N
     - `taxable_income` and taxable Social Security are returned internally but
       not placed in output rows.
 
-14. ACA subsidy logic
+13. ACA subsidy logic
     - Year 1: fixed expected monthly subsidy multiplied by 12.
     - Year 2+: `ACA_Subsidy` is forced to zero.
     - No current curve, sliding-scale calculation, premium use, or subsidy
       phaseout is implemented in the engine.
 
-15. Account balance updates
+14. Account balance updates
     - Surplus RMD beyond spending need after Social Security is deposited into
       brokerage.
     - Growth is applied after draws, RMD handling, and conversion.
     - End balances become next year starting balances.
 
-16. Output row creation
+15. Output row creation
     - Rows are dictionaries keyed to `retireplan/schema.py`.
     - Monetary values are rounded by `round_dollar()`.
     - Ages/years are rounded by `round_year()`.
@@ -183,21 +177,20 @@ Tests assert schema coverage and selected field behavior.
 | `Lifestyle` | `schema.py` | `run_plan()` from `YearCtx.phase` | real | visible; tested |
 | Base Spend | not in schema | not populated | absent | old docs mention it, current code does not |
 | `Target_Spend` | `schema.py` | Year 1 from `year1_spend`; Year 2+ from spending model | real but Year 1 has manual semantics | visible; tested; diagnostics |
-| `Total_Spend` | `schema.py` | Year 1 equals `year1_spend`; Year 2+ target spend + tax + events | real but Year 1 does not include tax/events in same way | visible; tested |
-| `Taxes_Due` | `schema.py` | Year 1 zero; Year 2+ `compute_tax_magi()` federal tax | partial | visible; tested; no Oregon split |
-| `Cash_Events` | `schema.py` | Year 1 manual value; Year 2+ optional event sum | partial | visible; diagnostics |
+| `Total_Spend` | `schema.py` | Year 1 equals `year1_spend`; Year 2+ target spend + tax | real but Year 1 does not include tax in same way | visible; tested |
+| `Taxes_Due` | `schema.py` | Year 1 zero; Year 2+ federal tax plus simplified estimated state tax | partial | visible; tested; no detailed state brackets |
 | `Social_Security` | `schema.py` | Year 1 zero; Year 2+ `ss_for_year()` survivor logic | partial for Year 1 | visible; tested |
 | `IRA_Draw` | `schema.py` | Year 1 manual; Year 2+ draw-order result | real | visible; tested |
 | `Brokerage_Draw` | `schema.py` | Year 1 manual; Year 2+ draw-order result | real | visible; tested |
 | `Roth_Draw` | `schema.py` | Year 1 manual; Year 2+ draw-order result | real | visible; tested |
 | `Roth_Conversion` | `schema.py` | Year 1 manual; Year 2+ MAGI-target loop | real but strategy is narrow | visible; tested |
-| `RMD` | `schema.py` | Year 1 zero; Year 2+ person1 age/balance rule | partial for Year 1 and person1-only model | visible; tested |
+| `RMD` | `schema.py` | Year 1 zero; Year 2+ living-person age/balance rule | partial for Year 1 | visible; tested |
 | `MAGI` | `schema.py` | Year 1 manual formula; Year 2+ tax helper | real but simplified | hidden by default; diagnostics/tested |
-| Taxable Income | not in schema | returned from `compute_tax_magi()` but discarded | diagnostic missing | not in GUI/export/tests |
-| `Target_MAGI` | `schema.py` | Year 1 from `magi_target_base`; Year 2+ forced zero in output | partial / placeholder after Year 1 | hidden; tested |
-| `MAGI_Remaining` | `schema.py` | Year 1 target - MAGI; Year 2+ forced zero | partial / placeholder after Year 1 | hidden; tested |
-| `MAGI_Status` | `schema.py` | Year 1 floor/ceiling status; Year 2+ blank | partial / placeholder after Year 1 | hidden; tested |
-| `ACA_Subsidy` | `schema.py` | Year 1 expected monthly * 12; Year 2+ zero | partial / placeholder after Year 1 | hidden; tested |
+| `Taxable_Income` | `schema.py` | Year 1 zero; Year 2+ tax helper result | diagnostic | hidden/exported/tested |
+| `Target_MAGI` | `schema.py` | Year 1 from `magi_target_base`; Year 2+ active inflation-adjusted target while MAGI targeting applies | real while targeting is active | hidden; tested |
+| `MAGI_Remaining` | `schema.py` | target - projected MAGI while targeting is active | real while targeting is active | hidden; tested |
+| `MAGI_Status` | `schema.py` | classifies MAGI against floor/target while targeting is active | real while targeting is active | hidden; tested |
+| `ACA_Subsidy` | `schema.py` | Year 1 expected monthly * 12; Year 2+ zero | partial | hidden; tested |
 | `Std_Deduction` | `schema.py` | Year 1 zero; Year 2+ calculated deduction | partial for Year 1 | hidden; diagnostics |
 | `IRA_Balance` | `schema.py` | `run_plan()` end-of-year balance | real | visible; tested |
 | `Brokerage_Balance` | `schema.py` | `run_plan()` end-of-year balance | real | visible; tested |
@@ -292,31 +285,26 @@ audit document.
 - Year 1 bypasses many normal calculations: Social Security, tax, RMD, standard
   deduction, and shortfall are forced to zero.
 - Year 1 `Target_Spend` and `Total_Spend` both equal `year1_spend`; Year 2+
-  `Total_Spend` includes taxes and events.
-- `Target_MAGI`, `MAGI_Remaining`, `MAGI_Status`, and `ACA_Subsidy` are meaningful
-  only for Year 1 output. Year 2+ output fields are zero or blank even though
-  target MAGI is used internally for Roth conversion decisions.
-- `Taxable Income` is calculated inside `compute_tax_magi()` but discarded.
-- `Taxes_Due` currently means federal income tax only.
+  `Total_Spend` includes taxes.
+- `ACA_Subsidy` is meaningful only for Year 1 output. Year 2+ output is zero
+  because no forward ACA subsidy formula is implemented.
+- `Target_MAGI`, `MAGI_Remaining`, and `MAGI_Status` are populated for Year 2+
+  while MAGI targeting is active.
+- `Taxable_Income` and major tax/MAGI components are exported as hidden audit
+  fields.
+- `Taxes_Due` currently means federal income tax plus simplified estimated state
+  tax.
 - `aca_full_premium_monthly` and optional `aca_subsidy_annual` are not consumed
   by the current engine.
-- Brokerage draws are treated as non-taxable return of basis in `compute_tax_magi()`.
-- RMD timing is based on person1 only.
+- Brokerage draws use the simple brokerage tax-character model; brokerage cash
+  creates no MAGI, and holdings sales create estimated gains.
+- RMD timing selects the living person's age: person1 if alive, otherwise
+  person2 if alive.
 - `retireplan/engine/accounts.py` contains an `Accounts` dataclass that is not
   used by `run_plan()`; the active engine path uses `withdraw_with_order()`.
-- Several module docstrings still contain stale runner paths under
-  `/home/runner/work/...`.
-- The GUI exposes only a subset of loaded ACA/MAGI fields. It does not expose
-  `aca_magi_floor`, `aca_magi_ceiling`, `aca_full_premium_monthly`,
-  `aca_expected_subsidy_monthly`, `year1_roth_conversion`, `year1_magi_income`,
-  or `year1_magi_losses`.
 - `tools/diagnostics_report.py` is used by tests but `tools/` remains ignored by
   `.gitignore`; if future commits rely on it, ensure it remains tracked or move
   diagnostics into the package.
-- `retireplan/default_config_2.yaml` used newer/proposed names and was removed
-  as an obsolete config snapshot during this cleanup.
-- Generated projection CSVs in `output/` and a root generated config snapshot
-  were removed during this cleanup.
 
 ## 6. Documentation And File Authority
 

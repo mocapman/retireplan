@@ -20,8 +20,7 @@ spending:
   gogo_years: 10
   slow_years: 6
   survivor_percent: 70
-  year1_spend: 40000.0
-  year1_cash_events: -40000.0
+  year1_spend: 80000.0
   year1_brokerage_draw: 80000.0
   year1_ira_draw: 0.0
   year1_roth_draw: 0.0
@@ -48,12 +47,8 @@ tax_health:
 draw_order: "Brokerage, Roth, IRA"
 
 year1:
-  spend: 40000
+  spend: 80000
   income: 0
-  cash_events:
-    - description: "Capital gains tax payment"
-      amount: -40000
-      from_account: "Brokerage"
   draws:
     ira: 0
     brokerage: 80000

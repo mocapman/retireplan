@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """
-/home/runner/work/retireplan/retireplan/retireplan/core.py
-
 Core retirement planning calculation engine.
 
 This module contains the main `run_plan()` function that orchestrates the year-by-year
@@ -48,7 +46,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             - Spending targets and lifestyle phases
             - Tax and Social Security parameters
             - Timeline parameters (birth years, final ages)
-        events: Reserved for a future annual cash-event model. Ignored for now.
+        events: Reserved for a future model. Ignored for now.
 
     Returns:
         List of dictionaries, one per year, containing:
@@ -124,9 +122,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             draw_broke = Decimal(str(cfg.year1_brokerage_draw))
             draw_roth = Decimal(str(cfg.year1_roth_draw))
 
-            # Year 1 one-time spending should be included in year1_spend.
-            events_cash = Decimal(0)
-
             # Apply Roth conversion (IRA -> Roth transfer)
             ira_end -= roth_conv
             roth_end += roth_conv
@@ -156,7 +151,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             # Target_Spend: Actual lifestyle spending for Year 1
             target_spend = year1_lifestyle_spend  
             # Total_Spend: For Year 1, show the gross lifestyle spending (same as target)
-            # Cash events are shown separately in the Cash_Events column
             total_spend = year1_lifestyle_spend
 
             # Create Year 1 row
@@ -170,7 +164,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 ),
                 "Total_Spend": round_dollar(total_spend),
                 "Taxes_Due": round_dollar(tax),
-                "Cash_Events": round_dollar(events_cash),
                 "Target_Spend": round_dollar(target_spend),
                 "Social_Security": round_dollar(ss_income),
                 "IRA_Draw": round_dollar(draw_ira),
@@ -349,9 +342,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         ss_person2_gross = ss_person2 if yc.person2_alive else Decimal(0)
         ss_survivor_adjustment = ss_income - ss_person1_gross - ss_person2_gross
 
-        # Annual cash events are not modeled yet. Year 1 has a manual field only.
-        events_cash = Decimal(0)
-
         # BUSINESS RULE: Required Minimum Distribution (RMD) calculation
         # RMD required when a living person is at/above RMD start age.
         # Uses IRS Uniform Lifetime Table factors.
@@ -389,7 +379,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # Because taxes depend on draws, solve by bounded iteration from the same
         # pre-draw balances each pass and commit only the final pass.
         for _ in range(8):
-            annual_need = target_spend_lifestyle + estimated_tax + events_cash
+            annual_need = target_spend_lifestyle + estimated_tax
             need_for_budget = max(Decimal(0), annual_need - ss_income - rmd)
 
             # Note: RMD amount is excluded from normal draw-order withdrawals.
@@ -506,7 +496,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # BUSINESS RULE: Surplus RMD handling
         # If RMD exceeds annual cash need (after SS), put surplus in brokerage
         # This ensures required distributions are taken but excess goes to taxable account
-        total_spend = target_spend_lifestyle + tax + events_cash
+        total_spend = target_spend_lifestyle + tax
         need_after_ss = max(Decimal(0), total_spend - ss_income)
         rmd_surplus = max(Decimal(0), rmd - need_after_ss)
         rmd_used_for_spending = rmd - rmd_surplus
@@ -545,7 +535,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Filing": filing_status,
             "Total_Spend": round_dollar(total_spend),
             "Taxes_Due": round_dollar(tax),
-            "Cash_Events": round_dollar(events_cash),
             "Target_Spend": round_dollar(target_spend),
             "Social_Security": round_dollar(ss_income),
             "IRA_Draw": round_dollar(draw_ira),

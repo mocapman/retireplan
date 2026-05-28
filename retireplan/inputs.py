@@ -33,7 +33,6 @@ class Inputs:
     # Spending (Start Year is now under spending)
     start_year: int
     year1_spend: float
-    year1_cash_events: float
     year1_brokerage_draw: float
     year1_ira_draw: float
     year1_roth_draw: float
@@ -141,7 +140,6 @@ def load_yaml(path: str) -> Inputs:
         # start_year now from spending
         start_year=s["start_year"],
         year1_spend=s.get("year1_spend", 0),
-        year1_cash_events=0,
         year1_brokerage_draw=s.get("year1_brokerage_draw", 0),
         year1_ira_draw=s.get("year1_ira_draw", 0),
         year1_roth_draw=s.get("year1_roth_draw", 0),
