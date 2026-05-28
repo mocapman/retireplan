@@ -197,6 +197,9 @@ def test_run_plan_brokerage_draw_beyond_cash_increases_magi_by_estimated_gain():
     assert rows[1]["Brokerage_Gain_Ratio"] == 0.2105
     assert rows[1]["Brokerage_Capital_Gains"] == 64
     assert rows[1]["Brokerage_MAGI_Income"] == 64
+    assert rows[1]["Brokerage_Taxable_Income"] == 64
+    assert rows[1]["Capital_Gains_Taxable"] == 64
+    assert rows[1]["MAGI_Brokerage_Gains"] == 64
     assert rows[1]["MAGI"] == 64
     assert rows[1]["Taxes_Due"] > 0
     assert rows[1]["Total_Spend"] == (
@@ -251,6 +254,7 @@ def test_run_plan_estimated_state_tax_is_included_in_taxes_due_and_draws():
     state_tax_row = rows[1]
 
     assert state_tax_row["Taxable_Income"] == 988
+    assert state_tax_row["Total_Taxable_Income_After_Deduction"] == 988
     assert state_tax_row["Estimated_State_Taxable_Income"] == 888
     assert state_tax_row["Estimated_State_Tax"] == 89
     assert state_tax_row["Federal_Tax"] == 99
@@ -265,6 +269,46 @@ def test_run_plan_estimated_state_tax_is_included_in_taxes_due_and_draws():
     )
     assert state_tax_row["IRA_Draw"] == state_tax_row["Total_Spend"]
     assert state_tax_row["Shortfall"] == 0
+
+
+def test_tax_and_magi_audit_components_reconcile_to_summary_fields():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 1000
+    cfg.brokerage_cash = 1000
+    cfg.balances_ira = 100000
+    cfg.target_spend = 0
+    cfg.magi_target_base = 10000
+    cfg.aca_magi_floor = 0
+    cfg.aca_magi_ceiling = 10000
+    cfg.standard_deduction_base = 0
+    cfg.estimated_state_tax_rate = 0
+
+    row = run_plan(cfg)[1]
+
+    assert row["Roth_Conversion"] > 0
+    assert row["Roth_Conversion_Gross"] == row["Roth_Conversion"]
+    assert row["Roth_Conversion_Taxable_Income"] == row["Roth_Conversion"]
+    assert row["Roth_Conversion_MAGI_Income"] == row["Roth_Conversion"]
+    assert row["IRA_Taxable_Income"] == (
+        row["IRA_Draw_Taxable_Income"] + row["IRA_RMD_Taxable_Income"]
+    )
+    assert row["Ordinary_Income_Taxable"] == (
+        row["IRA_Taxable_Income"] + row["Roth_Conversion_Taxable_Income"]
+    )
+    assert row["Total_Taxable_Income_Before_Deduction"] == (
+        row["Ordinary_Income_Taxable"]
+        + row["Capital_Gains_Taxable"]
+        + row["SS_Taxable_Amount"]
+    )
+    assert row["MAGI"] == (
+        row["MAGI_IRA_Draws"]
+        + row["MAGI_RMD"]
+        + row["MAGI_Roth_Conversions"]
+        + row["MAGI_Brokerage_Gains"]
+        + row["MAGI_Social_Security"]
+    )
 
 
 def test_run_plan_ignores_annual_cash_events_until_event_model_exists():
@@ -376,6 +420,13 @@ def test_rmd_still_occurs_when_person1_is_alive_at_rmd_age():
     assert rows[1]["RMD"] > 0
     assert rows[1]["IRA_Draw"] == 0
     assert rows[1]["MAGI"] == rows[1]["RMD"]
+    assert rows[1]["RMD_Gross"] == rows[1]["RMD"]
+    assert rows[1]["IRA_RMD_Taxable_Income"] == rows[1]["RMD"]
+    assert rows[1]["MAGI_RMD"] == rows[1]["RMD"]
+    assert (
+        rows[1]["RMD_Used_For_Spending"] + rows[1]["RMD_Surplus_To_Brokerage"]
+        == rows[1]["RMD"]
+    )
     assert rows[1]["Taxes_Due"] > 0
 
 
@@ -393,7 +444,44 @@ def test_rmd_continues_when_only_person2_survives_at_rmd_age():
     assert survivor_row["RMD"] > 0
     assert survivor_row["IRA_Draw"] == 0
     assert survivor_row["MAGI"] == survivor_row["RMD"]
+    assert survivor_row["RMD_Gross"] == survivor_row["RMD"]
+    assert survivor_row["IRA_RMD_Taxable_Income"] == survivor_row["RMD"]
     assert survivor_row["Taxes_Due"] > 0
+
+
+def test_social_security_audit_columns_show_person_and_survivor_amounts():
+    cfg = minimal_two_person_config()
+    cfg.birth_year_person1 = 1965
+    cfg.birth_year_person2 = 1966
+    cfg.final_age_person1 = 61
+    cfg.final_age_person2 = 62
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.target_spend = 0
+    cfg.ss_person1_start_age = 61
+    cfg.ss_person1_annual_at_start = 12000
+    cfg.ss_person2_start_age = 60
+    cfg.ss_person2_annual_at_start = 6000
+    cfg.inflation = 0
+
+    rows = run_plan(cfg)
+    pre_claim_row = rows[0]
+    both_alive_row = rows[1]
+    survivor_row = rows[2]
+
+    assert pre_claim_row["SS_Person1_Gross"] == 0
+    assert pre_claim_row["SS_Person2_Gross"] == 0
+    assert both_alive_row["SS_Person1_Gross"] == 12000
+    assert both_alive_row["SS_Person2_Gross"] == 6000
+    assert both_alive_row["SS_Total_Gross"] == 18000
+    assert both_alive_row["Social_Security"] == 18000
+    assert both_alive_row["SS_Survivor_Adjustment"] == 0
+    assert survivor_row["SS_Person1_Gross"] == 0
+    assert survivor_row["SS_Person2_Gross"] == 6000
+    assert survivor_row["SS_Total_Gross"] == 12000
+    assert survivor_row["Social_Security"] == 12000
+    assert survivor_row["SS_Survivor_Adjustment"] == 6000
+    assert survivor_row["SS_Filing_Status_Used"] == "Single"
 
 
 def test_rmd_age_is_none_when_neither_person_is_alive():

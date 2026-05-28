@@ -177,6 +177,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "RMD": round_dollar(0),
                 "Federal_Tax": round_dollar(0),
                 "Taxable_Income": round_dollar(0),
+                "Ordinary_Income_Taxable": round_dollar(roth_conv),
+                "Capital_Gains_Taxable": round_dollar(brokerage_sale.capital_gain),
+                "Total_Taxable_Income_Before_Deduction": round_dollar(
+                    roth_conv + brokerage_sale.capital_gain
+                ),
+                "Total_Taxable_Income_After_Deduction": round_dollar(0),
                 "Estimated_State_Taxable_Income": round_dollar(0),
                 "Estimated_State_Tax": round_dollar(0),
                 "Brokerage_Cash_Used": round_dollar(brokerage_sale.cash_used),
@@ -189,12 +195,40 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     brokerage_sale.capital_gain
                 ),
                 "Brokerage_MAGI_Income": round_dollar(brokerage_sale.capital_gain),
+                "Brokerage_Taxable_Income": round_dollar(
+                    brokerage_sale.capital_gain
+                ),
                 "MAGI": round_dollar(magi),
                 "Target_MAGI": round_dollar(target_magi),
                 "MAGI_Remaining": round_dollar(magi_remaining),
                 "MAGI_Status": magi_status,
+                "MAGI_IRA_Draws": round_dollar(0),
+                "MAGI_RMD": round_dollar(0),
+                "MAGI_Roth_Conversions": round_dollar(roth_conv),
+                "MAGI_Brokerage_Gains": round_dollar(0),
+                "MAGI_Social_Security": round_dollar(0),
                 "ACA_Subsidy": round_dollar(aca_subsidy),
                 "Std_Deduction": round_dollar(0),  # Not calculated for Year 1
+                "IRA_Taxable_Income": round_dollar(0),
+                "IRA_Draw_Taxable_Income": round_dollar(0),
+                "IRA_RMD_Taxable_Income": round_dollar(0),
+                "IRA_Extra_Draw_Taxable_Income": round_dollar(0),
+                "RMD_Gross": round_dollar(0),
+                "RMD_Used_For_Spending": round_dollar(0),
+                "RMD_Surplus_To_Brokerage": round_dollar(0),
+                "Roth_Conversion_Gross": round_dollar(roth_conv),
+                "Roth_Conversion_Taxable_Income": round_dollar(roth_conv),
+                "Roth_Conversion_MAGI_Income": round_dollar(roth_conv),
+                "SS_Person1_Gross": round_dollar(0),
+                "SS_Person2_Gross": round_dollar(0),
+                "SS_Total_Gross": round_dollar(0),
+                "SS_Taxable_Amount": round_dollar(0),
+                "SS_Nontaxable_Amount": round_dollar(0),
+                "SS_Included_In_MAGI": round_dollar(0),
+                "SS_Survivor_Adjustment": round_dollar(0),
+                "SS_Filing_Status_Used": (
+                    "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
+                ),
                 "IRA_Balance": round_dollar(ira_end),
                 "Brokerage_Balance": round_dollar(brokerage_end),
                 "Roth_Balance": round_dollar(roth_end),
@@ -281,6 +315,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             ss_income = max(ss_person1, ss_person2)
         else:
             ss_income = Decimal(0)
+        ss_person1_gross = ss_person1 if yc.person1_alive else Decimal(0)
+        ss_person2_gross = ss_person2 if yc.person2_alive else Decimal(0)
+        ss_survivor_adjustment = ss_income - ss_person1_gross - ss_person2_gross
 
         # Annual cash events are not modeled yet. Year 1 has a manual field only.
         events_cash = Decimal(0)
@@ -303,6 +340,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         taxable_income = Decimal(0)
         estimated_state_taxable_income = Decimal(0)
         estimated_state_tax = Decimal(0)
+        ss_taxable = Decimal(0)
         magi = Decimal(0)
         roth_conv = Decimal(0)
         brokerage_capital_gains = Decimal(0)
@@ -346,11 +384,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
             def tax_and_magi(
                 conv: Decimal,
-            ) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal]:
+            ) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal, Decimal]:
                 """Calculate total tax, tax components, and MAGI for a conversion."""
                 (
                     federal_tax_value,
-                    _ss_tax,
+                    ss_tax_value,
                     taxable_income_value,
                     magi_value,
                 ) = compute_tax_magi(
@@ -362,6 +400,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     brokerage_capital_gains=float(iter_brokerage_capital_gains),
                 )
                 federal_tax_decimal = Decimal(str(federal_tax_value))
+                ss_tax_decimal = Decimal(str(ss_tax_value))
                 taxable_income_decimal = Decimal(str(taxable_income_value))
                 state_taxable_income, state_tax = _estimated_state_tax(
                     taxable_income_decimal,
@@ -374,6 +413,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 return (
                     total_tax,
                     federal_tax_decimal,
+                    ss_tax_decimal,
                     taxable_income_decimal,
                     state_taxable_income,
                     Decimal(str(magi_value)),
@@ -381,7 +421,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
             conv = Decimal(0)
             for _ in range(8):
-                tax0, _fed0, _taxable0, _state_taxable0, magi0 = tax_and_magi(conv)
+                tax0, _fed0, _ss0, _taxable0, _state_taxable0, magi0 = (
+                    tax_and_magi(conv)
+                )
                 if (
                     target_magi <= Decimal(0)
                     or not yc.person1_alive
@@ -401,6 +443,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             (
                 iter_tax,
                 iter_federal_tax,
+                iter_ss_taxable,
                 iter_taxable_income,
                 iter_estimated_state_taxable_income,
                 iter_magi,
@@ -419,6 +462,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             roth_conv = iter_roth_conv
             tax = iter_tax
             federal_tax = iter_federal_tax
+            ss_taxable = iter_ss_taxable
             taxable_income = iter_taxable_income
             estimated_state_taxable_income = iter_estimated_state_taxable_income
             estimated_state_tax = iter_estimated_state_tax
@@ -435,6 +479,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         total_spend = target_spend_lifestyle + tax + events_cash
         need_after_ss = max(Decimal(0), total_spend - ss_income)
         rmd_surplus = max(Decimal(0), rmd - need_after_ss)
+        rmd_used_for_spending = rmd - rmd_surplus
         b1 += rmd_surplus
         brokerage_cash_end = (
             brokerage_cash_end - brokerage_sale.cash_used + rmd_surplus
@@ -456,6 +501,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         target_spend = target_spend_lifestyle
         provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
         shortfall = _clean_shortfall(total_spend - provided_cash)
+        ira_taxable_income = rmd + draw_ira
+        ordinary_income_taxable = ira_taxable_income + roth_conv
+        total_taxable_income_before_deduction = (
+            ordinary_income_taxable + brokerage_capital_gains + ss_taxable
+        )
 
         row_data = {
             "Year": round_year(yc.year),
@@ -475,6 +525,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "RMD": round_dollar(rmd),
             "Federal_Tax": round_dollar(federal_tax),
             "Taxable_Income": round_dollar(taxable_income),
+            "Ordinary_Income_Taxable": round_dollar(ordinary_income_taxable),
+            "Capital_Gains_Taxable": round_dollar(brokerage_capital_gains),
+            "Total_Taxable_Income_Before_Deduction": round_dollar(
+                total_taxable_income_before_deduction
+            ),
+            "Total_Taxable_Income_After_Deduction": round_dollar(taxable_income),
             "Estimated_State_Taxable_Income": round_dollar(
                 estimated_state_taxable_income
             ),
@@ -485,6 +541,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Brokerage_Gain_Ratio": round_percent(brokerage_sale.gain_ratio),
             "Brokerage_Capital_Gains": round_dollar(brokerage_capital_gains),
             "Brokerage_MAGI_Income": round_dollar(brokerage_capital_gains),
+            "Brokerage_Taxable_Income": round_dollar(brokerage_capital_gains),
             "MAGI": round_dollar(magi),
             "Target_MAGI": round_dollar(target_magi),
             "MAGI_Remaining": round_dollar(
@@ -495,8 +552,31 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 if target_magi > Decimal(0)
                 else ""
             ),
+            "MAGI_IRA_Draws": round_dollar(draw_ira),
+            "MAGI_RMD": round_dollar(rmd),
+            "MAGI_Roth_Conversions": round_dollar(roth_conv),
+            "MAGI_Brokerage_Gains": round_dollar(brokerage_capital_gains),
+            "MAGI_Social_Security": round_dollar(ss_taxable),
             "ACA_Subsidy": round_dollar(0),
             "Std_Deduction": round_dollar(std_ded),
+            "IRA_Taxable_Income": round_dollar(ira_taxable_income),
+            "IRA_Draw_Taxable_Income": round_dollar(draw_ira),
+            "IRA_RMD_Taxable_Income": round_dollar(rmd),
+            "IRA_Extra_Draw_Taxable_Income": round_dollar(draw_ira),
+            "RMD_Gross": round_dollar(rmd),
+            "RMD_Used_For_Spending": round_dollar(rmd_used_for_spending),
+            "RMD_Surplus_To_Brokerage": round_dollar(rmd_surplus),
+            "Roth_Conversion_Gross": round_dollar(roth_conv),
+            "Roth_Conversion_Taxable_Income": round_dollar(roth_conv),
+            "Roth_Conversion_MAGI_Income": round_dollar(roth_conv),
+            "SS_Person1_Gross": round_dollar(ss_person1_gross),
+            "SS_Person2_Gross": round_dollar(ss_person2_gross),
+            "SS_Total_Gross": round_dollar(ss_income),
+            "SS_Taxable_Amount": round_dollar(ss_taxable),
+            "SS_Nontaxable_Amount": round_dollar(ss_income - ss_taxable),
+            "SS_Included_In_MAGI": round_dollar(ss_taxable),
+            "SS_Survivor_Adjustment": round_dollar(ss_survivor_adjustment),
+            "SS_Filing_Status_Used": filing_status,
             "IRA_Balance": round_dollar(ira_bal),
             "Brokerage_Balance": round_dollar(broke_bal),
             "Roth_Balance": round_dollar(roth_bal),

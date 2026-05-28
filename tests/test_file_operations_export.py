@@ -28,8 +28,15 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
             "Brokerage_MAGI_Income": 63,
             "Federal_Tax": 99,
             "Taxable_Income": 988,
+            "Ordinary_Income_Taxable": 1000,
+            "Capital_Gains_Taxable": 63,
+            "Total_Taxable_Income_Before_Deduction": 1063,
+            "Total_Taxable_Income_After_Deduction": 988,
             "Estimated_State_Taxable_Income": 888,
             "Estimated_State_Tax": 89,
+            "SS_Taxable_Amount": 0,
+            "Roth_Conversion_Taxable_Income": 0,
+            "IRA_Taxable_Income": 1000,
         }
     )
     app = SimpleNamespace(
@@ -69,6 +76,10 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
     assert "Brokerage_MAGI_Income" in rows[0]
     assert "Federal_Tax" in rows[0]
     assert "Taxable_Income" in rows[0]
+    assert "Ordinary_Income_Taxable" in rows[0]
+    assert "Total_Taxable_Income_Before_Deduction" in rows[0]
+    assert "Roth_Conversion_Taxable_Income" in rows[0]
+    assert "SS_Taxable_Amount" in rows[0]
     assert "Estimated_State_Taxable_Income" in rows[0]
     assert "Estimated_State_Tax" in rows[0]
     assert len(rows) == 2
