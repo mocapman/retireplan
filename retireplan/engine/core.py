@@ -224,6 +224,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             if (yc.person1_alive and yc.age_person1 < cfg.aca_end_age)
             else Decimal(0)
         )
+        magi_floor = Decimal(str(cfg.aca_magi_floor)) * infl
 
         # Calculate inflation-adjusted lifestyle spending target based on lifecycle phase
         # This represents the core lifestyle spending goal (Target_Spend)
@@ -485,9 +486,15 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Brokerage_Capital_Gains": round_dollar(brokerage_capital_gains),
             "Brokerage_MAGI_Income": round_dollar(brokerage_capital_gains),
             "MAGI": round_dollar(magi),
-            "Target_MAGI": round_dollar(0),
-            "MAGI_Remaining": round_dollar(0),
-            "MAGI_Status": "",
+            "Target_MAGI": round_dollar(target_magi),
+            "MAGI_Remaining": round_dollar(
+                target_magi - magi if target_magi > Decimal(0) else Decimal(0)
+            ),
+            "MAGI_Status": (
+                _magi_status(magi, magi_floor, target_magi)
+                if target_magi > Decimal(0)
+                else ""
+            ),
             "ACA_Subsidy": round_dollar(0),
             "Std_Deduction": round_dollar(std_ded),
             "IRA_Balance": round_dollar(ira_bal),

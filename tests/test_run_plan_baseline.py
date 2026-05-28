@@ -427,7 +427,32 @@ def test_run_plan_year1_magi_aca_seed_outputs_are_user_driven():
     assert rows[0]["MAGI_Remaining"] == 40000
     assert rows[0]["ACA_Subsidy"] == 18000
     assert rows[0]["MAGI_Status"] == "IN_RANGE"
-    assert rows[1]["Target_MAGI"] == 0
-    assert rows[1]["MAGI_Remaining"] == 0
+    assert rows[1]["Target_MAGI"] == 85000
+    assert rows[1]["MAGI_Remaining"] == rows[1]["Target_MAGI"] - rows[1]["MAGI"]
     assert rows[1]["ACA_Subsidy"] == 0
-    assert rows[1]["MAGI_Status"] == ""
+    assert rows[1]["MAGI_Status"] == "BELOW_FLOOR"
+
+
+def test_run_plan_year2_magi_target_outputs_reflect_projected_magi():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 10000
+    cfg.brokerage_cash = 0
+    cfg.brokerage_cost_basis = 5000
+    cfg.brokerage_unrealized_gain = 5000
+    cfg.balances_ira = 0
+    cfg.target_spend = 1000
+    cfg.magi_target_base = 10000
+    cfg.aca_magi_floor = 0
+    cfg.aca_magi_ceiling = 10000
+
+    rows = run_plan(cfg)
+    year2_row = rows[1]
+
+    assert year2_row["Target_MAGI"] == 10000
+    assert year2_row["MAGI"] > 0
+    assert year2_row["MAGI_Remaining"] == (
+        year2_row["Target_MAGI"] - year2_row["MAGI"]
+    )
+    assert year2_row["MAGI_Status"] == "IN_RANGE"
