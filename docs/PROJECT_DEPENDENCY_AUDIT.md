@@ -46,15 +46,12 @@ this checkout.
 | `social_security.person1_annual_at_start` -> `ss_person1_annual_at_start` | same | annual dollars | first payable year amount | Person 1 annual benefit at claiming age | `ss_for_year()` | same |
 | `social_security.person2_start_age` -> `ss_person2_start_age` | same | age | annual eligibility rule | Person 2 Social Security start age | `ss_for_year()` | same |
 | `social_security.person2_annual_at_start` -> `ss_person2_annual_at_start` | same | annual dollars | first payable year amount | Person 2 annual benefit at claiming age | `ss_for_year()` | same |
-| `tax_health.magi_target_base` | same | dollars | base-year annual target | MAGI target used by Year 1 display and Year 2+ conversion loop | Year 1 branch and Year 2+ `target_magi` calculation | Year 1 `Target_MAGI`, Year 2+ `Roth_Conversion`, `MAGI`, `Taxes_Due` |
+| `tax_health.magi_floor_base` | same | dollars | base-year annual lower guardrail | MAGI floor used for status display | Year 1 and Year 2+ `MAGI_Floor` calculation | `MAGI_Floor`, `MAGI_Status` |
+| `tax_health.magi_target_base` | same | dollars | base-year annual target | Preferred MAGI target used by Year 1 display and Year 2+ conversion loop | Year 1 branch and Year 2+ `target_magi` calculation | Year 1 `Target_MAGI`, Year 2+ `Roth_Conversion`, `MAGI`, `Taxes_Due` |
+| `tax_health.magi_ceiling_base` | same | dollars | base-year annual upper guardrail | Hard MAGI guardrail for status and Roth conversion cap | Year 1 and Year 2+ `MAGI_Ceiling` calculation | `MAGI_Ceiling`, `MAGI_Remaining_To_Ceiling`, `MAGI_Status`, `Roth_Conversion` |
 | `tax_health.standard_deduction_base` | same | dollars | base-year annual deduction | Federal standard deduction baseline | Year 2+ `std_ded` calculation | `Std_Deduction`, `Taxes_Due`; not MAGI |
 | `tax_health.rmd_start_age` | same | age | annual policy threshold | Age where RMD calculation begins | RMD branch in `run_plan()` | `RMD`, `IRA_Balance`, `Brokerage_Balance`, `MAGI`, `Taxes_Due` |
-| `tax_health.aca_end_age` | same | age | annual policy threshold | Stops MAGI-target conversions when person1 reaches ACA end age | Year 2+ `target_magi` and conversion-loop guard | `Roth_Conversion`, `MAGI`; indirectly taxes and balances |
-| `tax_health.aca_magi_floor` | same | dollars | Year 1 status threshold | Lower bound used to classify Year 1 MAGI | `_magi_status()` in Year 1 branch | Year 1 `MAGI_Status` |
-| `tax_health.aca_magi_ceiling` | same | dollars | Year 1 status threshold | Upper bound used to classify Year 1 MAGI | `_magi_status()` in Year 1 branch | Year 1 `MAGI_Status` |
-| `tax_health.aca_full_premium_monthly` | same | monthly dollars | ACA plan fact | Loaded into `Inputs` but not consumed by current engine | no current consumer found | none |
-| `tax_health.aca_expected_subsidy_monthly` | same | monthly dollars | first projection row only | User-entered expected monthly subsidy seed | Year 1 branch in `run_plan()` | Year 1 `ACA_Subsidy` |
-| `tax_health.aca_subsidy_annual` | optional config field | annual dollars | unclear | Loaded into `Inputs` if present; surfaced by `ConfigManager`; not used by engine | no current engine consumer found | none |
+| `tax_health.aca_end_age` | same | age | annual policy threshold | Stops MAGI-target conversions when person1 reaches guardrail end age | Year 2+ `target_magi` and conversion-loop guard | `Roth_Conversion`, `MAGI`; indirectly taxes and balances |
 | `draw_order` | `default_config.yaml`, `inputs.py` | ordered account names | projection-wide strategy | Withdrawal priority among Brokerage, Roth, IRA | `parse_draw_order()` in `run_plan()` | `Brokerage_Draw`, `Roth_Draw`, `IRA_Draw`, balances, `Shortfall` |
 
 ## 2. Core Annual Calculation Flow
@@ -84,8 +81,6 @@ The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=N
    - Sets Social Security, taxes, RMD, standard deduction, and shortfall to zero.
    - Computes Year 1 MAGI as:
      `year1_magi_income - year1_magi_losses + year1_roth_conversion`.
-   - Computes Year 1 ACA subsidy as:
-     `aca_expected_subsidy_monthly * 12`.
    - Applies conversion, draws, and end-of-year growth to balances.
 
 5. Year 2+ inflation and deduction setup
@@ -95,9 +90,11 @@ The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=N
    - `standard_deduction_base` is halved for `Single` and multiplied by the
      inflation factor.
 
-6. Year 2+ MAGI target setup
+6. Year 2+ MAGI guardrail setup
    - `target_magi = magi_target_base * inflation_factor` only while person1 is
      alive and below `aca_end_age`.
+   - `magi_floor_base` and `magi_ceiling_base` inflate on the same schedule.
+   - Roth conversion sizing uses the lower of Target MAGI and MAGI Ceiling.
    - If person1 is at/above `aca_end_age`, target MAGI is zero and conversion
      targeting stops.
 
@@ -145,11 +142,10 @@ The current engine entry point is `retireplan.engine.core.run_plan(cfg, events=N
     - `taxable_income` and taxable Social Security are returned internally but
       not placed in output rows.
 
-13. ACA subsidy logic
-    - Year 1: fixed expected monthly subsidy multiplied by 12.
-    - Year 2+: `ACA_Subsidy` is forced to zero.
-    - No current curve, sliding-scale calculation, premium use, or subsidy
-      phaseout is implemented in the engine.
+13. MAGI guardrail logic
+    - The planner exposes MAGI floor, target, ceiling, remaining-to-target,
+      remaining-to-ceiling, and status.
+    - The planner does not calculate ACA subsidy dollars.
 
 14. Account balance updates
     - Surplus RMD beyond spending need after Social Security is deposited into
@@ -187,10 +183,12 @@ Tests assert schema coverage and selected field behavior.
 | `RMD` | `schema.py` | Year 1 zero; Year 2+ living-person age/balance rule | partial for Year 1 | visible; tested |
 | `MAGI` | `schema.py` | Year 1 manual formula; Year 2+ tax helper | real but simplified | hidden by default; diagnostics/tested |
 | `Taxable_Income` | `schema.py` | Year 1 zero; Year 2+ tax helper result | diagnostic | hidden/exported/tested |
+| `MAGI_Floor` | `schema.py` | Year 1 from `magi_floor_base`; Year 2+ active inflation-adjusted floor while MAGI targeting applies | real while targeting is active | hidden; tested |
 | `Target_MAGI` | `schema.py` | Year 1 from `magi_target_base`; Year 2+ active inflation-adjusted target while MAGI targeting applies | real while targeting is active | hidden; tested |
+| `MAGI_Ceiling` | `schema.py` | Year 1 from `magi_ceiling_base`; Year 2+ active inflation-adjusted ceiling while MAGI targeting applies | real while targeting is active | hidden; tested |
 | `MAGI_Remaining` | `schema.py` | target - projected MAGI while targeting is active | real while targeting is active | hidden; tested |
-| `MAGI_Status` | `schema.py` | classifies MAGI against floor/target while targeting is active | real while targeting is active | hidden; tested |
-| `ACA_Subsidy` | `schema.py` | Year 1 expected monthly * 12; Year 2+ zero | partial | hidden; tested |
+| `MAGI_Remaining_To_Ceiling` | `schema.py` | ceiling - projected MAGI while targeting is active | real while targeting is active | hidden; tested |
+| `MAGI_Status` | `schema.py` | classifies MAGI against floor/ceiling while targeting is active | real while targeting is active | hidden; tested |
 | `Std_Deduction` | `schema.py` | Year 1 zero; Year 2+ calculated deduction | partial for Year 1 | hidden; diagnostics |
 | `IRA_Balance` | `schema.py` | `run_plan()` end-of-year balance | real | visible; tested |
 | `Brokerage_Balance` | `schema.py` | `run_plan()` end-of-year balance | real | visible; tested |
@@ -248,15 +246,17 @@ Current MAGI does not include:
 - municipal bond interest or other MAGI adjustments.
 - ACA-specific reconciliation details.
 
-### ACA Subsidy
+### MAGI Guardrails
 
 Current behavior:
 
-- Year 1 only: `aca_expected_subsidy_monthly * 12`.
-- Year 2+ always: zero.
-- `aca_magi_floor` and `aca_magi_ceiling` classify Year 1 `MAGI_Status` only.
-- `aca_full_premium_monthly` is loaded but unused.
-- `aca_subsidy_annual` is loaded optionally but unused by the engine.
+- `magi_floor_base`, `magi_target_base`, and `magi_ceiling_base` are the active
+  MAGI planning values.
+- `MAGI_Remaining = Target_MAGI - MAGI`.
+- `MAGI_Remaining_To_Ceiling = MAGI_Ceiling - MAGI`.
+- `MAGI_Status` is `Warning` below the floor, `Good` within floor/ceiling, and
+  `FAIL` above the ceiling.
+- The planner does not calculate or output ACA subsidy dollars.
 
 Diagnostic components needed later for audit/export, not implemented here:
 
@@ -265,8 +265,7 @@ Diagnostic components needed later for audit/export, not implemented here:
 - taxable income.
 - federal tax and Oregon tax split.
 - brokerage capital gains, dividends, and interest.
-- ACA MAGI floor, ceiling, subsidy formula/table, full premium, calculated
-  subsidy, and subsidy status.
+- ACA subsidy formula/table, premium, calculated subsidy, and subsidy status.
 - RMD surplus handling amount.
 - account starting balance, draw, conversion, growth, and ending balance per
   account.
@@ -286,16 +285,12 @@ audit document.
   deduction, and shortfall are forced to zero.
 - Year 1 `Target_Spend` and `Total_Spend` both equal `year1_spend`; Year 2+
   `Total_Spend` includes taxes.
-- `ACA_Subsidy` is meaningful only for Year 1 output. Year 2+ output is zero
-  because no forward ACA subsidy formula is implemented.
 - `Target_MAGI`, `MAGI_Remaining`, and `MAGI_Status` are populated for Year 2+
   while MAGI targeting is active.
 - `Taxable_Income` and major tax/MAGI components are exported as hidden audit
   fields.
 - `Taxes_Due` currently means federal income tax plus simplified estimated state
   tax.
-- `aca_full_premium_monthly` and optional `aca_subsidy_annual` are not consumed
-  by the current engine.
 - Brokerage draws use the simple brokerage tax-character model; brokerage cash
   creates no MAGI, and holdings sales create estimated gains.
 - RMD timing selects the living person's age: person1 if alive, otherwise

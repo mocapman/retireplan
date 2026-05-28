@@ -4,7 +4,7 @@ Federal tax calculations for retirement planning.
 
 This module provides comprehensive tax calculations including progressive federal
 income tax, Social Security taxation using provisional income rules, and MAGI
-(Modified Adjusted Gross Income) calculations for ACA premium subsidies.
+(Modified Adjusted Gross Income) calculations for planning guardrails.
 
 Author: Retirement Planning Team
 License: MIT
@@ -119,7 +119,7 @@ def compute_tax_magi(
     
     This is the main tax calculation function that computes federal income tax,
     taxable Social Security amount, and Modified Adjusted Gross Income (MAGI)
-    used for ACA premium subsidy calculations.
+    used for planning guardrails.
     
     Args:
         ira_ordinary: Traditional IRA distributions including RMDs
@@ -134,7 +134,7 @@ def compute_tax_magi(
         - federal_tax: Federal income tax owed
         - ss_taxable: Taxable portion of Social Security benefits
         - taxable_income: Income subject to federal tax (after standard deduction)
-        - magi: Modified Adjusted Gross Income for ACA calculations
+        - magi: Modified Adjusted Gross Income for guardrail calculations
         
     Business Rules:
         - IRA distributions and Roth conversions are fully taxable as ordinary income
@@ -165,7 +165,7 @@ def compute_tax_magi(
     # Federal income tax using progressive brackets
     tax = progressive_tax(taxable_income, filing)
     
-    # MAGI for ACA premium subsidy calculations
+    # MAGI for guardrail calculations
     # Simplified: AGI approximation (excludes municipal bond interest, etc.)
     magi = taxable_non_ss + ss_tax
     

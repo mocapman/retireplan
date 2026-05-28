@@ -76,11 +76,8 @@ def minimal_two_person_config() -> Inputs:
         estimated_state_tax_rate=0.0875,
         rmd_start_age=73,
         aca_end_age=65,
-        aca_magi_floor=0,
-        aca_magi_ceiling=1,
-        aca_full_premium_monthly=0,
-        aca_expected_subsidy_monthly=0,
-        aca_subsidy_annual=None,
+        magi_floor_base=0,
+        magi_ceiling_base=1,
         draw_order="Brokerage, Roth, IRA",
     )
 
@@ -114,10 +111,12 @@ def test_run_plan_rows_include_current_schema_and_core_financial_fields():
         "Brokerage_Capital_Gains",
         "Brokerage_MAGI_Income",
         "MAGI",
+        "MAGI_Floor",
         "Target_MAGI",
+        "MAGI_Ceiling",
         "MAGI_Remaining",
+        "MAGI_Remaining_To_Ceiling",
         "MAGI_Status",
-        "ACA_Subsidy",
         "Roth_Conversion",
         "Shortfall",
         "Brokerage_Balance",
@@ -366,8 +365,8 @@ def test_tax_and_magi_audit_components_reconcile_to_summary_fields():
     cfg.balances_ira = 100000
     cfg.target_spend = 0
     cfg.magi_target_base = 10000
-    cfg.aca_magi_floor = 0
-    cfg.aca_magi_ceiling = 10000
+    cfg.magi_floor_base = 0
+    cfg.magi_ceiling_base = 10000
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 
@@ -580,28 +579,33 @@ def test_rmd_age_is_none_when_neither_person_is_alive():
     assert _rmd_age_for_year(yc) is None
 
 
-def test_run_plan_year1_magi_aca_seed_outputs_are_user_driven():
+def test_run_plan_year1_magi_guardrail_outputs_are_user_driven():
     cfg = minimal_two_person_config()
     cfg.year1_roth_conversion = 5000
     cfg.year1_magi_income = 42000
     cfg.year1_magi_losses = 2000
     cfg.magi_target_base = 85000
-    cfg.aca_magi_floor = 43000
-    cfg.aca_magi_ceiling = 85000
-    cfg.aca_expected_subsidy_monthly = 1500
+    cfg.magi_floor_base = 43000
+    cfg.magi_ceiling_base = 85000
 
     rows = run_plan(cfg)
 
     assert rows[0]["MAGI"] == 45000
     assert rows[0]["Roth_Conversion"] == 5000
+    assert rows[0]["MAGI_Floor"] == 43000
     assert rows[0]["Target_MAGI"] == 85000
+    assert rows[0]["MAGI_Ceiling"] == 85000
     assert rows[0]["MAGI_Remaining"] == 40000
-    assert rows[0]["ACA_Subsidy"] == 18000
-    assert rows[0]["MAGI_Status"] == "IN_RANGE"
+    assert rows[0]["MAGI_Remaining_To_Ceiling"] == 40000
+    assert rows[0]["MAGI_Status"] == "Good"
+    assert rows[1]["MAGI_Floor"] == 43000
     assert rows[1]["Target_MAGI"] == 85000
+    assert rows[1]["MAGI_Ceiling"] == 85000
     assert rows[1]["MAGI_Remaining"] == rows[1]["Target_MAGI"] - rows[1]["MAGI"]
-    assert rows[1]["ACA_Subsidy"] == 0
-    assert rows[1]["MAGI_Status"] == "BELOW_FLOOR"
+    assert rows[1]["MAGI_Remaining_To_Ceiling"] == (
+        rows[1]["MAGI_Ceiling"] - rows[1]["MAGI"]
+    )
+    assert rows[1]["MAGI_Status"] == "Warning"
 
 
 def test_run_plan_year2_magi_target_outputs_reflect_projected_magi():
@@ -615,15 +619,43 @@ def test_run_plan_year2_magi_target_outputs_reflect_projected_magi():
     cfg.balances_ira = 0
     cfg.target_spend = 1000
     cfg.magi_target_base = 10000
-    cfg.aca_magi_floor = 0
-    cfg.aca_magi_ceiling = 10000
+    cfg.magi_floor_base = 0
+    cfg.magi_ceiling_base = 10000
 
     rows = run_plan(cfg)
     year2_row = rows[1]
 
     assert year2_row["Target_MAGI"] == 10000
+    assert year2_row["MAGI_Ceiling"] == 10000
     assert year2_row["MAGI"] > 0
     assert year2_row["MAGI_Remaining"] == (
         year2_row["Target_MAGI"] - year2_row["MAGI"]
     )
-    assert year2_row["MAGI_Status"] == "IN_RANGE"
+    assert year2_row["MAGI_Remaining_To_Ceiling"] == (
+        year2_row["MAGI_Ceiling"] - year2_row["MAGI"]
+    )
+    assert year2_row["MAGI_Status"] == "Good"
+
+
+def test_roth_conversion_respects_magi_ceiling_even_when_target_is_higher():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 0
+    cfg.brokerage_cash = 0
+    cfg.balances_roth = 0
+    cfg.balances_ira = 100000
+    cfg.target_spend = 0
+    cfg.magi_floor_base = 0
+    cfg.magi_target_base = 50000
+    cfg.magi_ceiling_base = 10000
+    cfg.standard_deduction_base = 0
+    cfg.estimated_state_tax_rate = 0
+
+    year2_row = run_plan(cfg)[1]
+
+    assert year2_row["Target_MAGI"] == 50000
+    assert year2_row["MAGI_Ceiling"] == 10000
+    assert year2_row["MAGI"] <= year2_row["MAGI_Ceiling"]
+    assert year2_row["Roth_Conversion"] <= year2_row["MAGI_Ceiling"]
+    assert year2_row["MAGI_Status"] == "Good"

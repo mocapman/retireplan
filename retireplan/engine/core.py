@@ -62,7 +62,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         - Subsequent years use calculated values based on configuration
         - Survivor benefits: When one person dies, take higher SS benefit
         - RMD starts at configured age using IRS Uniform Lifetime Table
-        - Roth conversions target MAGI limits for ACA premium subsidies
+        - Roth conversions target configured MAGI guardrails
         - Account withdrawals follow configured draw order
         - Surplus RMD (beyond spending need) goes to brokerage account
     """
@@ -109,12 +109,14 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 + roth_conv
             )
             target_magi = Decimal(str(cfg.magi_target_base))
+            magi_floor = Decimal(str(cfg.magi_floor_base))
+            magi_ceiling = Decimal(str(cfg.magi_ceiling_base))
             magi_remaining = target_magi - magi
-            aca_subsidy = Decimal(str(cfg.aca_expected_subsidy_monthly)) * Decimal(12)
+            magi_remaining_to_ceiling = magi_ceiling - magi
             magi_status = _magi_status(
                 magi,
-                Decimal(str(cfg.aca_magi_floor)),
-                Decimal(str(cfg.aca_magi_ceiling)),
+                magi_floor,
+                magi_ceiling,
             )
 
             # Apply user-specified draws for Year 1
@@ -207,15 +209,19 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     brokerage_sale.capital_gain
                 ),
                 "MAGI": round_dollar(magi),
+                "MAGI_Floor": round_dollar(magi_floor),
                 "Target_MAGI": round_dollar(target_magi),
+                "MAGI_Ceiling": round_dollar(magi_ceiling),
                 "MAGI_Remaining": round_dollar(magi_remaining),
+                "MAGI_Remaining_To_Ceiling": round_dollar(
+                    magi_remaining_to_ceiling
+                ),
                 "MAGI_Status": magi_status,
                 "MAGI_IRA_Draws": round_dollar(0),
                 "MAGI_RMD": round_dollar(0),
                 "MAGI_Roth_Conversions": round_dollar(roth_conv),
                 "MAGI_Brokerage_Gains": round_dollar(0),
                 "MAGI_Social_Security": round_dollar(0),
-                "ACA_Subsidy": round_dollar(aca_subsidy),
                 "Std_Deduction": round_dollar(0),  # Not calculated for Year 1
                 "Survivor_Year": survivor_year,
                 "Living_Person": living_person,
@@ -274,14 +280,25 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             base_ded = base_ded / 2
         std_ded = base_ded * infl
 
-        # BUSINESS RULE: MAGI targeting for ACA premium subsidies
-        # Only target MAGI while person1 is under ACA end age (usually 65)
+        # BUSINESS RULE: MAGI guardrail targeting
+        # Only target MAGI while person1 is under the configured guardrail end age.
+        magi_guardrail_active = yc.person1_alive and yc.age_person1 < cfg.aca_end_age
         target_magi = (
             Decimal(str(cfg.magi_target_base)) * infl
-            if (yc.person1_alive and yc.age_person1 < cfg.aca_end_age)
+            if magi_guardrail_active
             else Decimal(0)
         )
-        magi_floor = Decimal(str(cfg.aca_magi_floor)) * infl
+        magi_floor = (
+            Decimal(str(cfg.magi_floor_base)) * infl
+            if magi_guardrail_active
+            else Decimal(0)
+        )
+        magi_ceiling = (
+            Decimal(str(cfg.magi_ceiling_base)) * infl
+            if magi_guardrail_active
+            else Decimal(0)
+        )
+        conversion_target_magi = min(target_magi, magi_ceiling)
 
         # Calculate inflation-adjusted lifestyle spending target based on lifecycle phase
         # This represents the core lifestyle spending goal (Target_Spend)
@@ -445,12 +462,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     tax_and_magi(conv)
                 )
                 if (
-                    target_magi <= Decimal(0)
+                    conversion_target_magi <= Decimal(0)
                     or not yc.person1_alive
                     or yc.age_person1 >= cfg.aca_end_age
                 ):
                     break
-                gap = target_magi - magi0
+                gap = conversion_target_magi - magi0
                 if gap <= Decimal("1.0"):
                     break
                 cap = max(Decimal(0), iter_i1)
@@ -570,13 +587,18 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Brokerage_MAGI_Income": round_dollar(brokerage_capital_gains),
             "Brokerage_Taxable_Income": round_dollar(brokerage_capital_gains),
             "MAGI": round_dollar(magi),
+            "MAGI_Floor": round_dollar(magi_floor),
             "Target_MAGI": round_dollar(target_magi),
+            "MAGI_Ceiling": round_dollar(magi_ceiling),
             "MAGI_Remaining": round_dollar(
                 target_magi - magi if target_magi > Decimal(0) else Decimal(0)
             ),
+            "MAGI_Remaining_To_Ceiling": round_dollar(
+                magi_ceiling - magi if magi_ceiling > Decimal(0) else Decimal(0)
+            ),
             "MAGI_Status": (
-                _magi_status(magi, magi_floor, target_magi)
-                if target_magi > Decimal(0)
+                _magi_status(magi, magi_floor, magi_ceiling)
+                if magi_guardrail_active
                 else ""
             ),
             "MAGI_IRA_Draws": round_dollar(draw_ira),
@@ -584,7 +606,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "MAGI_Roth_Conversions": round_dollar(roth_conv),
             "MAGI_Brokerage_Gains": round_dollar(brokerage_capital_gains),
             "MAGI_Social_Security": round_dollar(ss_taxable),
-            "ACA_Subsidy": round_dollar(0),
             "Std_Deduction": round_dollar(std_ded),
             "Survivor_Year": survivor_year,
             "Living_Person": living_person,
@@ -630,12 +651,12 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
 
 def _magi_status(magi: Decimal, floor: Decimal, ceiling: Decimal) -> str:
-    """Classify current-year MAGI against configured ACA bounds."""
+    """Classify current-year MAGI against configured MAGI guardrails."""
     if magi < floor:
-        return "BELOW_FLOOR"
-    if magi < ceiling:
-        return "IN_RANGE"
-    return "ABOVE_CEILING"
+        return "Warning"
+    if magi <= ceiling:
+        return "Good"
+    return "FAIL"
 
 
 def _clean_shortfall(shortfall: Decimal) -> Decimal:

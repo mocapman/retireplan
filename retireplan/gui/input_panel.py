@@ -336,12 +336,24 @@ class InputPanel(tb.Frame):
             + annuals["magi_conversions_annual"]
             - annuals["magi_losses_annual"]
         )
-        magi_remaining = (
-            self.magi_planning_amount("magi_target_base") - projected_magi
-        )
+        magi_floor = self.magi_planning_amount("magi_floor_base")
+        magi_target = self.magi_planning_amount("magi_target_base")
+        magi_ceiling = self.magi_planning_amount("magi_ceiling_base")
+        magi_remaining = magi_target - projected_magi
+        magi_remaining_to_ceiling = magi_ceiling - projected_magi
+        if projected_magi < magi_floor:
+            magi_status = "Warning"
+        elif projected_magi <= magi_ceiling:
+            magi_status = "Good"
+        else:
+            magi_status = "FAIL"
         if hasattr(self, "magi_summary_projected"):
             self.magi_summary_projected.set(format_currency(projected_magi))
             self.magi_summary_remaining.set(format_currency(magi_remaining))
+            self.magi_summary_remaining_to_ceiling.set(
+                format_currency(magi_remaining_to_ceiling)
+            )
+            self.magi_summary_status.set(magi_status)
 
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -394,12 +406,6 @@ class InputPanel(tb.Frame):
         summary_frame = tb.Frame(parent)
         summary_frame.grid(row=1, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2))
         summary_frame.columnconfigure(1, weight=1, minsize=180)
-
-        guardrails_frame = tb.Frame(parent)
-        guardrails_frame.grid(
-            row=2, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2)
-        )
-        guardrails_frame.columnconfigure(1, weight=1, minsize=180)
 
         tb.Label(grid_frame, text="").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
         for col, label in enumerate(("YTD", "Projected", "Annual", "Years"), start=1):
@@ -478,20 +484,29 @@ class InputPanel(tb.Frame):
         ).grid(row=summary_row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
 
         self.create_currency_field(
-            summary_frame, "MAGI Target", "magi_target_base", "", summary_row + 1
+            summary_frame, "MAGI Floor", "magi_floor_base", "", summary_row + 1
         )
-        self.variables["magi_target_base"].trace_add(
-            "write", lambda *_: self.update_magi_planning_display()
+        self.create_currency_field(
+            summary_frame, "MAGI Target", "magi_target_base", "", summary_row + 2
         )
+        self.create_currency_field(
+            summary_frame, "MAGI Ceiling", "magi_ceiling_base", "", summary_row + 3
+        )
+        for key in ("magi_floor_base", "magi_target_base", "magi_ceiling_base"):
+            self.variables[key].trace_add(
+                "write", lambda *_: self.update_magi_planning_display()
+            )
         self.magi_summary_projected = tk.StringVar(value="$0")
         self.magi_summary_remaining = tk.StringVar(value="$0")
+        self.magi_summary_remaining_to_ceiling = tk.StringVar(value="$0")
         self.magi_summary_status = tk.StringVar(value="")
         summary_rows = (
             ("Projected MAGI", self.magi_summary_projected),
             ("MAGI Remaining", self.magi_summary_remaining),
+            ("MAGI Remaining To Ceiling", self.magi_summary_remaining_to_ceiling),
             ("MAGI Status", self.magi_summary_status),
         )
-        for offset, (label, var) in enumerate(summary_rows, start=2):
+        for offset, (label, var) in enumerate(summary_rows, start=4):
             tb.Label(summary_frame, text=label).grid(
                 row=summary_row + offset, column=0, sticky=tk.W, padx=5, pady=2
             )
@@ -502,44 +517,6 @@ class InputPanel(tb.Frame):
                 padx=5,
                 pady=2,
             )
-
-        guardrails_row = 0
-        tb.Label(
-            guardrails_frame,
-            text="ACA Guardrails",
-            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
-        ).grid(
-            row=guardrails_row,
-            column=0,
-            columnspan=2,
-            sticky=tk.W,
-            padx=5,
-            pady=(16, 4),
-        )
-        self.create_currency_field(
-            guardrails_frame,
-            "ACA Full Premium Monthly",
-            "aca_full_premium_monthly",
-            "",
-            guardrails_row + 1,
-        )
-        self.create_currency_field(
-            guardrails_frame,
-            "ACA Max Subsidy Monthly",
-            "aca_expected_subsidy_monthly",
-            "",
-            guardrails_row + 2,
-        )
-        self.create_currency_field(
-            guardrails_frame, "ACA MAGI Floor", "aca_magi_floor", "", guardrails_row + 3
-        )
-        self.create_currency_field(
-            guardrails_frame,
-            "ACA MAGI Ceiling",
-            "aca_magi_ceiling",
-            "",
-            guardrails_row + 4,
-        )
 
     def create_ss_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -580,7 +557,7 @@ class InputPanel(tb.Frame):
             parent, "Standard Deduction", "standard_deduction_base", "", 3
         )
         self.create_input_field(parent, "RMD Start Age", "rmd_start_age", "", 4)
-        self.create_input_field(parent, "ACA End Age", "aca_end_age", "", 5)
+        self.create_input_field(parent, "MAGI Guardrail End Age", "aca_end_age", "", 5)
 
     def create_strategy_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -784,17 +761,11 @@ class InputPanel(tb.Frame):
                 ),
                 "rmd_start_age": safe_int(self.variables["rmd_start_age"].get()),
                 "aca_end_age": safe_int(self.variables["aca_end_age"].get()),
-                "aca_expected_subsidy_monthly": safe_float(
-                    strip_currency(self.variables["aca_expected_subsidy_monthly"].get())
+                "magi_floor_base": safe_float(
+                    strip_currency(self.variables["magi_floor_base"].get())
                 ),
-                "aca_full_premium_monthly": safe_float(
-                    strip_currency(self.variables["aca_full_premium_monthly"].get())
-                ),
-                "aca_magi_floor": safe_float(
-                    strip_currency(self.variables["aca_magi_floor"].get())
-                ),
-                "aca_magi_ceiling": safe_float(
-                    strip_currency(self.variables["aca_magi_ceiling"].get())
+                "magi_ceiling_base": safe_float(
+                    strip_currency(self.variables["magi_ceiling_base"].get())
                 ),
             },
             "draw_order": self.variables["draw_order"].get(),
@@ -915,6 +886,12 @@ class InputPanel(tb.Frame):
             "magi_target_base": format_currency(
                 config.get("tax_health", {}).get("magi_target_base", "")
             ),
+            "magi_floor_base": format_currency(
+                config.get("tax_health", {}).get("magi_floor_base", "")
+            ),
+            "magi_ceiling_base": format_currency(
+                config.get("tax_health", {}).get("magi_ceiling_base", "")
+            ),
             "standard_deduction_base": format_currency(
                 config.get("tax_health", {}).get("standard_deduction_base", "")
             ),
@@ -928,18 +905,6 @@ class InputPanel(tb.Frame):
             ),
             "rmd_start_age": config.get("tax_health", {}).get("rmd_start_age"),
             "aca_end_age": config.get("tax_health", {}).get("aca_end_age"),
-            "aca_expected_subsidy_monthly": format_currency(
-                config.get("tax_health", {}).get("aca_expected_subsidy_monthly", "")
-            ),
-            "aca_full_premium_monthly": format_currency(
-                config.get("tax_health", {}).get("aca_full_premium_monthly", "")
-            ),
-            "aca_magi_floor": format_currency(
-                config.get("tax_health", {}).get("aca_magi_floor", "")
-            ),
-            "aca_magi_ceiling": format_currency(
-                config.get("tax_health", {}).get("aca_magi_ceiling", "")
-            ),
             "draw_order": config.get("draw_order"),
         }
         for key, value in mapping.items():

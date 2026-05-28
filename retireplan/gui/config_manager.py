@@ -80,11 +80,8 @@ class ConfigManager:
                 "estimated_state_tax_rate": cfg.estimated_state_tax_rate,
                 "rmd_start_age": cfg.rmd_start_age,
                 "aca_end_age": cfg.aca_end_age,
-                "aca_expected_subsidy_monthly": cfg.aca_expected_subsidy_monthly,
-                "aca_full_premium_monthly": cfg.aca_full_premium_monthly,
-                "aca_magi_floor": cfg.aca_magi_floor,
-                "aca_magi_ceiling": cfg.aca_magi_ceiling,
-                "aca_subsidy_annual": getattr(cfg, "aca_subsidy_annual", None),
+                "magi_floor_base": cfg.magi_floor_base,
+                "magi_ceiling_base": cfg.magi_ceiling_base,
             },
             "draw_order": cfg.draw_order,
         }

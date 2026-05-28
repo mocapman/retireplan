@@ -139,8 +139,8 @@ def test_ira_draws_rmds_and_roth_conversions_are_ordinary_taxable_magi_income():
     cfg.balances_ira = 1_000_000
     cfg.target_spend = 50_000
     cfg.magi_target_base = 80_000
-    cfg.aca_magi_floor = 0
-    cfg.aca_magi_ceiling = 80_000
+    cfg.magi_floor_base = 0
+    cfg.magi_ceiling_base = 80_000
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 
@@ -171,8 +171,8 @@ def test_roth_conversion_taxable_but_not_spending():
     cfg.balances_ira = 100_000
     cfg.target_spend = 0
     cfg.magi_target_base = 10_000
-    cfg.aca_magi_floor = 0
-    cfg.aca_magi_ceiling = 10_000
+    cfg.magi_floor_base = 0
+    cfg.magi_ceiling_base = 10_000
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 

@@ -75,12 +75,10 @@ spending:
   year1_spend: 120000.0
 tax_health:
   aca_end_age: 65
-  aca_expected_subsidy_monthly: 1954.0
-  aca_full_premium_monthly: 2555.0
-  aca_magi_ceiling: 85000.0
-  aca_magi_floor: 43000.0
   estimated_state_deduction: 5670.0
   estimated_state_tax_rate: 0.0875
+  magi_ceiling_base: 85000.0
+  magi_floor_base: 43000.0
   magi_target_base: 80000.0
   rmd_start_age: 73
   standard_deduction_base: 31500.0

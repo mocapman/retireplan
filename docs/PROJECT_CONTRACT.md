@@ -101,7 +101,7 @@ Examples:
 |---|---|
 | Taxes Due | Federal tax, Oregon tax, taxable IRA income, taxable Social Security, taxable Roth conversion, taxable capital gains, taxable dividends, taxable interest |
 | MAGI | IRA withdrawals, Roth conversions, taxable Social Security, capital gains, dividends, interest, deductions or adjustments if modeled |
-| ACA Subsidy | MAGI, household size, benchmark premium or subsidy formula/table, subsidy status |
+| MAGI Guardrails | MAGI floor, target, ceiling, remaining room, status |
 | Total Spend | Base spend, taxes, healthcare premiums if included, other modeled additions |
 | Account Balances | Starting balance, draws, conversions, growth, RMDs, ending balance |
 | Roth Conversion | MAGI room, tax impact, ACA impact, Traditional IRA balance effect, Roth balance effect |
@@ -175,8 +175,8 @@ ira_draw
 → MAGI / taxable_income
 
 MAGI
-+ ACA policy values
-→ ACA subsidy / ACA status
++ MAGI guardrail values
+→ MAGI remaining / MAGI status
 
 taxable_income
 + federal brackets

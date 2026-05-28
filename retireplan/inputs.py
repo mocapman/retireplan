@@ -88,11 +88,8 @@ class Inputs:
     estimated_state_tax_rate: float
     rmd_start_age: int
     aca_end_age: int
-    aca_magi_floor: float
-    aca_magi_ceiling: float
-    aca_full_premium_monthly: float
-    aca_expected_subsidy_monthly: float
-    aca_subsidy_annual: Optional[float]
+    magi_floor_base: float
+    magi_ceiling_base: float
 
     # Strategy
     draw_order: DrawOrder
@@ -189,11 +186,8 @@ def load_yaml(path: str) -> Inputs:
         estimated_state_tax_rate=th.get("estimated_state_tax_rate", 0.0875),
         rmd_start_age=th["rmd_start_age"],
         aca_end_age=th["aca_end_age"],
-        aca_magi_floor=th.get("aca_magi_floor", 0),
-        aca_magi_ceiling=th.get("aca_magi_ceiling", 0),
-        aca_full_premium_monthly=th.get("aca_full_premium_monthly", 0),
-        aca_expected_subsidy_monthly=th.get("aca_expected_subsidy_monthly", 0),
-        aca_subsidy_annual=th.get("aca_subsidy_annual"),
+        magi_floor_base=th.get("magi_floor_base", 0),
+        magi_ceiling_base=th.get("magi_ceiling_base", 0),
         draw_order=raw.get("draw_order", "IRA, Brokerage, Roth"),
     )
     validate(i)
