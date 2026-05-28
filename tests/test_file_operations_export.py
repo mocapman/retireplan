@@ -27,16 +27,26 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
             "Brokerage_Capital_Gains": 63,
             "Brokerage_MAGI_Income": 63,
             "Federal_Tax": 99,
+            "Filing_Status_Used": "MFJ",
+            "Federal_Standard_Deduction_Used": 0,
+            "Federal_Tax_Bracket_Set_Used": "MFJ",
             "Taxable_Income": 988,
             "Ordinary_Income_Taxable": 1000,
             "Capital_Gains_Taxable": 63,
             "Total_Taxable_Income_Before_Deduction": 1063,
             "Total_Taxable_Income_After_Deduction": 988,
+            "Federal_Taxable_Income_Before_Deduction": 1063,
+            "Federal_Taxable_Income_After_Deduction": 988,
+            "Federal_Tax_On_Ordinary_Income": 99,
             "Estimated_State_Taxable_Income": 888,
             "Estimated_State_Tax": 89,
             "SS_Taxable_Amount": 0,
             "Roth_Conversion_Taxable_Income": 0,
             "IRA_Taxable_Income": 1000,
+            "Survivor_Year": False,
+            "IRA_Balance_Start_Of_Year": 10000,
+            "IRA_Total_Taxable_Income": 1000,
+            "IRA_Balance_End_Of_Year": 9000,
         }
     )
     app = SimpleNamespace(
@@ -75,11 +85,18 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
     assert "Brokerage_Capital_Gains" in rows[0]
     assert "Brokerage_MAGI_Income" in rows[0]
     assert "Federal_Tax" in rows[0]
+    assert "Filing_Status_Used" in rows[0]
+    assert "Federal_Standard_Deduction_Used" in rows[0]
+    assert "Federal_Tax_Bracket_Set_Used" in rows[0]
     assert "Taxable_Income" in rows[0]
     assert "Ordinary_Income_Taxable" in rows[0]
     assert "Total_Taxable_Income_Before_Deduction" in rows[0]
+    assert "Federal_Taxable_Income_Before_Deduction" in rows[0]
     assert "Roth_Conversion_Taxable_Income" in rows[0]
     assert "SS_Taxable_Amount" in rows[0]
+    assert "Survivor_Year" in rows[0]
+    assert "IRA_Balance_Start_Of_Year" in rows[0]
+    assert "IRA_Balance_End_Of_Year" in rows[0]
     assert "Estimated_State_Taxable_Income" in rows[0]
     assert "Estimated_State_Tax" in rows[0]
     assert len(rows) == 2

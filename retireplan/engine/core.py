@@ -93,6 +93,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
     rows: list[dict] = []
 
     for idx, yc in enumerate(years):
+        ira_balance_start_of_year = ira_end
+        living_person = _living_person(yc)
+        survivor_year = _is_survivor_year(yc)
         # BUSINESS RULE: Year 1 special handling
         # Year 1 uses user-provided values instead of calculated values
         # This allows users to set known actuals for the current year
@@ -176,6 +179,13 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Roth_Conversion": round_dollar(roth_conv),
                 "RMD": round_dollar(0),
                 "Federal_Tax": round_dollar(0),
+                "Filing_Status_Used": (
+                    "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
+                ),
+                "Federal_Standard_Deduction_Used": round_dollar(0),
+                "Federal_Tax_Bracket_Set_Used": (
+                    "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
+                ),
                 "Taxable_Income": round_dollar(0),
                 "Ordinary_Income_Taxable": round_dollar(roth_conv),
                 "Capital_Gains_Taxable": round_dollar(brokerage_sale.capital_gain),
@@ -183,6 +193,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     roth_conv + brokerage_sale.capital_gain
                 ),
                 "Total_Taxable_Income_After_Deduction": round_dollar(0),
+                "Federal_Taxable_Income_Before_Deduction": round_dollar(
+                    roth_conv + brokerage_sale.capital_gain
+                ),
+                "Federal_Taxable_Income_After_Deduction": round_dollar(0),
+                "Federal_Tax_On_Ordinary_Income": round_dollar(0),
                 "Estimated_State_Taxable_Income": round_dollar(0),
                 "Estimated_State_Tax": round_dollar(0),
                 "Brokerage_Cash_Used": round_dollar(brokerage_sale.cash_used),
@@ -209,10 +224,25 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "MAGI_Social_Security": round_dollar(0),
                 "ACA_Subsidy": round_dollar(aca_subsidy),
                 "Std_Deduction": round_dollar(0),  # Not calculated for Year 1
+                "Survivor_Year": survivor_year,
+                "Living_Person": living_person,
+                "Widow_Tax_Mode": "Single survivor" if survivor_year else "",
+                "Survivor_Spending_Used": round_dollar(
+                    total_spend if survivor_year else 0
+                ),
+                "Survivor_Filing_Status_Used": (
+                    "Single" if survivor_year else ""
+                ),
+                "Survivor_Standard_Deduction_Used": round_dollar(0),
+                "IRA_Balance_Start_Of_Year": round_dollar(
+                    ira_balance_start_of_year
+                ),
                 "IRA_Taxable_Income": round_dollar(0),
                 "IRA_Draw_Taxable_Income": round_dollar(0),
                 "IRA_RMD_Taxable_Income": round_dollar(0),
                 "IRA_Extra_Draw_Taxable_Income": round_dollar(0),
+                "IRA_Total_Taxable_Income": round_dollar(0),
+                "IRA_Balance_End_Of_Year": round_dollar(ira_end),
                 "RMD_Gross": round_dollar(0),
                 "RMD_Used_For_Spending": round_dollar(0),
                 "RMD_Surplus_To_Brokerage": round_dollar(0),
@@ -524,6 +554,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Roth_Conversion": round_dollar(roth_conv),
             "RMD": round_dollar(rmd),
             "Federal_Tax": round_dollar(federal_tax),
+            "Filing_Status_Used": filing_status,
+            "Federal_Standard_Deduction_Used": round_dollar(std_ded),
+            "Federal_Tax_Bracket_Set_Used": filing_status,
             "Taxable_Income": round_dollar(taxable_income),
             "Ordinary_Income_Taxable": round_dollar(ordinary_income_taxable),
             "Capital_Gains_Taxable": round_dollar(brokerage_capital_gains),
@@ -531,6 +564,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 total_taxable_income_before_deduction
             ),
             "Total_Taxable_Income_After_Deduction": round_dollar(taxable_income),
+            "Federal_Taxable_Income_Before_Deduction": round_dollar(
+                total_taxable_income_before_deduction
+            ),
+            "Federal_Taxable_Income_After_Deduction": round_dollar(taxable_income),
+            "Federal_Tax_On_Ordinary_Income": round_dollar(federal_tax),
             "Estimated_State_Taxable_Income": round_dollar(
                 estimated_state_taxable_income
             ),
@@ -559,10 +597,23 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "MAGI_Social_Security": round_dollar(ss_taxable),
             "ACA_Subsidy": round_dollar(0),
             "Std_Deduction": round_dollar(std_ded),
+            "Survivor_Year": survivor_year,
+            "Living_Person": living_person,
+            "Widow_Tax_Mode": "Single survivor" if survivor_year else "",
+            "Survivor_Spending_Used": round_dollar(
+                target_spend_lifestyle if survivor_year else 0
+            ),
+            "Survivor_Filing_Status_Used": "Single" if survivor_year else "",
+            "Survivor_Standard_Deduction_Used": round_dollar(
+                std_ded if survivor_year else 0
+            ),
+            "IRA_Balance_Start_Of_Year": round_dollar(ira_balance_start_of_year),
             "IRA_Taxable_Income": round_dollar(ira_taxable_income),
             "IRA_Draw_Taxable_Income": round_dollar(draw_ira),
             "IRA_RMD_Taxable_Income": round_dollar(rmd),
             "IRA_Extra_Draw_Taxable_Income": round_dollar(draw_ira),
+            "IRA_Total_Taxable_Income": round_dollar(ira_taxable_income),
+            "IRA_Balance_End_Of_Year": round_dollar(ira_bal),
             "RMD_Gross": round_dollar(rmd),
             "RMD_Used_For_Spending": round_dollar(rmd_used_for_spending),
             "RMD_Surplus_To_Brokerage": round_dollar(rmd_surplus),
@@ -625,3 +676,19 @@ def _rmd_age_for_year(yc) -> int | None:
     if yc.person2_alive:
         return yc.age_person2
     return None
+
+
+def _is_survivor_year(yc) -> bool:
+    """Return True when exactly one person is alive in the projection year."""
+    return bool(yc.person1_alive) != bool(yc.person2_alive)
+
+
+def _living_person(yc) -> str:
+    """Return a compact survivor-audit label for who is alive."""
+    if yc.person1_alive and yc.person2_alive:
+        return "Both"
+    if yc.person1_alive:
+        return "Person1"
+    if yc.person2_alive:
+        return "Person2"
+    return "None"

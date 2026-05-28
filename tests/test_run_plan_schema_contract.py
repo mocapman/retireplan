@@ -43,11 +43,17 @@ def test_brokerage_diagnostic_fields_are_schema_export_fields_not_gui_default():
 def test_tax_diagnostic_fields_are_schema_export_fields_not_gui_default():
     diagnostic_fields = {
         "Federal_Tax",
+        "Filing_Status_Used",
+        "Federal_Standard_Deduction_Used",
+        "Federal_Tax_Bracket_Set_Used",
         "Taxable_Income",
         "Ordinary_Income_Taxable",
         "Capital_Gains_Taxable",
         "Total_Taxable_Income_Before_Deduction",
         "Total_Taxable_Income_After_Deduction",
+        "Federal_Taxable_Income_Before_Deduction",
+        "Federal_Taxable_Income_After_Deduction",
+        "Federal_Tax_On_Ordinary_Income",
         "Estimated_State_Taxable_Income",
         "Estimated_State_Tax",
         "IRA_Taxable_Income",
@@ -74,6 +80,15 @@ def test_tax_diagnostic_fields_are_schema_export_fields_not_gui_default():
         "SS_Included_In_MAGI",
         "SS_Survivor_Adjustment",
         "SS_Filing_Status_Used",
+        "Survivor_Year",
+        "Living_Person",
+        "Widow_Tax_Mode",
+        "Survivor_Spending_Used",
+        "Survivor_Filing_Status_Used",
+        "Survivor_Standard_Deduction_Used",
+        "IRA_Balance_Start_Of_Year",
+        "IRA_Total_Taxable_Income",
+        "IRA_Balance_End_Of_Year",
     }
 
     assert diagnostic_fields.issubset(set(schema.keys()))

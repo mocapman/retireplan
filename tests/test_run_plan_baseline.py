@@ -271,6 +271,96 @@ def test_run_plan_estimated_state_tax_is_included_in_taxes_due_and_draws():
     assert state_tax_row["Shortfall"] == 0
 
 
+def test_federal_tax_audit_columns_show_mfj_standard_deduction_and_brackets():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 0
+    cfg.brokerage_cash = 0
+    cfg.balances_roth = 0
+    cfg.balances_ira = 100000
+    cfg.draw_order = "IRA, Brokerage, Roth"
+    cfg.standard_deduction_base = 30000
+    cfg.target_spend = 50000
+    cfg.estimated_state_tax_rate = 0
+
+    row = run_plan(cfg)[1]
+
+    assert row["Filing"] == "MFJ"
+    assert row["Filing_Status_Used"] == "MFJ"
+    assert row["Federal_Tax_Bracket_Set_Used"] == "MFJ"
+    assert row["Federal_Standard_Deduction_Used"] == 30000
+    assert row["Federal_Taxable_Income_Before_Deduction"] == (
+        row["Ordinary_Income_Taxable"]
+        + row["Capital_Gains_Taxable"]
+        + row["SS_Taxable_Amount"]
+    )
+    assert row["Federal_Taxable_Income_After_Deduction"] == max(
+        0,
+        row["Federal_Taxable_Income_Before_Deduction"]
+        - row["Federal_Standard_Deduction_Used"],
+    )
+    assert row["Federal_Tax_On_Ordinary_Income"] == row["Federal_Tax"]
+    assert row["Taxes_Due"] == row["Federal_Tax"] + row["Estimated_State_Tax"]
+
+
+def test_survivor_tax_audit_columns_show_single_deduction_and_brackets():
+    cfg = rmd_survivor_config()
+    cfg.final_age_person1 = 73
+    cfg.final_age_person2 = 75
+    cfg.balances_ira = 1000000
+    cfg.standard_deduction_base = 31500
+    cfg.estimated_state_tax_rate = 0
+
+    survivor_row = run_plan(cfg)[1]
+
+    assert survivor_row["Filing"] == "Single"
+    assert survivor_row["Filing_Status_Used"] == "Single"
+    assert survivor_row["Federal_Tax_Bracket_Set_Used"] == "Single"
+    assert survivor_row["Federal_Standard_Deduction_Used"] == 15750
+    assert survivor_row["Survivor_Year"] is True
+    assert survivor_row["Living_Person"] == "Person2"
+    assert survivor_row["Widow_Tax_Mode"] == "Single survivor"
+    assert survivor_row["Survivor_Filing_Status_Used"] == "Single"
+    assert survivor_row["Survivor_Standard_Deduction_Used"] == 15750
+    assert survivor_row["IRA_Balance_Start_Of_Year"] == 1000000
+    assert survivor_row["IRA_RMD_Taxable_Income"] == survivor_row["RMD"]
+    assert survivor_row["IRA_Total_Taxable_Income"] == survivor_row["IRA_Taxable_Income"]
+    assert survivor_row["IRA_Balance_End_Of_Year"] < survivor_row[
+        "IRA_Balance_Start_Of_Year"
+    ]
+
+
+def test_high_ira_rmd_survivor_year_exposes_single_filing_tax_pressure():
+    both_alive_cfg = rmd_survivor_config()
+    both_alive_cfg.balances_ira = 1000000
+    both_alive_cfg.standard_deduction_base = 31500
+    both_alive_cfg.estimated_state_tax_rate = 0
+
+    survivor_cfg = rmd_survivor_config()
+    survivor_cfg.final_age_person1 = 73
+    survivor_cfg.final_age_person2 = 75
+    survivor_cfg.balances_ira = 1000000
+    survivor_cfg.standard_deduction_base = 31500
+    survivor_cfg.estimated_state_tax_rate = 0
+
+    both_alive_row = run_plan(both_alive_cfg)[1]
+    survivor_row = run_plan(survivor_cfg)[1]
+
+    assert both_alive_row["Filing_Status_Used"] == "MFJ"
+    assert survivor_row["Filing_Status_Used"] == "Single"
+    assert survivor_row["IRA_RMD_Taxable_Income"] == both_alive_row[
+        "IRA_RMD_Taxable_Income"
+    ]
+    assert survivor_row["Federal_Standard_Deduction_Used"] < both_alive_row[
+        "Federal_Standard_Deduction_Used"
+    ]
+    assert survivor_row["Federal_Taxable_Income_After_Deduction"] > both_alive_row[
+        "Federal_Taxable_Income_After_Deduction"
+    ]
+    assert survivor_row["Federal_Tax"] > both_alive_row["Federal_Tax"]
+
+
 def test_tax_and_magi_audit_components_reconcile_to_summary_fields():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 0

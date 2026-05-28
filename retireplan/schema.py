@@ -23,6 +23,17 @@ COLUMNS: List[Dict[str, Any]] = [
     {"key": "RMD", "label": "RMD", "visible": True},
     # Default hidden in GUI
     {"key": "Federal_Tax", "label": "Federal_Tax", "visible": False},
+    {"key": "Filing_Status_Used", "label": "Filing_Status_Used", "visible": False},
+    {
+        "key": "Federal_Standard_Deduction_Used",
+        "label": "Federal_Standard_Deduction_Used",
+        "visible": False,
+    },
+    {
+        "key": "Federal_Tax_Bracket_Set_Used",
+        "label": "Federal_Tax_Bracket_Set_Used",
+        "visible": False,
+    },
     {"key": "Taxable_Income", "label": "Taxable_Income", "visible": False},
     {
         "key": "Ordinary_Income_Taxable",
@@ -42,6 +53,21 @@ COLUMNS: List[Dict[str, Any]] = [
     {
         "key": "Total_Taxable_Income_After_Deduction",
         "label": "Total_Taxable_Income_After_Deduction",
+        "visible": False,
+    },
+    {
+        "key": "Federal_Taxable_Income_Before_Deduction",
+        "label": "Federal_Taxable_Income_Before_Deduction",
+        "visible": False,
+    },
+    {
+        "key": "Federal_Taxable_Income_After_Deduction",
+        "label": "Federal_Taxable_Income_After_Deduction",
+        "visible": False,
+    },
+    {
+        "key": "Federal_Tax_On_Ordinary_Income",
+        "label": "Federal_Tax_On_Ordinary_Income",
         "visible": False,
     },
     {
@@ -96,6 +122,29 @@ COLUMNS: List[Dict[str, Any]] = [
     },
     {"key": "ACA_Subsidy", "label": "ACA_Subsidy", "visible": False},
     {"key": "Std_Deduction", "label": "Std_Deduction", "visible": False},
+    {"key": "Survivor_Year", "label": "Survivor_Year", "visible": False},
+    {"key": "Living_Person", "label": "Living_Person", "visible": False},
+    {"key": "Widow_Tax_Mode", "label": "Widow_Tax_Mode", "visible": False},
+    {
+        "key": "Survivor_Spending_Used",
+        "label": "Survivor_Spending_Used",
+        "visible": False,
+    },
+    {
+        "key": "Survivor_Filing_Status_Used",
+        "label": "Survivor_Filing_Status_Used",
+        "visible": False,
+    },
+    {
+        "key": "Survivor_Standard_Deduction_Used",
+        "label": "Survivor_Standard_Deduction_Used",
+        "visible": False,
+    },
+    {
+        "key": "IRA_Balance_Start_Of_Year",
+        "label": "IRA_Balance_Start_Of_Year",
+        "visible": False,
+    },
     {"key": "IRA_Taxable_Income", "label": "IRA_Taxable_Income", "visible": False},
     {
         "key": "IRA_Draw_Taxable_Income",
@@ -110,6 +159,16 @@ COLUMNS: List[Dict[str, Any]] = [
     {
         "key": "IRA_Extra_Draw_Taxable_Income",
         "label": "IRA_Extra_Draw_Taxable_Income",
+        "visible": False,
+    },
+    {
+        "key": "IRA_Total_Taxable_Income",
+        "label": "IRA_Total_Taxable_Income",
+        "visible": False,
+    },
+    {
+        "key": "IRA_Balance_End_Of_Year",
+        "label": "IRA_Balance_End_Of_Year",
         "visible": False,
     },
     {"key": "RMD_Gross", "label": "RMD_Gross", "visible": False},
