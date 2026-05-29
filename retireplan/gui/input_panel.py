@@ -70,8 +70,12 @@ class InputPanel(tb.Frame):
             foreground=palette.TEXT_PRIMARY,
         ).pack(fill=tk.X, padx=10, pady=(8, 4), anchor=tk.W)
 
+        tk.Frame(self, height=1, bg=palette.BORDER).pack(
+            fill=tk.X, padx=10, pady=(0, 5)
+        )
+
         body_frame = tb.Frame(self)
-        body_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        body_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 5))
 
         nav_frame = tb.Frame(body_frame)
         nav_frame.pack(fill=tk.X, padx=0, pady=(0, 8))
@@ -577,7 +581,7 @@ class InputPanel(tb.Frame):
                 "medicare_magi_loss_offset",
             ),
             (
-                "Planned Roth Conversion",
+                "Roth Conversion",
                 "year1_planned_roth_conversion",
                 "aca_planned_roth_conversion",
                 "medicare_planned_roth_conversion",

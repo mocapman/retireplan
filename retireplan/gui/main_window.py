@@ -69,7 +69,7 @@ class RetirePlanApp:
         self.paned = tb.Panedwindow(self.root, orient=tk.HORIZONTAL)
         self.paned.pack(fill=tk.BOTH, expand=True)
 
-        input_frame = tb.Frame(self.paned, width=600)
+        input_frame = tb.Frame(self.paned, width=610)
         self.paned.add(input_frame, weight=1)
 
         self.input_panel = InputPanel(
@@ -89,7 +89,7 @@ class RetirePlanApp:
             config_dict = self.config_manager.config_to_dict(self.cfg)
             self.input_panel.set_config(config_dict)
 
-        self.root.after(100, lambda: self.paned.sashpos(0, 600))
+        self.root.after(100, lambda: self.paned.sashpos(0, 610))
 
     def configure_styles(self) -> None:
         style = self.root.style
@@ -104,6 +104,13 @@ class RetirePlanApp:
             bordercolor=palette.BORDER,
             lightcolor=palette.BORDER,
             darkcolor=palette.BORDER,
+        )
+        style.map(
+            "TEntry",
+            fieldbackground=[("readonly", palette.READONLY_BG)],
+            foreground=[("readonly", palette.TEXT_PRIMARY)],
+            selectbackground=[("readonly", palette.READONLY_BG)],
+            selectforeground=[("readonly", palette.TEXT_PRIMARY)],
         )
         style.configure(
             "TCombobox",
