@@ -50,6 +50,7 @@ class RetirePlanApp:
                 )
             self.input_panel_config_dict = config_dict.copy()
             self.cfg = inputs.load_yaml(DEFAULT_CONFIG_PATH)
+            self.baseline_cfg = inputs.load_yaml(DEFAULT_CONFIG_PATH)
             self.cfg.column_order = config_dict["column_order"]
             # print("Loaded config keys:", list(config_dict.keys()))
         except FileNotFoundError:
@@ -94,7 +95,9 @@ class RetirePlanApp:
             self.config_manager.update_config_from_dict(self.cfg, config_dict)
             rows = run_plan(self.cfg)
             self.results_display.load_results(rows)
-            self.results_display.append_summary_history(self.cfg)
+            self.results_display.append_summary_history(
+                self.cfg, getattr(self, "baseline_cfg", None)
+            )
         except Exception as e:
             messagebox.showerror("Calculation Error", f"Error running plan: {e}")
 

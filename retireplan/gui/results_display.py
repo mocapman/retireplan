@@ -61,17 +61,52 @@ def format_input_snapshot(cfg: Any) -> str:
     if cfg is None:
         return "Inputs: unavailable"
 
-    parts = (
-        ("Target Spend", format_currency(getattr(cfg, "target_spend", 0))),
-        ("GoGo Years", _format_number(getattr(cfg, "gogo_years", 0))),
-        ("GoGo %", _format_percent(getattr(cfg, "gogo_percent", 0), scale=False)),
-        ("SlowGo Years", _format_number(getattr(cfg, "slow_years", 0))),
-        ("SlowGo %", _format_percent(getattr(cfg, "slow_percent", 0), scale=False)),
-        ("Brokerage", format_currency(getattr(cfg, "balances_brokerage", 0))),
-        ("Roth", format_currency(getattr(cfg, "balances_roth", 0))),
-        ("IRA", format_currency(getattr(cfg, "balances_ira", 0))),
+    return "Inputs: " + " | ".join(
+        f"{label}: {value}" for label, value in _input_snapshot_items(cfg)
     )
-    return "Inputs: " + " | ".join(f"{label}: {value}" for label, value in parts)
+
+
+def format_input_changes(cfg: Any, baseline_cfg: Any) -> str:
+    """Return only scenario inputs that differ from the startup config."""
+    if cfg is None or baseline_cfg is None:
+        return format_input_snapshot(cfg)
+
+    current = _input_snapshot_items(cfg)
+    baseline = dict(_input_snapshot_items(baseline_cfg))
+    changes = [
+        f"{label}: {baseline.get(label, 'n/a')} -> {value}"
+        for label, value in current
+        if baseline.get(label) != value
+    ]
+    if not changes:
+        return "Inputs: No changes from default config"
+    return "Inputs changed: " + " | ".join(changes)
+
+
+def _input_snapshot_items(cfg: Any) -> tuple[tuple[str, str], ...]:
+    """Return display-ready status inputs in a stable order."""
+    total_assets = (
+        _as_number(getattr(cfg, "balances_brokerage", 0))
+        + _as_number(getattr(cfg, "balances_roth", 0))
+        + _as_number(getattr(cfg, "balances_ira", 0))
+    )
+    return (
+        ("Person 1 Final Age", _format_number(getattr(cfg, "final_age_person1", 0))),
+        ("Person 2 Final Age", _format_number(getattr(cfg, "final_age_person2", 0))),
+        ("Target Spend", format_currency(getattr(cfg, "target_spend", 0))),
+        ("MAGI Target", format_currency(getattr(cfg, "magi_target_base", 0))),
+        (
+            "GoGo Years",
+            f"{_format_number(getattr(cfg, 'gogo_years', 0))}/"
+            f"{_format_percent(getattr(cfg, 'gogo_percent', 0), scale=False)}",
+        ),
+        (
+            "SlowGo Years",
+            f"{_format_number(getattr(cfg, 'slow_years', 0))}/"
+            f"{_format_percent(getattr(cfg, 'slow_percent', 0), scale=False)}",
+        ),
+        ("Total Assets", format_currency(total_assets)),
+    )
 
 
 def _format_percent(value: Any, scale: bool = True) -> str:
@@ -284,8 +319,12 @@ class ResultsDisplay(tb.Frame):
                     f"{label}: {format_currency(summary.get(key, 0))}"
                 )
 
-    def append_summary_history(self, cfg: Any) -> None:
-        entry = [format_input_snapshot(cfg), f"Status: {self.summary_var.get()}", ""]
+    def append_summary_history(self, cfg: Any, baseline_cfg: Any = None) -> None:
+        entry = [
+            format_input_changes(cfg, baseline_cfg),
+            f"Status: {self.summary_var.get()}",
+            "",
+        ]
         self._history_lines.extend(entry)
         self._history_lines = self._history_lines[-60:]
 
