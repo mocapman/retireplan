@@ -18,6 +18,7 @@ def ss_for_year(
     annual_at_start: float | None,
     year_index: int,
     cola: float,
+    monthly_by_start_age: dict[int, float] | None = None,
 ) -> float:
     """
     Calculate Social Security benefit for a given year with COLA adjustments.
@@ -26,6 +27,9 @@ def ss_for_year(
         age_now: Current age of the person
         start_age: Age when Social Security benefits begin (None if not applicable)
         annual_at_start: Annual benefit amount in the first year of collection
+        monthly_by_start_age: Optional personalized monthly benefit lookup by
+            claiming age. When present for start_age, this overrides
+            annual_at_start with monthly benefit * 12.
         year_index: Years since start of retirement plan (used for COLA compounding)
         cola: Annual cost-of-living adjustment rate as decimal (e.g., 0.025 for 2.5%)
         
@@ -46,7 +50,14 @@ def ss_for_year(
         - Year 5: $30,000 * (1.025)^2 = $31,519
     """
     # Return zero if SS parameters not configured
-    if start_age is None or annual_at_start is None:
+    if start_age is None:
+        return 0.0
+
+    selected_annual = annual_at_start
+    if monthly_by_start_age and start_age in monthly_by_start_age:
+        selected_annual = monthly_by_start_age[start_age] * 12
+
+    if selected_annual is None:
         return 0.0
         
     # Return zero if person hasn't reached benefit start age yet
@@ -57,4 +68,4 @@ def ss_for_year(
     years_since_start = max(0, age_now - start_age)
     
     # Apply compound COLA adjustment from first payable year
-    return annual_at_start * ((1.0 + cola) ** years_since_start)
+    return selected_annual * ((1.0 + cola) ** years_since_start)

@@ -299,6 +299,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     cfg.ss_person1_annual_at_start,
                     idx,
                     cfg.inflation,
+                    cfg.ss_person1_monthly_by_start_age,
                 )
             )
         )
@@ -310,6 +311,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     cfg.ss_person2_annual_at_start,
                     idx,
                     cfg.inflation,
+                    cfg.ss_person2_monthly_by_start_age,
                 )
             )
         )

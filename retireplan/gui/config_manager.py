@@ -92,8 +92,14 @@ class ConfigManager:
             "social_security": {
                 "person1_start_age": cfg.ss_person1_start_age,
                 "person1_annual_at_start": cfg.ss_person1_annual_at_start,
+                "ss_person1_monthly_by_start_age": (
+                    cfg.ss_person1_monthly_by_start_age
+                ),
                 "person2_start_age": cfg.ss_person2_start_age,
                 "person2_annual_at_start": cfg.ss_person2_annual_at_start,
+                "ss_person2_monthly_by_start_age": (
+                    cfg.ss_person2_monthly_by_start_age
+                ),
             },
             "rates": {
                 "inflation": cfg.inflation,
@@ -151,10 +157,14 @@ class ConfigManager:
                         cfg.ss_person1_start_age = v
                     elif k == "person1_annual_at_start":
                         cfg.ss_person1_annual_at_start = v
+                    elif k == "ss_person1_monthly_by_start_age":
+                        cfg.ss_person1_monthly_by_start_age = v
                     elif k == "person2_start_age":
                         cfg.ss_person2_start_age = v
                     elif k == "person2_annual_at_start":
                         cfg.ss_person2_annual_at_start = v
+                    elif k == "ss_person2_monthly_by_start_age":
+                        cfg.ss_person2_monthly_by_start_age = v
             elif key == "rates":
                 for k, v in value.items():
                     if hasattr(cfg, k):

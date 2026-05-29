@@ -39,6 +39,26 @@ social_security:
   person1_start_age: 62
   person2_annual_at_start: 7000.0
   person2_start_age: 62
+  ss_person1_monthly_by_start_age:
+    62: 2688
+    63: 2878
+    64: 3078
+    65: 3342
+    66: 3605
+    67: 3869
+    68: 4049
+    69: 4359
+    70: 4797
+  ss_person2_monthly_by_start_age:
+    62: 586
+    63: 625
+    64: 666
+    65: 722
+    66: 777
+    67: 833
+    68: 883
+    69: 950
+    70: 1033
 spending:
   aca_extra_magi_income: 5000.0
   aca_annual_magi_income: 5000.0

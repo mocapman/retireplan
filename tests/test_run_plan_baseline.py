@@ -88,8 +88,10 @@ def minimal_two_person_config() -> Inputs:
         survivor_percent=70,
         ss_person1_start_age=62,
         ss_person1_annual_at_start=0,
+        ss_person1_monthly_by_start_age={},
         ss_person2_start_age=62,
         ss_person2_annual_at_start=0,
+        ss_person2_monthly_by_start_age={},
         inflation=0,
         brokerage_growth=0,
         roth_growth=0,
@@ -654,6 +656,109 @@ def test_social_security_person1_survivor_receives_higher_deceased_spouse_benefi
     assert survivor_row["SS_Total_Gross"] == 20000
     assert survivor_row["SS_Survivor_Adjustment"] == 0
     assert survivor_row["SS_Filing_Status_Used"] == "Single"
+
+
+def test_social_security_start_age_uses_person1_monthly_lookup_for_age_62():
+    cfg = minimal_two_person_config()
+    cfg.birth_year_person1 = 1965
+    cfg.birth_year_person2 = None
+    cfg.final_age_person1 = 63
+    cfg.final_age_person2 = None
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.target_spend = 0
+    cfg.ss_person1_start_age = 62
+    cfg.ss_person1_annual_at_start = 1
+    cfg.ss_person1_monthly_by_start_age = {62: 2688, 70: 4797}
+    cfg.ss_person2_start_age = None
+    cfg.ss_person2_annual_at_start = None
+    cfg.ss_person2_monthly_by_start_age = {}
+    cfg.inflation = 0
+
+    rows = run_plan(cfg)
+
+    assert rows[0]["Person1_Age"] == 60
+    assert rows[0]["SS_Person1_Gross"] == 0
+    assert rows[1]["Person1_Age"] == 61
+    assert rows[1]["SS_Person1_Gross"] == 0
+    assert rows[2]["Person1_Age"] == 62
+    assert rows[2]["SS_Person1_Gross"] == 32256
+    assert rows[2]["Social_Security"] == 32256
+
+
+def test_social_security_start_age_uses_person1_monthly_lookup_for_age_70():
+    cfg = minimal_two_person_config()
+    cfg.birth_year_person1 = 1965
+    cfg.birth_year_person2 = None
+    cfg.final_age_person1 = 70
+    cfg.final_age_person2 = None
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.target_spend = 0
+    cfg.ss_person1_start_age = 70
+    cfg.ss_person1_annual_at_start = 1
+    cfg.ss_person1_monthly_by_start_age = {62: 2688, 70: 4797}
+    cfg.ss_person2_start_age = None
+    cfg.ss_person2_annual_at_start = None
+    cfg.ss_person2_monthly_by_start_age = {}
+    cfg.inflation = 0
+
+    rows = run_plan(cfg)
+
+    assert rows[-2]["Person1_Age"] == 69
+    assert rows[-2]["SS_Person1_Gross"] == 0
+    assert rows[-1]["Person1_Age"] == 70
+    assert rows[-1]["SS_Person1_Gross"] == 57564
+    assert rows[-1]["Social_Security"] == 57564
+
+
+def test_social_security_start_age_uses_person2_monthly_lookup():
+    cfg = minimal_two_person_config()
+    cfg.birth_year_person1 = 1965
+    cfg.birth_year_person2 = 1966
+    cfg.final_age_person1 = 62
+    cfg.final_age_person2 = 62
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.target_spend = 0
+    cfg.ss_person1_start_age = 62
+    cfg.ss_person1_annual_at_start = 0
+    cfg.ss_person1_monthly_by_start_age = {}
+    cfg.ss_person2_start_age = 62
+    cfg.ss_person2_annual_at_start = 1
+    cfg.ss_person2_monthly_by_start_age = {62: 586, 70: 1033}
+    cfg.inflation = 0
+
+    rows = run_plan(cfg)
+    person2_claim_row = rows[-1]
+
+    assert person2_claim_row["Person2_Age"] == 62
+    assert person2_claim_row["SS_Person2_Gross"] == 7032
+    assert person2_claim_row["Social_Security"] == 7032
+
+
+def test_social_security_missing_lookup_falls_back_to_existing_annual_amount():
+    cfg = minimal_two_person_config()
+    cfg.birth_year_person1 = 1965
+    cfg.birth_year_person2 = None
+    cfg.final_age_person1 = 62
+    cfg.final_age_person2 = None
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.target_spend = 0
+    cfg.ss_person1_start_age = 62
+    cfg.ss_person1_annual_at_start = 12000
+    cfg.ss_person1_monthly_by_start_age = {}
+    cfg.ss_person2_start_age = None
+    cfg.ss_person2_annual_at_start = None
+    cfg.ss_person2_monthly_by_start_age = {}
+    cfg.inflation = 0
+
+    row = run_plan(cfg)[-1]
+
+    assert row["Person1_Age"] == 62
+    assert row["SS_Person1_Gross"] == 12000
+    assert row["Social_Security"] == 12000
 
 
 def test_rmd_age_is_none_when_neither_person_is_alive():

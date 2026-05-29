@@ -756,6 +756,8 @@ class InputPanel(tb.Frame):
         def money_value(key):
             return safe_float(strip_currency(self.variables[key].get()))
 
+        cfg = getattr(self.app, "cfg", None)
+
         config = {
             "birth_year_person1": safe_int(self.variables["birth_year_person1"].get()),
             "birth_year_person2": safe_int(self.variables["birth_year_person2"].get()),
@@ -925,6 +927,9 @@ class InputPanel(tb.Frame):
                         self.variables["ss_person1_annual_at_start"].get()
                     )
                 ),
+                "ss_person1_monthly_by_start_age": getattr(
+                    cfg, "ss_person1_monthly_by_start_age", {}
+                ),
                 "person2_start_age": safe_int(
                     self.variables["ss_person2_start_age"].get()
                 ),
@@ -932,6 +937,9 @@ class InputPanel(tb.Frame):
                     strip_currency(
                         self.variables["ss_person2_annual_at_start"].get()
                     )
+                ),
+                "ss_person2_monthly_by_start_age": getattr(
+                    cfg, "ss_person2_monthly_by_start_age", {}
                 ),
             },
             "rates": {

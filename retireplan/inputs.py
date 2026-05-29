@@ -96,8 +96,10 @@ class Inputs:
     # Social Security
     ss_person1_start_age: int
     ss_person1_annual_at_start: float
+    ss_person1_monthly_by_start_age: dict[int, float]
     ss_person2_start_age: Optional[int]
     ss_person2_annual_at_start: Optional[float]
+    ss_person2_monthly_by_start_age: dict[int, float]
 
     # Rates
     inflation: float
@@ -267,8 +269,14 @@ def load_yaml(path: str) -> Inputs:
         survivor_percent=s["survivor_percent"],
         ss_person1_start_age=ss["person1_start_age"],
         ss_person1_annual_at_start=ss["person1_annual_at_start"],
+        ss_person1_monthly_by_start_age=_monthly_benefit_map(
+            ss.get("ss_person1_monthly_by_start_age", {})
+        ),
         ss_person2_start_age=ss.get("person2_start_age"),
         ss_person2_annual_at_start=ss.get("person2_annual_at_start"),
+        ss_person2_monthly_by_start_age=_monthly_benefit_map(
+            ss.get("ss_person2_monthly_by_start_age", {})
+        ),
         inflation=r["inflation"],
         brokerage_growth=r["brokerage_growth"],
         roth_growth=r["roth_growth"],
@@ -288,6 +296,12 @@ def load_yaml(path: str) -> Inputs:
     )
     validate(i)
     return i
+
+
+def _monthly_benefit_map(raw: dict | None) -> dict[int, float]:
+    if not raw:
+        return {}
+    return {int(age): float(amount) for age, amount in raw.items()}
 
 
 def validate(i: Inputs) -> None:
