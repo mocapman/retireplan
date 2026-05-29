@@ -72,7 +72,14 @@ def test_format_input_snapshot_includes_key_scenario_inputs():
         final_age_person1=75,
         final_age_person2=85,
         target_spend=145000,
+        magi_floor_base=43000,
         magi_target_base=85000,
+        magi_ceiling_base=85000,
+        medicare_magi_ceiling_base=200000,
+        aca_end_age=65,
+        year1_magi_income=29631,
+        year1_magi_losses=5332,
+        year1_roth_conversion=15000,
         aca_annual_magi_income=2500,
         aca_annual_magi_loss=500,
         aca_annual_roth_conversion=15000,
@@ -93,7 +100,14 @@ def test_format_input_snapshot_includes_key_scenario_inputs():
     assert "Person 1 Final Age: 75" in snapshot
     assert "Person 2 Final Age: 85" in snapshot
     assert "Target Spend: $145,000" in snapshot
+    assert "MAGI Floor: $43,000" in snapshot
     assert "MAGI Target: $85,000" in snapshot
+    assert "ACA MAGI Ceiling: $85,000" in snapshot
+    assert "Medicare MAGI Ceiling: $200,000" in snapshot
+    assert "Medicare Age: 65" in snapshot
+    assert "Year 1 MAGI Income: $29,631" in snapshot
+    assert "Year 1 MAGI Loss: $5,332" in snapshot
+    assert "Year 1 Roth Conversion: $15,000" in snapshot
     assert "ACA Annual Income: $2,500" in snapshot
     assert "ACA Annual Loss: $500" in snapshot
     assert "ACA Annual Conversion: $15,000" in snapshot
@@ -117,7 +131,14 @@ def test_format_input_changes_shows_only_changes_from_baseline():
         final_age_person1=75,
         final_age_person2=85,
         target_spend=145000,
+        magi_floor_base=43000,
         magi_target_base=85000,
+        magi_ceiling_base=85000,
+        medicare_magi_ceiling_base=85000,
+        aca_end_age=65,
+        year1_magi_income=29631,
+        year1_magi_losses=5332,
+        year1_roth_conversion=15000,
         aca_annual_magi_income=2500,
         aca_annual_magi_loss=500,
         aca_annual_roth_conversion=15000,
@@ -136,7 +157,14 @@ def test_format_input_changes_shows_only_changes_from_baseline():
         final_age_person1=72,
         final_age_person2=85,
         target_spend=150000,
+        magi_floor_base=43000,
         magi_target_base=85000,
+        magi_ceiling_base=43000,
+        medicare_magi_ceiling_base=200000,
+        aca_end_age=65,
+        year1_magi_income=30000,
+        year1_magi_losses=5332,
+        year1_roth_conversion=20000,
         aca_annual_magi_income=2500,
         aca_annual_magi_loss=750,
         aca_annual_roth_conversion=15000,
@@ -156,6 +184,10 @@ def test_format_input_changes_shows_only_changes_from_baseline():
 
     assert "Target Spend: $145,000 -> $150,000" in changes
     assert "Person 1 Final Age: 75 -> 72" in changes
+    assert "ACA MAGI Ceiling: $85,000 -> $43,000" in changes
+    assert "Medicare MAGI Ceiling: $85,000 -> $200,000" in changes
+    assert "Year 1 MAGI Income: $29,631 -> $30,000" in changes
+    assert "Year 1 Roth Conversion: $15,000 -> $20,000" in changes
     assert "ACA Annual Loss: $500 -> $750" in changes
     assert "Medicare Annual Conversion: $12,000 -> $18,000" in changes
     assert "GoGo Years: 10/100% -> 12/100%" in changes
@@ -169,7 +201,14 @@ def test_format_input_changes_reports_no_changes_from_baseline():
         final_age_person1=75,
         final_age_person2=85,
         target_spend=145000,
+        magi_floor_base=43000,
         magi_target_base=85000,
+        magi_ceiling_base=85000,
+        medicare_magi_ceiling_base=200000,
+        aca_end_age=65,
+        year1_magi_income=29631,
+        year1_magi_losses=5332,
+        year1_roth_conversion=15000,
         aca_annual_magi_income=2500,
         aca_annual_magi_loss=500,
         aca_annual_roth_conversion=15000,

@@ -94,7 +94,26 @@ def _input_snapshot_items(cfg: Any) -> tuple[tuple[str, str], ...]:
         ("Person 1 Final Age", _format_number(getattr(cfg, "final_age_person1", 0))),
         ("Person 2 Final Age", _format_number(getattr(cfg, "final_age_person2", 0))),
         ("Target Spend", format_currency(getattr(cfg, "target_spend", 0))),
+        ("MAGI Floor", format_currency(getattr(cfg, "magi_floor_base", 0))),
         ("MAGI Target", format_currency(getattr(cfg, "magi_target_base", 0))),
+        ("ACA MAGI Ceiling", format_currency(getattr(cfg, "magi_ceiling_base", 0))),
+        (
+            "Medicare MAGI Ceiling",
+            format_currency(getattr(cfg, "medicare_magi_ceiling_base", 0)),
+        ),
+        ("Medicare Age", _format_number(getattr(cfg, "aca_end_age", 0))),
+        (
+            "Year 1 MAGI Income",
+            format_currency(getattr(cfg, "year1_magi_income", 0)),
+        ),
+        (
+            "Year 1 MAGI Loss",
+            format_currency(getattr(cfg, "year1_magi_losses", 0)),
+        ),
+        (
+            "Year 1 Roth Conversion",
+            format_currency(getattr(cfg, "year1_roth_conversion", 0)),
+        ),
         (
             "ACA Annual Income",
             format_currency(getattr(cfg, "aca_annual_magi_income", 0)),

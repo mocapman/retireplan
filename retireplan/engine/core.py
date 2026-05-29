@@ -268,7 +268,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         target_magi = Decimal(str(cfg.magi_target_base)) * infl
         magi_floor = Decimal(str(cfg.magi_floor_base)) * infl
         magi_ceiling = _active_magi_ceiling(yc, cfg, infl)
-        conversion_target_magi = min(target_magi, magi_ceiling)
+        conversion_target_magi = target_magi
 
         # Calculate inflation-adjusted lifestyle spending target based on lifecycle phase
         # This represents the core lifestyle spending goal (Target_Spend)

@@ -663,7 +663,7 @@ def test_run_plan_year2_magi_target_outputs_reflect_projected_magi():
     assert year2_row["MAGI_Status"] == "Good"
 
 
-def test_roth_conversion_uses_aca_magi_ceiling_before_medicare_age():
+def test_roth_conversion_reports_aca_magi_ceiling_before_medicare_age():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 0
     cfg.year1_brokerage_draw = 0
@@ -685,7 +685,10 @@ def test_roth_conversion_uses_aca_magi_ceiling_before_medicare_age():
 
     assert year2_row["Person1_Age"] == 61
     assert year2_row["MAGI_Ceiling"] == 10000
-    assert year2_row["MAGI"] <= 10000
+    assert year2_row["Roth_Conversion"] > year2_row["MAGI_Ceiling"]
+    assert year2_row["MAGI"] > year2_row["MAGI_Ceiling"]
+    assert year2_row["MAGI_Remaining_To_Ceiling"] < 0
+    assert year2_row["MAGI_Status"] == "FAIL"
 
 
 def test_year2_before_medicare_uses_aca_annual_roth_planning_values():
@@ -714,7 +717,7 @@ def test_year2_before_medicare_uses_aca_annual_roth_planning_values():
     assert year2_row["MAGI"] == 9500
 
 
-def test_roth_conversion_uses_medicare_magi_ceiling_at_medicare_age():
+def test_roth_conversion_reports_medicare_magi_ceiling_at_medicare_age():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 0
     cfg.year1_brokerage_draw = 0
@@ -737,7 +740,7 @@ def test_roth_conversion_uses_medicare_magi_ceiling_at_medicare_age():
     assert year2_row["Person1_Age"] == 61
     assert year2_row["MAGI_Ceiling"] == 50000
     assert year2_row["Roth_Conversion"] > 10000
-    assert year2_row["MAGI"] <= 50000
+    assert year2_row["MAGI"] == year2_row["Target_MAGI"]
 
 
 def test_medicare_age_year_uses_medicare_annual_roth_planning_values():
@@ -769,7 +772,7 @@ def test_medicare_age_year_uses_medicare_annual_roth_planning_values():
     assert year2_row["MAGI"] == 11000
 
 
-def test_roth_conversion_is_zero_when_ira_draws_exceed_active_ceiling():
+def test_roth_conversion_is_zero_when_ira_draws_exceed_magi_target():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 0
     cfg.year1_brokerage_draw = 0
@@ -778,7 +781,7 @@ def test_roth_conversion_is_zero_when_ira_draws_exceed_active_ceiling():
     cfg.balances_roth = 0
     cfg.balances_ira = 100000
     cfg.draw_order = "IRA, Brokerage, Roth"
-    cfg.target_spend = 20000
+    cfg.target_spend = 60000
     cfg.magi_floor_base = 0
     cfg.magi_target_base = 50000
     cfg.magi_ceiling_base = 10000
@@ -789,12 +792,12 @@ def test_roth_conversion_is_zero_when_ira_draws_exceed_active_ceiling():
 
     year2_row = run_plan(cfg)[1]
 
-    assert year2_row["IRA_Draw"] > year2_row["MAGI_Ceiling"]
+    assert year2_row["IRA_Draw"] > year2_row["Target_MAGI"]
     assert year2_row["Roth_Conversion"] == 0
     assert year2_row["MAGI_Status"] == "FAIL"
 
 
-def test_roth_conversion_respects_magi_ceiling_even_when_target_is_higher():
+def test_roth_conversion_is_not_capped_by_magi_ceiling_when_target_is_higher():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 0
     cfg.year1_brokerage_draw = 0
@@ -814,6 +817,12 @@ def test_roth_conversion_respects_magi_ceiling_even_when_target_is_higher():
 
     assert year2_row["Target_MAGI"] == 50000
     assert year2_row["MAGI_Ceiling"] == 10000
-    assert year2_row["MAGI"] <= year2_row["MAGI_Ceiling"]
-    assert year2_row["Roth_Conversion"] <= year2_row["MAGI_Ceiling"]
-    assert year2_row["MAGI_Status"] == "Warning"
+    assert year2_row["Roth_Conversion"] == 44464
+    assert year2_row["Roth_Conversion"] > year2_row["MAGI_Ceiling"]
+    assert year2_row["MAGI"] == year2_row["Target_MAGI"]
+    assert year2_row["MAGI"] > year2_row["MAGI_Ceiling"]
+    assert year2_row["MAGI_Remaining_To_Ceiling"] < 0
+    assert year2_row["Taxes_Due"] > 0
+    assert year2_row["IRA_Balance"] == 50000
+    assert year2_row["Roth_Balance"] == 44464
+    assert year2_row["MAGI_Status"] == "FAIL"
