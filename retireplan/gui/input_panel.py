@@ -97,10 +97,8 @@ class InputPanel(tb.Frame):
             ("Accounts", self.create_accounts_section),
             ("Spending", self.create_spending_section),
             ("Roth Planning", self.create_magi_planning_section),
-            ("Social Security", self.create_ss_section),
             ("Rates", self.create_rates_section),
-            ("Tax & Health", self.create_tax_section),
-            ("Strategy", self.create_strategy_section),
+            ("Tax", self.create_tax_section),
         )
 
         self.section_frames = {}
@@ -266,21 +264,53 @@ class InputPanel(tb.Frame):
 
     def create_personal_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_input_field(
-            parent, "Person 1 Birth Year", "birth_year_person1", "", 0
+        parent.columnconfigure(2, weight=1)
+        tb.Label(
+            parent,
+            text="Person 1",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=0, column=1, sticky=tk.W, padx=5, pady=(0, 4))
+        tb.Label(
+            parent,
+            text="Person 2",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=0, column=2, sticky=tk.W, padx=5, pady=(0, 4))
+
+        for row, label in ((1, "Birth Year"), (2, "Final Age")):
+            tb.Label(parent, text=label).grid(
+                row=row, column=0, sticky=tk.W, padx=5, pady=2
+            )
+
+        birth_year_person1 = tk.StringVar(value="")
+        birth_year_person2 = tk.StringVar(value="")
+        final_age_person1 = tk.StringVar(value="")
+        final_age_person2 = tk.StringVar(value="")
+        self.variables["birth_year_person1"] = birth_year_person1
+        self.variables["birth_year_person2"] = birth_year_person2
+        self.variables["final_age_person1"] = final_age_person1
+        self.variables["final_age_person2"] = final_age_person2
+
+        tb.Entry(parent, textvariable=birth_year_person1, font=INPUT_FONT).grid(
+            row=1, column=1, sticky=(tk.W, tk.E), padx=5, pady=2
         )
-        self.create_input_field(
-            parent, "Person 2 Birth Year", "birth_year_person2", "", 1
+        tb.Entry(parent, textvariable=birth_year_person2, font=INPUT_FONT).grid(
+            row=1, column=2, sticky=(tk.W, tk.E), padx=5, pady=2
         )
-        self.create_input_field(
-            parent, "Person 1 Final Age", "final_age_person1", "", 2
+        tb.Entry(parent, textvariable=final_age_person1, font=INPUT_FONT).grid(
+            row=2, column=1, sticky=(tk.W, tk.E), padx=5, pady=2
         )
-        self.create_input_field(
-            parent, "Person 2 Final Age", "final_age_person2", "", 3
+        tb.Entry(parent, textvariable=final_age_person2, font=INPUT_FONT).grid(
+            row=2, column=2, sticky=(tk.W, tk.E), padx=5, pady=2
         )
         self.create_combobox(
-            parent, "Filing Status", "filing_status", ["MFJ", "Single"], "MFJ", 4
+            parent, "Filing Status", "filing_status", ["MFJ", "Single"], "MFJ", 3
         )
+
+        ss_frame = tb.Frame(parent)
+        ss_frame.grid(
+            row=4, column=0, columnspan=3, sticky=(tk.N, tk.W, tk.E), padx=0, pady=(16, 0)
+        )
+        self.create_ss_section(ss_frame, show_person_headers=False)
 
     def create_accounts_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -405,41 +435,50 @@ class InputPanel(tb.Frame):
 
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
-        self.create_input_field(parent, "Start Year", "start_year", "", 0)
+        draw_orders = [
+            "IRA, Brokerage, Roth",
+            "Brokerage, Roth, IRA",
+            "Brokerage, IRA, Roth",
+            "Roth, Brokerage, IRA",
+        ]
+        self.create_combobox(
+            parent, "Draw Order", "draw_order", draw_orders, "Brokerage, Roth, IRA", 0
+        )
 
         tb.Label(
             parent,
             text="Year 1",
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
-        ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(12, 4))
+        ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(16, 4))
+        self.create_input_field(parent, "Start Year", "start_year", "", 2)
         self.create_currency_field(
             parent,
             "Year 1 Remaining Spend",
             "year1_spend",
             "",
-            2,
+            3,
         )
         self.create_currency_field(
-            parent, "Year 1 Brokerage Draw", "year1_brokerage_draw", "", 3
+            parent, "Year 1 Brokerage Draw", "year1_brokerage_draw", "", 4
         )
-        self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 4)
-        self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 5)
+        self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 5)
+        self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 6)
 
         tb.Label(
             parent,
             text="Projections",
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
-        ).grid(row=6, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(16, 4))
+        ).grid(row=7, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(16, 4))
         self.create_currency_field(
-            parent, "Target Spend (today's $)", "target_spend", "", 7
+            parent, "Target Spend (today's $)", "target_spend", "", 8
         )
-        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 8)
-        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 9)
-        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 10)
-        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 11)
-        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 12)
+        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 9)
+        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 10)
+        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 11)
+        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 12)
+        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 13)
         self.create_percent_field(
-            parent, "Survivor Spending %", "survivor_percent", "", 13
+            parent, "Survivor Spending %", "survivor_percent", "", 14
         )
 
     def create_magi_planning_section(self, parent):
@@ -601,7 +640,7 @@ class InputPanel(tb.Frame):
                 pady=2,
             )
 
-    def create_ss_section(self, parent):
+    def create_ss_section(self, parent, show_person_headers=True):
         parent.columnconfigure(0, weight=0)
         parent.columnconfigure(1, weight=1)
         parent.columnconfigure(2, weight=1)
@@ -617,37 +656,47 @@ class InputPanel(tb.Frame):
 
         tb.Label(
             parent,
-            text="Person 1",
+            text="Social Security",
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
-        ).grid(row=0, column=1, sticky=tk.W, padx=5, pady=(0, 4))
-        tb.Label(
-            parent,
-            text="Person 2",
-            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
-        ).grid(row=0, column=2, sticky=tk.W, padx=5, pady=(0, 4))
+        ).grid(row=0, column=0, columnspan=3, sticky=tk.W, padx=5, pady=(0, 4))
+        if show_person_headers:
+            tb.Label(
+                parent,
+                text="Person 1",
+                font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+            ).grid(row=1, column=1, sticky=tk.W, padx=5, pady=(0, 4))
+            tb.Label(
+                parent,
+                text="Person 2",
+                font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+            ).grid(row=1, column=2, sticky=tk.W, padx=5, pady=(0, 4))
 
-        for row, label in ((1, "Start Age"), (2, "Annual")):
+        first_input_row = 2 if show_person_headers else 1
+        for row, label in (
+            (first_input_row, "Start Age"),
+            (first_input_row + 1, "Annual"),
+        ):
             tb.Label(parent, text=label).grid(
                 row=row, column=0, sticky=tk.W, padx=5, pady=2
             )
 
         tb.Entry(parent, textvariable=person1_start, font=INPUT_FONT).grid(
-            row=1, column=1, sticky=(tk.W, tk.E), padx=5, pady=2
+            row=first_input_row, column=1, sticky=(tk.W, tk.E), padx=5, pady=2
         )
         tb.Entry(parent, textvariable=person2_start, font=INPUT_FONT).grid(
-            row=1, column=2, sticky=(tk.W, tk.E), padx=5, pady=2
+            row=first_input_row, column=2, sticky=(tk.W, tk.E), padx=5, pady=2
         )
         person1_annual_entry = tb.Entry(
             parent, textvariable=person1_annual, font=INPUT_FONT
         )
         person1_annual_entry.grid(
-            row=2, column=1, sticky=(tk.W, tk.E), padx=5, pady=2
+            row=first_input_row + 1, column=1, sticky=(tk.W, tk.E), padx=5, pady=2
         )
         person2_annual_entry = tb.Entry(
             parent, textvariable=person2_annual, font=INPUT_FONT
         )
         person2_annual_entry.grid(
-            row=2, column=2, sticky=(tk.W, tk.E), padx=5, pady=2
+            row=first_input_row + 1, column=2, sticky=(tk.W, tk.E), padx=5, pady=2
         )
 
         def bind_currency(entry, var):
@@ -692,18 +741,6 @@ class InputPanel(tb.Frame):
             parent, "Standard Deduction", "standard_deduction_base", "", 3
         )
         self.create_input_field(parent, "RMD Start Age", "rmd_start_age", "", 4)
-
-    def create_strategy_section(self, parent):
-        parent.columnconfigure(1, weight=1)
-        draw_orders = [
-            "IRA, Brokerage, Roth",
-            "Brokerage, Roth, IRA",
-            "Brokerage, IRA, Roth",
-            "Roth, Brokerage, IRA",
-        ]
-        self.create_combobox(
-            parent, "Draw Order", "draw_order", draw_orders, "Brokerage, Roth, IRA", 0
-        )
 
     def apply_changes(self):
         if self.on_change_callback:
