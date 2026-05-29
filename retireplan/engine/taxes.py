@@ -113,6 +113,7 @@ def compute_tax_magi(
     std_deduction: float,
     filing: str,
     brokerage_capital_gains: float = 0.0,
+    other_magi_income: float = 0.0,
 ) -> Tuple[float, float, float, float]:
     """
     Calculate comprehensive tax and MAGI for retirement planning.
@@ -128,6 +129,7 @@ def compute_tax_magi(
         std_deduction: Standard deduction amount (inflation-adjusted)
         filing: Filing status - "Single" or "MFJ"
         brokerage_capital_gains: Estimated taxable capital gain from brokerage sales
+        other_magi_income: Other taxable/MAGI income net of modeled MAGI losses
         
     Returns:
         Tuple containing:
@@ -145,14 +147,14 @@ def compute_tax_magi(
         - Standard deduction reduces taxable income but not MAGI
         
     Tax Calculation Flow:
-        1. Calculate total ordinary income (IRA + conversions)
+        1. Calculate total ordinary income (IRA + conversions + other MAGI income)
         2. Determine taxable SS amount using provisional income method
         3. Apply standard deduction to get taxable income
         4. Calculate federal tax using progressive brackets
         5. MAGI = ordinary income + brokerage gains + taxable SS (simplified)
     """
     # Total ordinary income subject to federal tax
-    ordinary = max(0.0, ira_ordinary + roth_conversion)
+    ordinary = max(0.0, ira_ordinary + roth_conversion + other_magi_income)
     brokerage_capital_gains = max(0.0, brokerage_capital_gains)
     taxable_non_ss = ordinary + brokerage_capital_gains
     

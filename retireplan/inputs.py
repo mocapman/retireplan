@@ -45,6 +45,12 @@ class Inputs:
     year1_projected_capital_gains: float
     year1_capital_losses_to_date: float
     year1_projected_capital_losses: float
+    aca_annual_magi_income: float
+    aca_annual_magi_loss: float
+    aca_annual_roth_conversion: float
+    medicare_annual_magi_income: float
+    medicare_annual_magi_loss: float
+    medicare_annual_roth_conversion: float
     magi_income_ytd: float
     magi_income_projected: float
     magi_income_annual: float
@@ -90,6 +96,7 @@ class Inputs:
     aca_end_age: int
     magi_floor_base: float
     magi_ceiling_base: float
+    medicare_magi_ceiling_base: float
 
     # Strategy
     draw_order: DrawOrder
@@ -149,6 +156,14 @@ def load_yaml(path: str) -> Inputs:
         year1_projected_capital_gains=s.get("year1_projected_capital_gains", 0),
         year1_capital_losses_to_date=s.get("year1_capital_losses_to_date", 0),
         year1_projected_capital_losses=s.get("year1_projected_capital_losses", 0),
+        aca_annual_magi_income=s.get("aca_annual_magi_income", 0),
+        aca_annual_magi_loss=s.get("aca_annual_magi_loss", 0),
+        aca_annual_roth_conversion=s.get("aca_annual_roth_conversion", 0),
+        medicare_annual_magi_income=s.get("medicare_annual_magi_income", 0),
+        medicare_annual_magi_loss=s.get("medicare_annual_magi_loss", 0),
+        medicare_annual_roth_conversion=s.get(
+            "medicare_annual_roth_conversion", 0
+        ),
         magi_income_ytd=s.get("magi_income_ytd", 0),
         magi_income_projected=s.get("magi_income_projected", 0),
         magi_income_annual=s.get("magi_income_annual", 0),
@@ -188,6 +203,9 @@ def load_yaml(path: str) -> Inputs:
         aca_end_age=th["aca_end_age"],
         magi_floor_base=th.get("magi_floor_base", 0),
         magi_ceiling_base=th.get("magi_ceiling_base", 0),
+        medicare_magi_ceiling_base=th.get(
+            "medicare_magi_ceiling_base", th.get("magi_ceiling_base", 0)
+        ),
         draw_order=raw.get("draw_order", "IRA, Brokerage, Roth"),
     )
     validate(i)

@@ -14,7 +14,7 @@ APP_GEOMETRY = "2525x1150"
 SUMMARY_FIELDS = (
     ("Federal Tax", "Federal_Tax", "#0f172a", "#e0f2fe"),
     ("State Tax", "Estimated_State_Tax", "#172554", "#dbeafe"),
-    ("Total Taxes", "Taxes_Due", "#312e81", "#ede9fe"),
+    ("Lifetime Taxes", "Taxes_Due", "#312e81", "#ede9fe"),
     ("Ending Assets", "Total_Assets", "#064e3b", "#dcfce7"),
 )
 
@@ -95,6 +95,30 @@ def _input_snapshot_items(cfg: Any) -> tuple[tuple[str, str], ...]:
         ("Person 2 Final Age", _format_number(getattr(cfg, "final_age_person2", 0))),
         ("Target Spend", format_currency(getattr(cfg, "target_spend", 0))),
         ("MAGI Target", format_currency(getattr(cfg, "magi_target_base", 0))),
+        (
+            "ACA Annual Income",
+            format_currency(getattr(cfg, "aca_annual_magi_income", 0)),
+        ),
+        (
+            "ACA Annual Loss",
+            format_currency(getattr(cfg, "aca_annual_magi_loss", 0)),
+        ),
+        (
+            "ACA Annual Conversion",
+            format_currency(getattr(cfg, "aca_annual_roth_conversion", 0)),
+        ),
+        (
+            "Medicare Annual Income",
+            format_currency(getattr(cfg, "medicare_annual_magi_income", 0)),
+        ),
+        (
+            "Medicare Annual Loss",
+            format_currency(getattr(cfg, "medicare_annual_magi_loss", 0)),
+        ),
+        (
+            "Medicare Annual Conversion",
+            format_currency(getattr(cfg, "medicare_annual_roth_conversion", 0)),
+        ),
         (
             "GoGo Years",
             f"{_format_number(getattr(cfg, 'gogo_years', 0))}/"

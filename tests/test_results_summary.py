@@ -5,6 +5,7 @@ from retireplan.gui.results_display import (
     format_currency,
     format_input_changes,
     format_input_snapshot,
+    ResultsDisplay,
 )
 
 
@@ -51,6 +52,16 @@ def test_calculate_results_summary_handles_empty_or_missing_values():
     assert calculate_results_summary([])["Total_Assets"] == 0
 
 
+def test_summary_text_labels_total_tax_as_lifetime_taxes():
+    text = ResultsDisplay.format_summary_text(
+        None,
+        {"Federal_Tax": 100, "Estimated_State_Tax": 25, "Taxes_Due": 125},
+    )
+
+    assert "Lifetime Taxes: $125" in text
+    assert "Total Taxes" not in text
+
+
 def test_format_currency_uses_whole_dollar_formatting():
     assert format_currency(1234.49) == "$1,234"
     assert format_currency(1234.5) == "$1,234"
@@ -62,6 +73,12 @@ def test_format_input_snapshot_includes_key_scenario_inputs():
         final_age_person2=85,
         target_spend=145000,
         magi_target_base=85000,
+        aca_annual_magi_income=2500,
+        aca_annual_magi_loss=500,
+        aca_annual_roth_conversion=15000,
+        medicare_annual_magi_income=3500,
+        medicare_annual_magi_loss=700,
+        medicare_annual_roth_conversion=12000,
         gogo_years=10,
         gogo_percent=100,
         slow_years=8,
@@ -77,6 +94,12 @@ def test_format_input_snapshot_includes_key_scenario_inputs():
     assert "Person 2 Final Age: 85" in snapshot
     assert "Target Spend: $145,000" in snapshot
     assert "MAGI Target: $85,000" in snapshot
+    assert "ACA Annual Income: $2,500" in snapshot
+    assert "ACA Annual Loss: $500" in snapshot
+    assert "ACA Annual Conversion: $15,000" in snapshot
+    assert "Medicare Annual Income: $3,500" in snapshot
+    assert "Medicare Annual Loss: $700" in snapshot
+    assert "Medicare Annual Conversion: $12,000" in snapshot
     assert "GoGo Years: 10/100%" in snapshot
     assert "SlowGo Years: 8/80%" in snapshot
     assert "Total Assets: $1,743,000" in snapshot
@@ -95,6 +118,12 @@ def test_format_input_changes_shows_only_changes_from_baseline():
         final_age_person2=85,
         target_spend=145000,
         magi_target_base=85000,
+        aca_annual_magi_income=2500,
+        aca_annual_magi_loss=500,
+        aca_annual_roth_conversion=15000,
+        medicare_annual_magi_income=3500,
+        medicare_annual_magi_loss=700,
+        medicare_annual_roth_conversion=12000,
         gogo_years=10,
         gogo_percent=100,
         slow_years=8,
@@ -108,6 +137,12 @@ def test_format_input_changes_shows_only_changes_from_baseline():
         final_age_person2=85,
         target_spend=150000,
         magi_target_base=85000,
+        aca_annual_magi_income=2500,
+        aca_annual_magi_loss=750,
+        aca_annual_roth_conversion=15000,
+        medicare_annual_magi_income=3500,
+        medicare_annual_magi_loss=700,
+        medicare_annual_roth_conversion=18000,
         gogo_years=12,
         gogo_percent=100,
         slow_years=8,
@@ -121,6 +156,8 @@ def test_format_input_changes_shows_only_changes_from_baseline():
 
     assert "Target Spend: $145,000 -> $150,000" in changes
     assert "Person 1 Final Age: 75 -> 72" in changes
+    assert "ACA Annual Loss: $500 -> $750" in changes
+    assert "Medicare Annual Conversion: $12,000 -> $18,000" in changes
     assert "GoGo Years: 10/100% -> 12/100%" in changes
     assert "SlowGo Years: 8/80% -> 8/75%" in changes
     assert "MAGI Target" not in changes
@@ -133,6 +170,12 @@ def test_format_input_changes_reports_no_changes_from_baseline():
         final_age_person2=85,
         target_spend=145000,
         magi_target_base=85000,
+        aca_annual_magi_income=2500,
+        aca_annual_magi_loss=500,
+        aca_annual_roth_conversion=15000,
+        medicare_annual_magi_income=3500,
+        medicare_annual_magi_loss=700,
+        medicare_annual_roth_conversion=12000,
         gogo_years=10,
         gogo_percent=100,
         slow_years=8,

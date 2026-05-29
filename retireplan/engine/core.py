@@ -110,7 +110,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             )
             target_magi = Decimal(str(cfg.magi_target_base))
             magi_floor = Decimal(str(cfg.magi_floor_base))
-            magi_ceiling = Decimal(str(cfg.magi_ceiling_base))
+            magi_ceiling = _active_magi_ceiling(yc, cfg, Decimal(1))
             magi_remaining = target_magi - magi
             magi_remaining_to_ceiling = magi_ceiling - magi
             magi_status = _magi_status(
@@ -257,24 +257,17 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             base_ded = base_ded / 2
         std_ded = base_ded * infl
 
-        # BUSINESS RULE: MAGI guardrail targeting
-        # Only target MAGI while person1 is under the configured guardrail end age.
-        magi_guardrail_active = yc.person1_alive and yc.age_person1 < cfg.aca_end_age
-        target_magi = (
-            Decimal(str(cfg.magi_target_base)) * infl
-            if magi_guardrail_active
-            else Decimal(0)
-        )
-        magi_floor = (
-            Decimal(str(cfg.magi_floor_base)) * infl
-            if magi_guardrail_active
-            else Decimal(0)
-        )
-        magi_ceiling = (
-            Decimal(str(cfg.magi_ceiling_base)) * infl
-            if magi_guardrail_active
-            else Decimal(0)
-        )
+        # BUSINESS RULE: Roth conversion MAGI targeting
+        # ACA ceiling applies before Medicare age; Medicare ceiling applies after.
+        (
+            planning_magi_income,
+            planning_magi_loss,
+            requested_roth_conversion,
+        ) = _annual_roth_planning_inputs(yc, cfg)
+        planning_magi_net_income = planning_magi_income - planning_magi_loss
+        target_magi = Decimal(str(cfg.magi_target_base)) * infl
+        magi_floor = Decimal(str(cfg.magi_floor_base)) * infl
+        magi_ceiling = _active_magi_ceiling(yc, cfg, infl)
         conversion_target_magi = min(target_magi, magi_ceiling)
 
         # Calculate inflation-adjusted lifestyle spending target based on lifecycle phase
@@ -418,6 +411,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     std_deduction=float(std_ded),
                     filing=filing_status,
                     brokerage_capital_gains=float(iter_brokerage_capital_gains),
+                    other_magi_income=float(planning_magi_net_income),
                 )
                 federal_tax_decimal = Decimal(str(federal_tax_value))
                 ss_tax_decimal = Decimal(str(ss_tax_value))
@@ -439,25 +433,15 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     Decimal(str(magi_value)),
                 )
 
-            conv = Decimal(0)
-            for _ in range(8):
-                tax0, _fed0, _ss0, _taxable0, _state_taxable0, magi0 = (
-                    tax_and_magi(conv)
-                )
-                if (
-                    conversion_target_magi <= Decimal(0)
-                    or not yc.person1_alive
-                    or yc.age_person1 >= cfg.aca_end_age
-                ):
-                    break
-                gap = conversion_target_magi - magi0
-                if gap <= Decimal("1.0"):
-                    break
-                cap = max(Decimal(0), iter_i1)
-                step = min(gap, cap - conv)
-                if step <= Decimal("1.0"):
-                    break
-                conv += step
+            _tax0, _fed0, _ss0, _taxable0, _state_taxable0, magi0 = tax_and_magi(
+                Decimal(0)
+            )
+            conversion_room = max(Decimal(0), conversion_target_magi - magi0)
+            conv = min(
+                max(Decimal(0), requested_roth_conversion),
+                conversion_room,
+                max(Decimal(0), iter_i1),
+            )
 
             iter_roth_conv = min(conv, max(Decimal(0), iter_i1))
             (
@@ -522,7 +506,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         provided_cash = ss_income + rmd + draw_broke + draw_roth + draw_ira
         shortfall = _clean_shortfall(total_spend - provided_cash)
         ira_taxable_income = rmd + draw_ira
-        ordinary_income_taxable = ira_taxable_income + roth_conv
+        ordinary_income_taxable = max(
+            Decimal(0), ira_taxable_income + roth_conv + planning_magi_net_income
+        )
         total_taxable_income_before_deduction = (
             ordinary_income_taxable + brokerage_capital_gains + ss_taxable
         )
@@ -569,11 +555,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "MAGI_Remaining_To_Ceiling": round_dollar(
                 magi_ceiling - magi if magi_ceiling > Decimal(0) else Decimal(0)
             ),
-            "MAGI_Status": (
-                _magi_status(magi, magi_floor, magi_ceiling)
-                if magi_guardrail_active
-                else ""
-            ),
+            "MAGI_Status": _magi_status(magi, magi_floor, magi_ceiling),
             "Survivor_Year": survivor_year,
             "Living_Person": living_person,
             "Widow_Tax_Mode": "Single survivor" if survivor_year else "",
@@ -614,11 +596,38 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
 
 def _magi_status(magi: Decimal, floor: Decimal, ceiling: Decimal) -> str:
     """Classify current-year MAGI against configured MAGI guardrails."""
+    if magi > ceiling:
+        return "FAIL"
     if magi < floor:
+        return "Low"
+    if ceiling - magi < Decimal("2000"):
         return "Warning"
-    if magi <= ceiling:
-        return "Good"
-    return "FAIL"
+    return "Good"
+
+
+def _active_magi_ceiling(yc, cfg, infl: Decimal) -> Decimal:
+    """Select the ACA or Medicare MAGI ceiling for this projection year."""
+    base = (
+        cfg.magi_ceiling_base
+        if yc.age_person1 < cfg.aca_end_age
+        else cfg.medicare_magi_ceiling_base
+    )
+    return Decimal(str(base)) * infl
+
+
+def _annual_roth_planning_inputs(yc, cfg) -> tuple[Decimal, Decimal, Decimal]:
+    """Return annual Roth Planning assumptions for ACA or Medicare years."""
+    if yc.age_person1 < cfg.aca_end_age:
+        return (
+            Decimal(str(cfg.aca_annual_magi_income)),
+            Decimal(str(cfg.aca_annual_magi_loss)),
+            Decimal(str(cfg.aca_annual_roth_conversion)),
+        )
+    return (
+        Decimal(str(cfg.medicare_annual_magi_income)),
+        Decimal(str(cfg.medicare_annual_magi_loss)),
+        Decimal(str(cfg.medicare_annual_roth_conversion)),
+    )
 
 
 def _clean_shortfall(shortfall: Decimal) -> Decimal:

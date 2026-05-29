@@ -41,6 +41,14 @@ class ConfigManager:
                 "year1_projected_capital_losses": (
                     cfg.year1_projected_capital_losses
                 ),
+                "aca_annual_magi_income": cfg.aca_annual_magi_income,
+                "aca_annual_magi_loss": cfg.aca_annual_magi_loss,
+                "aca_annual_roth_conversion": cfg.aca_annual_roth_conversion,
+                "medicare_annual_magi_income": cfg.medicare_annual_magi_income,
+                "medicare_annual_magi_loss": cfg.medicare_annual_magi_loss,
+                "medicare_annual_roth_conversion": (
+                    cfg.medicare_annual_roth_conversion
+                ),
                 "magi_income_ytd": cfg.magi_income_ytd,
                 "magi_income_projected": cfg.magi_income_projected,
                 "magi_income_years": cfg.magi_income_years,
@@ -82,6 +90,7 @@ class ConfigManager:
                 "aca_end_age": cfg.aca_end_age,
                 "magi_floor_base": cfg.magi_floor_base,
                 "magi_ceiling_base": cfg.magi_ceiling_base,
+                "medicare_magi_ceiling_base": cfg.medicare_magi_ceiling_base,
             },
             "draw_order": cfg.draw_order,
         }

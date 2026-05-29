@@ -96,7 +96,7 @@ class InputPanel(tb.Frame):
             ("Personal", self.create_personal_section),
             ("Accounts", self.create_accounts_section),
             ("Spending", self.create_spending_section),
-            ("MAGI Planning", self.create_magi_planning_section),
+            ("Roth Planning", self.create_magi_planning_section),
             ("Social Security", self.create_ss_section),
             ("Rates", self.create_rates_section),
             ("Tax & Health", self.create_tax_section),
@@ -150,6 +150,51 @@ class InputPanel(tb.Frame):
         entry.bind("<FocusOut>", on_focus_out)
 
         self.variables[key] = var
+        return var
+
+    def create_linked_currency_field(self, parent, label, key, row, col=0):
+        tb.Label(parent, text=label).grid(
+            row=row, column=col, sticky=tk.W, padx=5, pady=2
+        )
+        var = self.variables.setdefault(key, tk.StringVar(value=""))
+        entry = tb.Entry(parent, textvariable=var, font=INPUT_FONT)
+        entry.grid(row=row, column=col + 1, sticky=(tk.W, tk.E), padx=5, pady=2)
+        parent.columnconfigure(col + 1, weight=1)
+
+        def on_focus_in(event):
+            var.set(strip_currency(var.get()))
+
+        def on_focus_out(event):
+            v = var.get()
+            try:
+                n = int(float(strip_currency(v)))
+                var.set(format_currency(n) if v.strip() else "")
+            except Exception:
+                var.set("")
+
+        entry.bind("<FocusIn>", on_focus_in)
+        entry.bind("<FocusOut>", on_focus_out)
+        return var
+
+    def create_currency_cell(self, parent, key, row, col):
+        var = self.variables.setdefault(key, tk.StringVar(value=""))
+        entry = tb.Entry(parent, textvariable=var, font=INPUT_FONT)
+        entry.grid(row=row, column=col, sticky=(tk.W, tk.E), padx=5, pady=2)
+        parent.columnconfigure(col, weight=1, minsize=150)
+
+        def on_focus_in(event):
+            var.set(strip_currency(var.get()))
+
+        def on_focus_out(event):
+            v = var.get()
+            try:
+                n = int(float(strip_currency(v)))
+                var.set(format_currency(n) if v.strip() else "")
+            except Exception:
+                var.set("")
+
+        entry.bind("<FocusIn>", on_focus_in)
+        entry.bind("<FocusOut>", on_focus_out)
         return var
 
     def create_percent_field(self, parent, label, key, default, row, col=0):
@@ -301,59 +346,62 @@ class InputPanel(tb.Frame):
         if not all(
             key in self.variables
             for key in (
-                "magi_income_annual",
-                "magi_gains_annual",
-                "magi_losses_annual",
-                "magi_conversions_annual",
+                "year1_magi_income",
+                "year1_magi_losses",
+                "year1_roth_conversion",
+                "magi_floor_base",
+                "magi_target_base",
+                "magi_ceiling_base",
+                "medicare_magi_ceiling_base",
+                "aca_end_age",
             )
         ):
             return
 
-        annuals = {
-            "magi_income_annual": (
-                self.magi_planning_amount("magi_income_ytd")
-                + self.magi_planning_amount("magi_income_projected")
-            ),
-            "magi_gains_annual": (
-                self.magi_planning_amount("magi_gains_ytd")
-                + self.magi_planning_amount("magi_gains_projected")
-            ),
-            "magi_losses_annual": (
-                self.magi_planning_amount("magi_losses_ytd")
-                + self.magi_planning_amount("magi_losses_projected")
-            ),
-            "magi_conversions_annual": (
-                self.magi_planning_amount("magi_conversions_ytd")
-                + self.magi_planning_amount("magi_conversions_projected")
-            ),
-        }
-        for key, value in annuals.items():
-            self.variables[key].set(format_currency(value))
-
         projected_magi = (
-            annuals["magi_income_annual"]
-            + annuals["magi_gains_annual"]
-            + annuals["magi_conversions_annual"]
-            - annuals["magi_losses_annual"]
+            self.magi_planning_amount("year1_magi_income")
+            - self.magi_planning_amount("year1_magi_losses")
+            + self.magi_planning_amount("year1_roth_conversion")
         )
         magi_floor = self.magi_planning_amount("magi_floor_base")
         magi_target = self.magi_planning_amount("magi_target_base")
-        magi_ceiling = self.magi_planning_amount("magi_ceiling_base")
+        magi_ceiling = self.active_magi_ceiling()
         magi_remaining = magi_target - projected_magi
         magi_remaining_to_ceiling = magi_ceiling - projected_magi
-        if projected_magi < magi_floor:
-            magi_status = "Warning"
-        elif projected_magi <= magi_ceiling:
-            magi_status = "Good"
-        else:
+        if projected_magi > magi_ceiling:
             magi_status = "FAIL"
+        elif projected_magi < magi_floor:
+            magi_status = "Low"
+        elif magi_ceiling - projected_magi < 2000:
+            magi_status = "Warning"
+        else:
+            magi_status = "Good"
         if hasattr(self, "magi_summary_projected"):
             self.magi_summary_projected.set(format_currency(projected_magi))
             self.magi_summary_remaining.set(format_currency(magi_remaining))
+            self.magi_summary_active_ceiling.set(format_currency(magi_ceiling))
             self.magi_summary_remaining_to_ceiling.set(
                 format_currency(magi_remaining_to_ceiling)
             )
             self.magi_summary_status.set(magi_status)
+
+    def active_magi_ceiling(self):
+        try:
+            start_year = int(float(self.variables["start_year"].get()))
+            birth_year = int(float(self.variables["birth_year_person1"].get()))
+            person1_age = start_year - birth_year
+        except Exception:
+            person1_age = 0
+        try:
+            medicare_age = int(float(self.variables["aca_end_age"].get()))
+        except Exception:
+            medicare_age = 65
+        key = (
+            "magi_ceiling_base"
+            if person1_age < medicare_age
+            else "medicare_magi_ceiling_base"
+        )
+        return self.magi_planning_amount(key)
 
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -376,117 +424,147 @@ class InputPanel(tb.Frame):
         )
         self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 4)
         self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 5)
-        self.create_currency_field(
-            parent, "Year 1 Roth Conversion", "year1_roth_conversion", "", 6
-        )
 
         tb.Label(
             parent,
             text="Projections",
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
-        ).grid(row=7, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(16, 4))
+        ).grid(row=6, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(16, 4))
         self.create_currency_field(
-            parent, "Target Spend (today's $)", "target_spend", "", 8
+            parent, "Target Spend (today's $)", "target_spend", "", 7
         )
-        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 9)
-        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 10)
-        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 11)
-        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 12)
-        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 13)
+        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 8)
+        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 9)
+        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 10)
+        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 11)
+        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 12)
         self.create_percent_field(
-            parent, "Survivor Spending %", "survivor_percent", "", 14
+            parent, "Survivor Spending %", "survivor_percent", "", 13
         )
 
     def create_magi_planning_section(self, parent):
         parent.columnconfigure(0, weight=1)
 
         for key in (
-            "year1_magi_income",
-            "year1_magi_losses",
-            "year1_roth_conversion",
             "year1_income_to_date",
             "year1_projected_income",
             "year1_capital_gains_to_date",
             "year1_projected_capital_gains",
             "year1_capital_losses_to_date",
             "year1_projected_capital_losses",
+            "magi_income_ytd",
+            "magi_income_projected",
+            "magi_income_annual",
+            "magi_income_years",
+            "magi_gains_ytd",
+            "magi_gains_projected",
+            "magi_gains_annual",
+            "magi_gains_years",
+            "magi_losses_ytd",
+            "magi_losses_projected",
+            "magi_losses_annual",
+            "magi_losses_years",
+            "magi_conversions_ytd",
+            "magi_conversions_projected",
+            "magi_conversions_annual",
+            "magi_conversions_years",
         ):
             if key not in self.variables:
                 self.variables[key] = tk.StringVar(value="")
 
-        grid_frame = tb.Frame(parent)
-        grid_frame.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=2)
-        for col in range(1, 5):
-            grid_frame.columnconfigure(col, weight=1, minsize=115)
+        inputs_frame = tb.Frame(parent)
+        inputs_frame.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=2)
+        inputs_frame.columnconfigure(1, weight=1, minsize=180)
 
         summary_frame = tb.Frame(parent)
         summary_frame.grid(row=1, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2))
         summary_frame.columnconfigure(1, weight=1, minsize=180)
 
-        tb.Label(grid_frame, text="").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
-        for col, label in enumerate(("YTD", "Projected", "Annual", "Years"), start=1):
-            tb.Label(grid_frame, text=label).grid(
-                row=0, column=col, sticky=tk.W, padx=5, pady=2
-            )
+        tb.Label(
+            inputs_frame,
+            text="Roth Planning",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
 
-        grid = (
-            (
-                "Income",
-                "magi_income_ytd",
-                "magi_income_projected",
-                "magi_income_annual",
-                "magi_income_years",
-            ),
-            (
-                "Gains",
-                "magi_gains_ytd",
-                "magi_gains_projected",
-                "magi_gains_annual",
-                "magi_gains_years",
-            ),
-            (
-                "Losses",
-                "magi_losses_ytd",
-                "magi_losses_projected",
-                "magi_losses_annual",
-                "magi_losses_years",
-            ),
-            (
-                "Conversions",
-                "magi_conversions_ytd",
-                "magi_conversions_projected",
-                "magi_conversions_annual",
-                "magi_conversions_years",
-            ),
+        self.create_currency_field(
+            inputs_frame, "MAGI Floor", "magi_floor_base", "", 1
+        )
+        self.create_currency_field(
+            inputs_frame, "MAGI Target", "magi_target_base", "", 2
+        )
+        self.create_currency_field(
+            inputs_frame, "ACA MAGI Ceiling", "magi_ceiling_base", "", 3
+        )
+        self.create_currency_field(
+            inputs_frame,
+            "Medicare MAGI Ceiling",
+            "medicare_magi_ceiling_base",
+            "",
+            4,
+        )
+        self.create_input_field(inputs_frame, "Medicare Age", "aca_end_age", "", 5)
+        self.create_linked_currency_field(
+            inputs_frame, "Year 1 MAGI Income", "year1_magi_income", 6
+        )
+        self.create_linked_currency_field(
+            inputs_frame, "Year 1 MAGI Loss", "year1_magi_losses", 7
+        )
+        self.create_linked_currency_field(
+            inputs_frame, "Year 1 Roth Conversion", "year1_roth_conversion", 8
         )
 
-        for row, cells in enumerate(grid, start=1):
-            label, *keys = cells
-            tb.Label(grid_frame, text=label).grid(
+        annual_frame = tb.Frame(inputs_frame)
+        annual_frame.grid(
+            row=9, column=0, columnspan=2, sticky=(tk.N, tk.W, tk.E), padx=0, pady=(16, 0)
+        )
+        annual_frame.columnconfigure(1, weight=1, minsize=150)
+        annual_frame.columnconfigure(2, weight=1, minsize=150)
+        tb.Label(
+            annual_frame,
+            text="Annual Inputs",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=0, column=0, sticky=tk.W, padx=5, pady=(0, 4))
+        tb.Label(annual_frame, text="ACA").grid(
+            row=0, column=1, sticky=tk.W, padx=5, pady=(0, 4)
+        )
+        tb.Label(annual_frame, text="Medicare").grid(
+            row=0, column=2, sticky=tk.W, padx=5, pady=(0, 4)
+        )
+        annual_rows = (
+            (
+                "Annual Income",
+                "aca_annual_magi_income",
+                "medicare_annual_magi_income",
+            ),
+            (
+                "Annual Loss",
+                "aca_annual_magi_loss",
+                "medicare_annual_magi_loss",
+            ),
+            (
+                "Annual Conversion",
+                "aca_annual_roth_conversion",
+                "medicare_annual_roth_conversion",
+            ),
+        )
+        for row, (label, aca_key, medicare_key) in enumerate(annual_rows, start=1):
+            tb.Label(annual_frame, text=label).grid(
                 row=row, column=0, sticky=tk.W, padx=5, pady=2
             )
-            for col, key in enumerate(keys, start=1):
-                var = tk.StringVar(value="")
-                entry_state = "readonly" if key.endswith("_annual") else "normal"
-                entry = tb.Entry(
-                    grid_frame,
-                    textvariable=var,
-                    font=INPUT_FONT,
-                    width=14,
-                    state=entry_state,
-                )
-                entry.grid(row=row, column=col, sticky=(tk.W, tk.E), padx=5, pady=2)
-                self.variables[key] = var
+            self.create_currency_cell(annual_frame, aca_key, row, 1)
+            self.create_currency_cell(annual_frame, medicare_key, row, 2)
 
         for key in (
-            "magi_income_ytd",
-            "magi_income_projected",
-            "magi_gains_ytd",
-            "magi_gains_projected",
-            "magi_losses_ytd",
-            "magi_losses_projected",
-            "magi_conversions_ytd",
-            "magi_conversions_projected",
+            "magi_floor_base",
+            "magi_target_base",
+            "magi_ceiling_base",
+            "medicare_magi_ceiling_base",
+            "aca_end_age",
+            "year1_magi_income",
+            "year1_magi_losses",
+            "year1_roth_conversion",
+            "start_year",
+            "birth_year_person1",
         ):
             self.variables[key].trace_add(
                 "write", lambda *_: self.update_magi_planning_display()
@@ -499,30 +577,19 @@ class InputPanel(tb.Frame):
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
         ).grid(row=summary_row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
 
-        self.create_currency_field(
-            summary_frame, "MAGI Floor", "magi_floor_base", "", summary_row + 1
-        )
-        self.create_currency_field(
-            summary_frame, "MAGI Target", "magi_target_base", "", summary_row + 2
-        )
-        self.create_currency_field(
-            summary_frame, "MAGI Ceiling", "magi_ceiling_base", "", summary_row + 3
-        )
-        for key in ("magi_floor_base", "magi_target_base", "magi_ceiling_base"):
-            self.variables[key].trace_add(
-                "write", lambda *_: self.update_magi_planning_display()
-            )
         self.magi_summary_projected = tk.StringVar(value="$0")
         self.magi_summary_remaining = tk.StringVar(value="$0")
+        self.magi_summary_active_ceiling = tk.StringVar(value="$0")
         self.magi_summary_remaining_to_ceiling = tk.StringVar(value="$0")
         self.magi_summary_status = tk.StringVar(value="")
         summary_rows = (
             ("Projected MAGI", self.magi_summary_projected),
             ("MAGI Remaining", self.magi_summary_remaining),
+            ("Active MAGI Ceiling", self.magi_summary_active_ceiling),
             ("MAGI Remaining To Ceiling", self.magi_summary_remaining_to_ceiling),
             ("MAGI Status", self.magi_summary_status),
         )
-        for offset, (label, var) in enumerate(summary_rows, start=4):
+        for offset, (label, var) in enumerate(summary_rows, start=1):
             tb.Label(summary_frame, text=label).grid(
                 row=summary_row + offset, column=0, sticky=tk.W, padx=5, pady=2
             )
@@ -625,7 +692,6 @@ class InputPanel(tb.Frame):
             parent, "Standard Deduction", "standard_deduction_base", "", 3
         )
         self.create_input_field(parent, "RMD Start Age", "rmd_start_age", "", 4)
-        self.create_input_field(parent, "MAGI Guardrail End Age", "aca_end_age", "", 5)
 
     def create_strategy_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -734,6 +800,32 @@ class InputPanel(tb.Frame):
                         self.variables["year1_projected_capital_losses"].get()
                     )
                 ),
+                "aca_annual_magi_income": safe_float(
+                    strip_currency(self.variables["aca_annual_magi_income"].get())
+                ),
+                "aca_annual_magi_loss": safe_float(
+                    strip_currency(self.variables["aca_annual_magi_loss"].get())
+                ),
+                "aca_annual_roth_conversion": safe_float(
+                    strip_currency(
+                        self.variables["aca_annual_roth_conversion"].get()
+                    )
+                ),
+                "medicare_annual_magi_income": safe_float(
+                    strip_currency(
+                        self.variables["medicare_annual_magi_income"].get()
+                    )
+                ),
+                "medicare_annual_magi_loss": safe_float(
+                    strip_currency(
+                        self.variables["medicare_annual_magi_loss"].get()
+                    )
+                ),
+                "medicare_annual_roth_conversion": safe_float(
+                    strip_currency(
+                        self.variables["medicare_annual_roth_conversion"].get()
+                    )
+                ),
                 "magi_income_ytd": safe_float(
                     strip_currency(self.variables["magi_income_ytd"].get())
                 ),
@@ -835,6 +927,11 @@ class InputPanel(tb.Frame):
                 "magi_ceiling_base": safe_float(
                     strip_currency(self.variables["magi_ceiling_base"].get())
                 ),
+                "medicare_magi_ceiling_base": safe_float(
+                    strip_currency(
+                        self.variables["medicare_magi_ceiling_base"].get()
+                    )
+                ),
             },
             "draw_order": self.variables["draw_order"].get(),
         }
@@ -895,6 +992,24 @@ class InputPanel(tb.Frame):
             ),
             "year1_projected_capital_losses": format_currency(
                 s.get("year1_projected_capital_losses", "")
+            ),
+            "aca_annual_magi_income": format_currency(
+                s.get("aca_annual_magi_income", "")
+            ),
+            "aca_annual_magi_loss": format_currency(
+                s.get("aca_annual_magi_loss", "")
+            ),
+            "aca_annual_roth_conversion": format_currency(
+                s.get("aca_annual_roth_conversion", "")
+            ),
+            "medicare_annual_magi_income": format_currency(
+                s.get("medicare_annual_magi_income", "")
+            ),
+            "medicare_annual_magi_loss": format_currency(
+                s.get("medicare_annual_magi_loss", "")
+            ),
+            "medicare_annual_roth_conversion": format_currency(
+                s.get("medicare_annual_roth_conversion", "")
             ),
             "magi_income_ytd": format_currency(s.get("magi_income_ytd", "")),
             "magi_income_projected": format_currency(
@@ -959,6 +1074,12 @@ class InputPanel(tb.Frame):
             ),
             "magi_ceiling_base": format_currency(
                 config.get("tax_health", {}).get("magi_ceiling_base", "")
+            ),
+            "medicare_magi_ceiling_base": format_currency(
+                config.get("tax_health", {}).get(
+                    "medicare_magi_ceiling_base",
+                    config.get("tax_health", {}).get("magi_ceiling_base", ""),
+                )
             ),
             "standard_deduction_base": format_currency(
                 config.get("tax_health", {}).get("standard_deduction_base", "")

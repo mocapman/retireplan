@@ -169,6 +169,7 @@ def test_roth_conversion_taxable_but_not_spending():
     cfg.magi_target_base = 10_000
     cfg.magi_floor_base = 0
     cfg.magi_ceiling_base = 10_000
+    cfg.aca_annual_roth_conversion = 10_000
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 
