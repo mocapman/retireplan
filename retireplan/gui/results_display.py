@@ -8,17 +8,17 @@ from typing import Any, List
 
 from retireplan import schema
 from retireplan.projections import to_2d_for_table
+from . import palette
 
 
 APP_GEOMETRY = "2525x1150"
 MONEY_COLUMN_WIDTH = 104
 NON_MONEY_TABLE_KEYS = {"Year", "Person1_Age", "Person2_Age", "Filing", "Lifestyle"}
-
 SUMMARY_FIELDS = (
-    ("Federal Tax", "Federal_Tax", "#0f172a", "#e0f2fe"),
-    ("State Tax", "Estimated_State_Tax", "#172554", "#dbeafe"),
-    ("Lifetime Taxes", "Taxes_Due", "#312e81", "#ede9fe"),
-    ("Ending Assets", "Total_Assets", "#064e3b", "#dcfce7"),
+    ("Federal Tax", "Federal_Tax", palette.CARD_HEADER, palette.TEXT_PRIMARY),
+    ("State Tax", "Estimated_State_Tax", palette.CARD_HEADER, palette.TEXT_PRIMARY),
+    ("Lifetime Taxes", "Taxes_Due", palette.CARD_HEADER, palette.TEXT_PRIMARY),
+    ("Ending Assets", "Total_Assets", palette.CARD_HEADER, palette.TEXT_PRIMARY),
 )
 
 
@@ -333,35 +333,27 @@ class ResultsDisplay(tb.Frame):
         self.current_column_keys: List[str] = []
         self.summary_var = tk.StringVar(value=self.format_summary_text({}))
         self.summary_vars: dict[str, tk.StringVar] = {}
+        self.summary_labels: list[tk.Label] = []
         self._history_lines: list[str] = []
         self._row_h = 24
         self._hdr_h = 28
         self.create_widgets()
 
     def create_widgets(self):
-        self.sheet = Sheet(self, data=[], headers=[])
-        self.sheet.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.header_frame = tk.Frame(self, bg=palette.RESULTS_HEADER_BG)
+        self.header_frame.pack(fill=tk.X, padx=5, pady=(5, 5))
+        self.header_frame.columnconfigure(0, weight=1)
+        self.header_frame.columnconfigure(1, weight=0)
 
-        button_frame = tb.Frame(self)
-        button_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        tb.Button(
-            button_frame, text="Auto Size", bootstyle=INFO, command=self.autosize
-        ).pack(side=tk.LEFT, padx=5)
-        tb.Button(
-            button_frame,
-            text="Export CSV",
-            bootstyle=SECONDARY,
-            command=self.export_csv,
-        ).pack(side=tk.LEFT, padx=5)
-
-        status_frame = tk.Frame(self, bg="#111827", padx=10, pady=8)
-        status_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
+        self.status_frame = tk.Frame(
+            self.header_frame, bg=palette.RESULTS_HEADER_BG, padx=10, pady=8
+        )
+        self.status_frame.grid(row=0, column=0, sticky=(tk.W, tk.E))
         for label, key, bg, fg in SUMMARY_FIELDS:
             var = tk.StringVar(value=f"{label}: $0")
             self.summary_vars[key] = var
-            tk.Label(
-                status_frame,
+            metric_label = tk.Label(
+                self.status_frame,
                 textvariable=var,
                 anchor=tk.W,
                 bg=bg,
@@ -369,19 +361,44 @@ class ResultsDisplay(tb.Frame):
                 font=("Segoe UI", 13, "bold"),
                 padx=12,
                 pady=5,
-            ).pack(side=tk.LEFT, padx=(0, 8))
+            )
+            metric_label.pack(side=tk.LEFT, padx=(0, 8))
+            self.summary_labels.append(metric_label)
 
-        history_frame = tk.Frame(self, bg="#0b1120")
-        history_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
-        history_scrollbar = tk.Scrollbar(history_frame, orient=tk.VERTICAL)
+        tb.Button(
+            self.header_frame,
+            text="Export CSV",
+            bootstyle=PRIMARY,
+            command=self.export_csv,
+        ).grid(row=0, column=1, sticky=tk.E, padx=(8, 0))
+
+        tb.Separator(self, orient=tk.HORIZONTAL).pack(
+            fill=tk.X, padx=5, pady=(0, 5)
+        )
+
+        projections_header = tb.Frame(self)
+        projections_header.pack(fill=tk.X, padx=5, pady=(0, 2))
+
+        tb.Label(
+            projections_header,
+            text="Projections",
+            font=("Segoe UI", 12, "bold"),
+        ).pack(side=tk.LEFT)
+
+        self.sheet = Sheet(self, data=[], headers=[])
+        self.sheet.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        self.history_frame = tk.Frame(self, bg=palette.PANEL_BG)
+        self.history_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
+        history_scrollbar = tk.Scrollbar(self.history_frame, orient=tk.VERTICAL)
         history_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.history_text = tk.Text(
-            history_frame,
+            self.history_frame,
             height=7,
             wrap=tk.WORD,
-            bg="#0b1120",
-            fg="#e5e7eb",
-            insertbackground="#e5e7eb",
+            bg=palette.HISTORY_BG,
+            fg=palette.HISTORY_TEXT,
+            insertbackground=palette.HISTORY_TEXT,
             relief=tk.FLAT,
             font=("Consolas", 10),
             padx=10,
@@ -394,6 +411,34 @@ class ResultsDisplay(tb.Frame):
 
         self.style_sheet()
         self.setup_bindings()
+        self.apply_runtime_palette()
+        self.after_idle(self.apply_runtime_palette)
+
+    def apply_runtime_palette(self):
+        for frame in (
+            getattr(self, "header_frame", None),
+            getattr(self, "status_frame", None),
+        ):
+            if frame is not None:
+                frame.configure(bg=palette.RESULTS_HEADER_BG)
+
+        for label in getattr(self, "summary_labels", []):
+            label.configure(
+                bg=palette.RESULTS_HEADER_BG,
+                fg=palette.TEXT_PRIMARY,
+            )
+
+        history_frame = getattr(self, "history_frame", None)
+        if history_frame is not None:
+            history_frame.configure(bg=palette.PANEL_BG)
+
+        history_text = getattr(self, "history_text", None)
+        if history_text is not None:
+            history_text.configure(
+                bg=palette.HISTORY_BG,
+                fg=palette.HISTORY_TEXT,
+                insertbackground=palette.HISTORY_TEXT,
+            )
 
     def setup_bindings(self):
         self.sheet.enable_bindings(
@@ -416,25 +461,25 @@ class ResultsDisplay(tb.Frame):
         options = {
             "align": "center",
             "header_align": "center",
-            "row_height": 24,
-            "header_height": 28,
-            "table_bg": "#2e2e2e",
-            "table_fg": "#ffffff",
-            "table_selected_cells_border_color": "#ffffff",
-            "table_selected_cells_bg": "#4e4e4e",
-            "table_selected_cells_fg": "#ffffff",
-            "header_bg": "#3e3e3e",
-            "header_fg": "#ffffff",
-            "header_selected_cells_bg": "#5e5e5e",
-            "header_selected_cells_fg": "#ffffff",
-            "index_bg": "#3e3e3e",
-            "index_fg": "#ffffff",
-            "index_selected_cells_bg": "#5e5e5e",
-            "index_selected_cells_fg": "#ffffff",
-            "top_left_bg": "#3e3e3e",
-            "top_left_fg": "#ffffff",
-            "table_grid_fg": "#4e4e4e",
-            "table_outline": "#4e4e4e",
+            "row_height": 25,
+            "header_height": 30,
+            "table_bg": palette.TABLE_BG,
+            "table_fg": palette.TABLE_TEXT,
+            "table_selected_cells_border_color": palette.TABLE_TEXT,
+            "table_selected_cells_bg": palette.TABLE_SELECTED_BG,
+            "table_selected_cells_fg": palette.TEXT_PRIMARY,
+            "header_bg": palette.TABLE_HEADER_BG,
+            "header_fg": palette.TABLE_TEXT,
+            "header_selected_cells_bg": palette.BUTTON_ACCENT,
+            "header_selected_cells_fg": palette.TEXT_PRIMARY,
+            "index_bg": palette.TABLE_HEADER_BG,
+            "index_fg": palette.TABLE_TEXT,
+            "index_selected_cells_bg": palette.BUTTON_ACCENT,
+            "index_selected_cells_fg": palette.TEXT_PRIMARY,
+            "top_left_bg": palette.TABLE_HEADER_BG,
+            "top_left_fg": palette.TABLE_TEXT,
+            "table_grid_fg": palette.TABLE_GRID,
+            "table_outline": palette.TABLE_GRID,
         }
 
         try:
@@ -541,9 +586,9 @@ class ResultsDisplay(tb.Frame):
 
     def apply_alternate_row_colors(self):
         try:
-            bg = "#2e2e2e"
-            alt = "#3e3e3e"
-            fg = "#ffffff"
+            bg = palette.TABLE_BG
+            alt = palette.TABLE_ALT_ROW
+            fg = palette.TABLE_TEXT
             self.sheet.dehighlight_all()
             total = self.sheet.total_rows()
             if total <= 0:

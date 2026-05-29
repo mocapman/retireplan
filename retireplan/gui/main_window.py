@@ -13,6 +13,7 @@ from .input_panel import InputPanel
 from .results_display import ResultsDisplay
 from .file_operations import FileOperations
 from .config_manager import ConfigManager
+from . import palette
 
 # Find default config - should be in parent directory of gui
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +25,7 @@ APP_GEOMETRY = "2525x1150"
 
 class RetirePlanApp:
     def __init__(self) -> None:
-        self.root = tb.Window(title=APP_TITLE, themename="darkly")
+        self.root = tb.Window(title=APP_TITLE, themename=palette.APP_BOOTSTRAP_THEME)
         self.cfg = None
         self.start_dt = datetime.now()
 
@@ -64,6 +65,7 @@ class RetirePlanApp:
 
     def build_ui(self) -> None:
         self.root.geometry(APP_GEOMETRY)
+        self.configure_styles()
         self.paned = tb.Panedwindow(self.root, orient=tk.HORIZONTAL)
         self.paned.pack(fill=tk.BOTH, expand=True)
 
@@ -88,6 +90,81 @@ class RetirePlanApp:
             self.input_panel.set_config(config_dict)
 
         self.root.after(100, lambda: self.paned.sashpos(0, 600))
+
+    def configure_styles(self) -> None:
+        style = self.root.style
+        self.root.configure(background=palette.MAIN_BG)
+        style.configure(".", font=("Segoe UI", 10))
+        style.configure("TFrame", background=palette.MAIN_BG)
+        style.configure("TLabel", background=palette.MAIN_BG, foreground=palette.TEXT_PRIMARY)
+        style.configure(
+            "TEntry",
+            fieldbackground=palette.INPUT_BG,
+            foreground=palette.TEXT_PRIMARY,
+            bordercolor=palette.BORDER,
+            lightcolor=palette.BORDER,
+            darkcolor=palette.BORDER,
+        )
+        style.configure(
+            "TCombobox",
+            fieldbackground=palette.INPUT_BG,
+            foreground=palette.TEXT_PRIMARY,
+            bordercolor=palette.BORDER,
+            lightcolor=palette.BORDER,
+            darkcolor=palette.BORDER,
+        )
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", palette.INPUT_BG)],
+            foreground=[("readonly", palette.TEXT_PRIMARY)],
+            selectbackground=[("readonly", palette.INPUT_BG)],
+            selectforeground=[("readonly", palette.TEXT_PRIMARY)],
+        )
+        style.configure(
+            "TButton",
+            font=("Segoe UI", 10),
+            padding=(12, 7),
+            borderwidth=0,
+        )
+        style.configure(
+            "secondary.TButton",
+            background=palette.BUTTON_NEUTRAL,
+            foreground=palette.TEXT_PRIMARY,
+        )
+        style.map(
+            "secondary.TButton",
+            background=[
+                ("active", palette.BUTTON_NEUTRAL_ACTIVE),
+                ("pressed", palette.BUTTON_NEUTRAL_ACTIVE),
+            ],
+            foreground=[("active", palette.TEXT_PRIMARY), ("pressed", palette.TEXT_PRIMARY)],
+        )
+        style.configure(
+            "success.TButton",
+            background=palette.BUTTON_PRIMARY,
+            foreground=palette.DARK_TEXT,
+        )
+        style.map(
+            "success.TButton",
+            background=[
+                ("active", palette.BUTTON_PRIMARY_ACTIVE),
+                ("pressed", palette.BUTTON_PRIMARY_ACTIVE),
+            ],
+            foreground=[("active", palette.DARK_TEXT), ("pressed", palette.DARK_TEXT)],
+        )
+        style.configure(
+            "primary.TButton",
+            background=palette.BUTTON_ACCENT,
+            foreground="#FFFFFF",
+        )
+        style.map(
+            "primary.TButton",
+            background=[
+                ("active", palette.BUTTON_ACCENT_ACTIVE),
+                ("pressed", palette.BUTTON_ACCENT_ACTIVE),
+            ],
+            foreground=[("active", "#FFFFFF"), ("pressed", "#FFFFFF")],
+        )
 
     def run_plan(self) -> None:
         try:

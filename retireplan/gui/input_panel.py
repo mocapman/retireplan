@@ -5,6 +5,7 @@ import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from tkinter import messagebox
 from typing import Callable, Optional
+from . import palette
 
 INPUT_FONT_FAMILY = "Arial"
 INPUT_FONT_SIZE = 12
@@ -62,24 +63,12 @@ class InputPanel(tb.Frame):
         self.create_widgets()
 
     def create_widgets(self):
-        button_frame = tb.Frame(self)
-        button_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        tb.Button(
-            button_frame, text="Load Config", command=self.load_config, bootstyle=INFO
-        ).pack(side=tk.LEFT, padx=5)
-        tb.Button(
-            button_frame,
-            text="Save Config",
-            command=self.save_config,
-            bootstyle=PRIMARY,
-        ).pack(side=tk.LEFT, padx=5)
-        tb.Button(
-            button_frame,
-            text="Apply Changes",
-            command=self.apply_changes,
-            bootstyle=SECONDARY,
-        ).pack(side=tk.LEFT, padx=5)
+        tb.Label(
+            self,
+            text="Update Inputs Below",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+            foreground=palette.TEXT_PRIMARY,
+        ).pack(fill=tk.X, padx=10, pady=(8, 4), anchor=tk.W)
 
         body_frame = tb.Frame(self)
         body_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -120,6 +109,28 @@ class InputPanel(tb.Frame):
         for col in range(len(sections)):
             nav_frame.columnconfigure(col, weight=1)
         self.show_section("Personal")
+
+        button_frame = tb.Frame(self)
+        button_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
+
+        tb.Button(
+            button_frame,
+            text="Load Config",
+            command=self.load_config,
+            bootstyle=SECONDARY,
+        ).pack(side=tk.LEFT, padx=5)
+        tb.Button(
+            button_frame,
+            text="Save Config",
+            command=self.save_config,
+            bootstyle=SECONDARY,
+        ).pack(side=tk.LEFT, padx=5)
+        tb.Button(
+            button_frame,
+            text="Apply Changes",
+            command=self.apply_changes,
+            bootstyle=SUCCESS,
+        ).pack(side=tk.LEFT, padx=5)
 
     def show_section(self, name):
         self.section_frames[name].tkraise()
