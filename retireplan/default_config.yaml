@@ -1,9 +1,9 @@
 balances:
-  brokerage_cash: 250000.0
-  brokerage_cost_basis: 230000.0
-  brokerage_unrealized_gain: 63000.0
-  ira: 1227253.0
-  roth: 145890.0
+  brokerage_cash: 248407.0
+  brokerage_cost_basis: 227146.0
+  brokerage_unrealized_gain: 63362.0
+  ira: 1229848.0
+  roth: 146555.0
 birth_year_person1: 1967
 birth_year_person2: 1969
 column_order:
@@ -96,7 +96,7 @@ spending:
   medicare_planned_roth_conversion: 40000.0
   nogo_percent: 70.0
   slow_percent: 75.0
-  slow_years: 8
+  slow_years: 10
   start_year: 2026
   survivor_percent: 70.0
   target_spend: 140000.0

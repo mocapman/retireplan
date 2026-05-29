@@ -114,8 +114,16 @@ def test_saved_projection_column_order_uses_schema_keys():
 
 def test_format_input_snapshot_includes_key_scenario_inputs():
     cfg = SimpleNamespace(
+        birth_year_person1=1967,
+        birth_year_person2=1969,
         final_age_person1=75,
         final_age_person2=85,
+        filing_status="MFJ",
+        start_year=2026,
+        year1_spend=120000,
+        year1_brokerage_draw=100000,
+        year1_ira_draw=20000,
+        year1_roth_draw=0,
         target_spend=145000,
         year1_magi_floor=43000,
         year1_magi_target=85000,
@@ -153,6 +161,24 @@ def test_format_input_snapshot_includes_key_scenario_inputs():
         gogo_percent=100,
         slow_years=8,
         slow_percent=80,
+        nogo_percent=70,
+        survivor_percent=70,
+        draw_order="Brokerage, IRA, Roth",
+        ss_person1_start_age=62,
+        ss_person2_start_age=67,
+        ss_person1_annual_at_start=32500,
+        ss_person2_annual_at_start=7000,
+        inflation=0.035,
+        brokerage_growth=0.04,
+        roth_growth=0.08,
+        ira_growth=0.07,
+        estimated_state_deduction=0,
+        estimated_state_tax_rate=0.0875,
+        standard_deduction_base=30000,
+        rmd_start_age=73,
+        brokerage_cash=400000,
+        brokerage_cost_basis=100000,
+        brokerage_unrealized_gain=43000,
         balances_brokerage=543000,
         balances_roth=200000,
         balances_ira=1000000,
@@ -160,8 +186,27 @@ def test_format_input_snapshot_includes_key_scenario_inputs():
 
     snapshot = format_input_snapshot(cfg)
 
+    assert snapshot.startswith("Inputs:\n")
+    assert "Personal:" in snapshot
+    assert "Accounts:" in snapshot
+    assert "Spending:" in snapshot
+    assert "Rates:" in snapshot
+    assert "Tax:" in snapshot
+    assert "Roth Planning:" in snapshot
+    assert "Person 1 Birth Year: 1967" in snapshot
+    assert "Person 2 Birth Year: 1969" in snapshot
     assert "Person 1 Final Age: 75" in snapshot
     assert "Person 2 Final Age: 85" in snapshot
+    assert "Filing Status: MFJ" in snapshot
+    assert "SS Age 1: 62" in snapshot
+    assert "SS Age 2: 67" in snapshot
+    assert "SS Annual 1: $32,500" in snapshot
+    assert "SS Annual 2: $7,000" in snapshot
+    assert "Brkg Cash: $400,000" in snapshot
+    assert "Brkg Basis: $100,000" in snapshot
+    assert "Brkg Gain: $43,000" in snapshot
+    assert "IRA: $1,000,000" in snapshot
+    assert "Roth: $200,000" in snapshot
     assert "Target Spend: $145,000" in snapshot
     assert "Year 1 MAGI Floor: $43,000" in snapshot
     assert "Year 1 MAGI Target: $85,000" in snapshot
@@ -182,22 +227,39 @@ def test_format_input_snapshot_includes_key_scenario_inputs():
     assert "Medicare MAGI Loss Offset: $700" in snapshot
     assert "Medicare Planned Roth Conversion: $12,000" in snapshot
     assert "Medicare Age: 65" in snapshot
+    assert "Start Year: 2026" in snapshot
+    assert "Year 1 Spend: $120,000" in snapshot
+    assert "Year 1 Brkg Draw: $100,000" in snapshot
+    assert "Year 1 IRA Draw: $20,000" in snapshot
+    assert "Draw Order: Brokerage, IRA, Roth" in snapshot
     assert "GoGo Years: 10/100%" in snapshot
     assert "SlowGo Years: 8/80%" in snapshot
-    assert "Total Assets: $1,743,000" in snapshot
-    assert "Brokerage:" not in snapshot
-    assert "Roth:" not in snapshot
-    assert "IRA:" not in snapshot
+    assert "NoGo %: 70%" in snapshot
+    assert "Survivor %: 70%" in snapshot
+    assert "Inflation: 3.50%" in snapshot
+    assert "Brkg Growth: 4%" in snapshot
+    assert "Roth Growth: 8%" in snapshot
+    assert "IRA Growth: 7%" in snapshot
+    assert "State Deduction: $0" in snapshot
+    assert "State Rate: 8.75%" in snapshot
+    assert "Standard Deduction: $30,000" in snapshot
+    assert "RMD Start Age: 73" in snapshot
+    assert "Total Assets" not in snapshot
     assert "Cash Balance" not in snapshot
-    assert "State Deduction" not in snapshot
-    assert "State Rate" not in snapshot
-    assert "Draw Order" not in snapshot
 
 
 def test_format_input_changes_shows_only_changes_from_baseline():
     baseline = SimpleNamespace(
+        birth_year_person1=1967,
+        birth_year_person2=1969,
         final_age_person1=75,
         final_age_person2=85,
+        filing_status="MFJ",
+        start_year=2026,
+        year1_spend=120000,
+        year1_brokerage_draw=100000,
+        year1_ira_draw=20000,
+        year1_roth_draw=0,
         target_spend=145000,
         year1_magi_floor=43000,
         year1_magi_target=85000,
@@ -235,13 +297,39 @@ def test_format_input_changes_shows_only_changes_from_baseline():
         gogo_percent=100,
         slow_years=8,
         slow_percent=80,
+        nogo_percent=70,
+        survivor_percent=70,
+        draw_order="Brokerage, IRA, Roth",
+        ss_person1_start_age=62,
+        ss_person2_start_age=67,
+        ss_person1_annual_at_start=32500,
+        ss_person2_annual_at_start=7000,
+        inflation=0.035,
+        brokerage_growth=0.04,
+        roth_growth=0.08,
+        ira_growth=0.07,
+        estimated_state_deduction=0,
+        estimated_state_tax_rate=0.0875,
+        standard_deduction_base=30000,
+        rmd_start_age=73,
+        brokerage_cash=400000,
+        brokerage_cost_basis=100000,
+        brokerage_unrealized_gain=43000,
         balances_brokerage=543000,
         balances_roth=200000,
         balances_ira=1000000,
     )
     current = SimpleNamespace(
+        birth_year_person1=1967,
+        birth_year_person2=1969,
         final_age_person1=72,
         final_age_person2=85,
+        filing_status="MFJ",
+        start_year=2026,
+        year1_spend=121000,
+        year1_brokerage_draw=100000,
+        year1_ira_draw=21000,
+        year1_roth_draw=0,
         target_spend=150000,
         year1_magi_floor=43000,
         year1_magi_target=85000,
@@ -279,6 +367,24 @@ def test_format_input_changes_shows_only_changes_from_baseline():
         gogo_percent=100,
         slow_years=8,
         slow_percent=75,
+        nogo_percent=70,
+        survivor_percent=70,
+        draw_order="Brokerage, IRA, Roth",
+        ss_person1_start_age=63,
+        ss_person2_start_age=67,
+        ss_person1_annual_at_start=32500,
+        ss_person2_annual_at_start=7000,
+        inflation=0.035,
+        brokerage_growth=0.04,
+        roth_growth=0.08,
+        ira_growth=0.07,
+        estimated_state_deduction=0,
+        estimated_state_tax_rate=0.0875,
+        standard_deduction_base=30000,
+        rmd_start_age=73,
+        brokerage_cash=398000,
+        brokerage_cost_basis=101000,
+        brokerage_unrealized_gain=44000,
         balances_brokerage=543000,
         balances_roth=200000,
         balances_ira=1000000,
@@ -286,7 +392,15 @@ def test_format_input_changes_shows_only_changes_from_baseline():
 
     changes = format_input_changes(current, baseline)
 
+    assert changes.startswith("Inputs changed:\n")
+    assert "Accounts:" in changes
+    assert "Brkg Cash: $400,000 -> $398,000" in changes
+    assert "Brkg Basis: $100,000 -> $101,000" in changes
+    assert "Brkg Gain: $43,000 -> $44,000" in changes
     assert "Target Spend: $145,000 -> $150,000" in changes
+    assert "SS Age 1: 62 -> 63" in changes
+    assert "Year 1 Spend: $120,000 -> $121,000" in changes
+    assert "Year 1 IRA Draw: $20,000 -> $21,000" in changes
     assert "Person 1 Final Age: 75 -> 72" in changes
     assert "ACA MAGI Ceiling: $85,000 -> $43,000" in changes
     assert "Medicare MAGI Ceiling: $85,000 -> $200,000" in changes

@@ -64,8 +64,10 @@ def format_input_snapshot(cfg: Any) -> str:
     if cfg is None:
         return "Inputs: unavailable"
 
-    return "Inputs: " + " | ".join(
-        f"{label}: {value}" for label, value in _input_snapshot_items(cfg)
+    return "Inputs:\n" + "\n".join(
+        f"{section}: "
+        + " | ".join(f"{label}: {value}" for label, value in items)
+        for section, items in _input_snapshot_sections(cfg)
     )
 
 
@@ -74,29 +76,172 @@ def format_input_changes(cfg: Any, baseline_cfg: Any) -> str:
     if cfg is None or baseline_cfg is None:
         return format_input_snapshot(cfg)
 
-    current = _input_snapshot_items(cfg)
-    baseline = dict(_input_snapshot_items(baseline_cfg))
-    changes = [
-        f"{label}: {baseline.get(label, 'n/a')} -> {value}"
-        for label, value in current
-        if baseline.get(label) != value
-    ]
-    if not changes:
+    baseline = {
+        (section, label): value
+        for section, items in _input_snapshot_sections(baseline_cfg)
+        for label, value in items
+    }
+    section_changes = []
+    for section, items in _input_snapshot_sections(cfg):
+        changes = [
+            f"{label}: {baseline.get((section, label), 'n/a')} -> {value}"
+            for label, value in items
+            if baseline.get((section, label)) != value
+        ]
+        if changes:
+            section_changes.append(f"{section}: " + " | ".join(changes))
+
+    if not section_changes:
         return "Inputs: No changes from default config"
-    return "Inputs changed: " + " | ".join(changes)
+    return "Inputs changed:\n" + "\n".join(section_changes)
+
+
+def _input_snapshot_sections(
+    cfg: Any,
+) -> tuple[tuple[str, tuple[tuple[str, str], ...]], ...]:
+    """Return display-ready status inputs grouped by GUI section."""
+    return (
+        (
+            "Personal",
+            (
+                (
+                    "Person 1 Birth Year",
+                    _format_number(getattr(cfg, "birth_year_person1", 0)),
+                ),
+                (
+                    "Person 2 Birth Year",
+                    _format_number(getattr(cfg, "birth_year_person2", 0)),
+                ),
+                (
+                    "Person 1 Final Age",
+                    _format_number(getattr(cfg, "final_age_person1", 0)),
+                ),
+                (
+                    "Person 2 Final Age",
+                    _format_number(getattr(cfg, "final_age_person2", 0)),
+                ),
+                ("Filing Status", str(getattr(cfg, "filing_status", ""))),
+                (
+                    "SS Age 1",
+                    _format_number(getattr(cfg, "ss_person1_start_age", 0)),
+                ),
+                (
+                    "SS Age 2",
+                    _format_number(getattr(cfg, "ss_person2_start_age", 0)),
+                ),
+                (
+                    "SS Annual 1",
+                    format_currency(getattr(cfg, "ss_person1_annual_at_start", 0)),
+                ),
+                (
+                    "SS Annual 2",
+                    format_currency(getattr(cfg, "ss_person2_annual_at_start", 0)),
+                ),
+            ),
+        ),
+        (
+            "Accounts",
+            (
+                ("Brkg Cash", format_currency(getattr(cfg, "brokerage_cash", 0))),
+                (
+                    "Brkg Basis",
+                    format_currency(getattr(cfg, "brokerage_cost_basis", 0)),
+                ),
+                (
+                    "Brkg Gain",
+                    format_currency(getattr(cfg, "brokerage_unrealized_gain", 0)),
+                ),
+                ("IRA", format_currency(getattr(cfg, "balances_ira", 0))),
+                ("Roth", format_currency(getattr(cfg, "balances_roth", 0))),
+            ),
+        ),
+        (
+            "Spending",
+            (
+                ("Draw Order", str(getattr(cfg, "draw_order", ""))),
+                ("Start Year", _format_number(getattr(cfg, "start_year", 0))),
+                ("Year 1 Spend", format_currency(getattr(cfg, "year1_spend", 0))),
+                (
+                    "Year 1 Brkg Draw",
+                    format_currency(getattr(cfg, "year1_brokerage_draw", 0)),
+                ),
+                (
+                    "Year 1 IRA Draw",
+                    format_currency(getattr(cfg, "year1_ira_draw", 0)),
+                ),
+                (
+                    "Year 1 Roth Draw",
+                    format_currency(getattr(cfg, "year1_roth_draw", 0)),
+                ),
+                ("Target Spend", format_currency(getattr(cfg, "target_spend", 0))),
+                (
+                    "GoGo Years",
+                    f"{_format_number(getattr(cfg, 'gogo_years', 0))}/"
+                    f"{_format_percent(getattr(cfg, 'gogo_percent', 0), scale=False)}",
+                ),
+                (
+                    "SlowGo Years",
+                    f"{_format_number(getattr(cfg, 'slow_years', 0))}/"
+                    f"{_format_percent(getattr(cfg, 'slow_percent', 0), scale=False)}",
+                ),
+                (
+                    "NoGo %",
+                    _format_percent(getattr(cfg, "nogo_percent", 0), scale=False),
+                ),
+                (
+                    "Survivor %",
+                    _format_percent(getattr(cfg, "survivor_percent", 0), scale=False),
+                ),
+            ),
+        ),
+        (
+            "Rates",
+            (
+                ("Inflation", _format_percent(getattr(cfg, "inflation", 0))),
+                (
+                    "Brkg Growth",
+                    _format_percent(getattr(cfg, "brokerage_growth", 0)),
+                ),
+                ("Roth Growth", _format_percent(getattr(cfg, "roth_growth", 0))),
+                ("IRA Growth", _format_percent(getattr(cfg, "ira_growth", 0))),
+            ),
+        ),
+        (
+            "Tax",
+            (
+                (
+                    "State Deduction",
+                    format_currency(getattr(cfg, "estimated_state_deduction", 0)),
+                ),
+                (
+                    "State Rate",
+                    _format_percent(getattr(cfg, "estimated_state_tax_rate", 0)),
+                ),
+                (
+                    "Standard Deduction",
+                    format_currency(getattr(cfg, "standard_deduction_base", 0)),
+                ),
+                (
+                    "RMD Start Age",
+                    _format_number(getattr(cfg, "rmd_start_age", 0)),
+                ),
+                ("Medicare Age", _format_number(getattr(cfg, "aca_end_age", 0))),
+            ),
+        ),
+        ("Roth Planning", _roth_planning_snapshot_items(cfg)),
+    )
 
 
 def _input_snapshot_items(cfg: Any) -> tuple[tuple[str, str], ...]:
-    """Return display-ready status inputs in a stable order."""
-    total_assets = (
-        _as_number(getattr(cfg, "balances_brokerage", 0))
-        + _as_number(getattr(cfg, "balances_roth", 0))
-        + _as_number(getattr(cfg, "balances_ira", 0))
+    """Return display-ready status inputs in a stable flat order."""
+    return tuple(
+        item for _section, items in _input_snapshot_sections(cfg) for item in items
     )
+
+
+def _roth_planning_snapshot_items(cfg: Any) -> tuple[tuple[str, str], ...]:
+    """Return Roth Planning inputs in a stable order."""
     return (
-        ("Person 1 Final Age", _format_number(getattr(cfg, "final_age_person1", 0))),
-        ("Person 2 Final Age", _format_number(getattr(cfg, "final_age_person2", 0))),
-        ("Target Spend", format_currency(getattr(cfg, "target_spend", 0))),
         ("Year 1 MAGI Floor", format_currency(getattr(cfg, "year1_magi_floor", 0))),
         ("Year 1 MAGI Target", format_currency(getattr(cfg, "year1_magi_target", 0))),
         (
@@ -154,18 +299,6 @@ def _input_snapshot_items(cfg: Any) -> tuple[tuple[str, str], ...]:
             "Medicare Planned Roth Conversion",
             format_currency(getattr(cfg, "medicare_planned_roth_conversion", 0)),
         ),
-        ("Medicare Age", _format_number(getattr(cfg, "aca_end_age", 0))),
-        (
-            "GoGo Years",
-            f"{_format_number(getattr(cfg, 'gogo_years', 0))}/"
-            f"{_format_percent(getattr(cfg, 'gogo_percent', 0), scale=False)}",
-        ),
-        (
-            "SlowGo Years",
-            f"{_format_number(getattr(cfg, 'slow_years', 0))}/"
-            f"{_format_percent(getattr(cfg, 'slow_percent', 0), scale=False)}",
-        ),
-        ("Total Assets", format_currency(total_assets)),
     )
 
 
@@ -174,8 +307,9 @@ def _format_percent(value: Any, scale: bool = True) -> str:
         value = float(value)
         if scale:
             value *= 100
-        if value == int(value):
-            return f"{int(value)}%"
+        rounded = round(value)
+        if abs(value - rounded) < 0.000001:
+            return f"{rounded}%"
         return f"{value:.2f}%"
     except (TypeError, ValueError):
         return "0%"
@@ -393,7 +527,7 @@ class ResultsDisplay(tb.Frame):
     def append_summary_history(self, cfg: Any, baseline_cfg: Any = None) -> None:
         entry = [
             format_input_changes(cfg, baseline_cfg),
-            f"Status: {self.summary_var.get()}",
+            f"Result: {self.summary_var.get()}",
             "",
         ]
         self._history_lines.extend(entry)
