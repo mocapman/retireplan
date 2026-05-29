@@ -25,6 +25,7 @@ column_order:
 - Brokerage_Balance
 - Roth_Balance
 - Total_Assets
+- MAGI
 draw_order: Brokerage, IRA, Roth
 filing_status: MFJ
 final_age_person1: 75
@@ -40,35 +41,35 @@ social_security:
   person2_annual_at_start: 7000.0
   person2_start_age: 62
   ss_person1_monthly_by_start_age:
-    62: 2688
-    63: 2878
-    64: 3078
-    65: 3342
-    66: 3605
-    67: 3869
-    68: 4049
-    69: 4359
-    70: 4797
+    62: 2688.0
+    63: 2878.0
+    64: 3078.0
+    65: 3342.0
+    66: 3605.0
+    67: 3869.0
+    68: 4049.0
+    69: 4359.0
+    70: 4797.0
   ss_person2_monthly_by_start_age:
-    62: 586
-    63: 625
-    64: 666
-    65: 722
-    66: 777
-    67: 833
-    68: 883
-    69: 950
-    70: 1033
+    62: 586.0
+    63: 625.0
+    64: 666.0
+    65: 722.0
+    66: 777.0
+    67: 833.0
+    68: 883.0
+    69: 950.0
+    70: 1033.0
 spending:
-  aca_extra_magi_income: 5000.0
   aca_annual_magi_income: 5000.0
+  aca_annual_magi_loss: 500.0
+  aca_annual_roth_conversion: 35000.0
+  aca_extra_magi_income: 5000.0
   aca_magi_ceiling: 85000.0
   aca_magi_floor: 43000.0
   aca_magi_loss_offset: 500.0
   aca_magi_target: 80000.0
-  aca_annual_magi_loss: 500.0
   aca_planned_roth_conversion: 35000.0
-  aca_annual_roth_conversion: 35000.0
   gogo_percent: 100.0
   gogo_years: 8
   magi_conversions_projected: 0.0
@@ -83,15 +84,15 @@ spending:
   magi_losses_projected: 0.0
   magi_losses_years: 0.0
   magi_losses_ytd: 5332.0
-  medicare_extra_magi_income: 0.0
   medicare_annual_magi_income: 0.0
+  medicare_annual_magi_loss: 2000.0
+  medicare_annual_roth_conversion: 50000.0
+  medicare_extra_magi_income: 0.0
   medicare_magi_ceiling: 85000.0
   medicare_magi_floor: 43000.0
   medicare_magi_loss_offset: 2000.0
   medicare_magi_target: 85000.0
-  medicare_annual_magi_loss: 2000.0
   medicare_planned_roth_conversion: 50000.0
-  medicare_annual_roth_conversion: 50000.0
   nogo_percent: 70.0
   slow_percent: 75.0
   slow_years: 6
@@ -101,19 +102,19 @@ spending:
   year1_brokerage_draw: 120000.0
   year1_capital_gains_to_date: 0.0
   year1_capital_losses_to_date: 0.0
+  year1_extra_magi_income: 29631.0
   year1_income_to_date: 0.0
   year1_ira_draw: 0.0
-  year1_extra_magi_income: 29631.0
   year1_magi_ceiling: 85000.0
   year1_magi_floor: 43000.0
   year1_magi_income: 29631.0
   year1_magi_loss_offset: 5332.0
   year1_magi_losses: 5332.0
-  year1_magi_target: 80000.0
+  year1_magi_target: 43000.0
+  year1_planned_roth_conversion: 15000.0
   year1_projected_capital_gains: 0.0
   year1_projected_capital_losses: 0.0
   year1_projected_income: 0.0
-  year1_planned_roth_conversion: 15000.0
   year1_roth_conversion: 15000.0
   year1_roth_draw: 0.0
   year1_spend: 120000.0
