@@ -326,14 +326,20 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         # When neither alive: no benefits
         if yc.person1_alive and yc.person2_alive:
             ss_income = ss_person1 + ss_person2
+            ss_person1_gross = ss_person1
+            ss_person2_gross = ss_person2
         elif yc.person1_alive and not yc.person2_alive:
             ss_income = max(ss_person1, ss_person2)
+            ss_person1_gross = ss_income
+            ss_person2_gross = Decimal(0)
         elif (not yc.person1_alive) and yc.person2_alive:
             ss_income = max(ss_person1, ss_person2)
+            ss_person1_gross = Decimal(0)
+            ss_person2_gross = ss_income
         else:
             ss_income = Decimal(0)
-        ss_person1_gross = ss_person1 if yc.person1_alive else Decimal(0)
-        ss_person2_gross = ss_person2 if yc.person2_alive else Decimal(0)
+            ss_person1_gross = Decimal(0)
+            ss_person2_gross = Decimal(0)
         ss_survivor_adjustment = ss_income - ss_person1_gross - ss_person2_gross
 
         # BUSINESS RULE: Required Minimum Distribution (RMD) calculation

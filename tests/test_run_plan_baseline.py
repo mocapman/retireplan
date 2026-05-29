@@ -545,10 +545,42 @@ def test_social_security_audit_columns_show_person_and_survivor_amounts():
     assert both_alive_row["Social_Security"] == 18000
     assert both_alive_row["SS_Survivor_Adjustment"] == 0
     assert survivor_row["SS_Person1_Gross"] == 0
-    assert survivor_row["SS_Person2_Gross"] == 6000
+    assert survivor_row["SS_Person2_Gross"] == 12000
     assert survivor_row["SS_Total_Gross"] == 12000
     assert survivor_row["Social_Security"] == 12000
-    assert survivor_row["SS_Survivor_Adjustment"] == 6000
+    assert survivor_row["SS_Survivor_Adjustment"] == 0
+    assert survivor_row["SS_Filing_Status_Used"] == "Single"
+
+
+def test_social_security_person1_survivor_receives_higher_deceased_spouse_benefit():
+    cfg = minimal_two_person_config()
+    cfg.birth_year_person1 = 1965
+    cfg.birth_year_person2 = 1965
+    cfg.final_age_person1 = 62
+    cfg.final_age_person2 = 61
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.target_spend = 0
+    cfg.ss_person1_start_age = 60
+    cfg.ss_person1_annual_at_start = 10000
+    cfg.ss_person2_start_age = 60
+    cfg.ss_person2_annual_at_start = 20000
+    cfg.inflation = 0
+
+    rows = run_plan(cfg)
+    both_alive_row = rows[1]
+    survivor_row = rows[2]
+
+    assert both_alive_row["SS_Person1_Gross"] == 10000
+    assert both_alive_row["SS_Person2_Gross"] == 20000
+    assert both_alive_row["Social_Security"] == 30000
+    assert both_alive_row["SS_Survivor_Adjustment"] == 0
+    assert survivor_row["Living_Person"] == "Person1"
+    assert survivor_row["SS_Person1_Gross"] == 20000
+    assert survivor_row["SS_Person2_Gross"] == 0
+    assert survivor_row["Social_Security"] == 20000
+    assert survivor_row["SS_Total_Gross"] == 20000
+    assert survivor_row["SS_Survivor_Adjustment"] == 0
     assert survivor_row["SS_Filing_Status_Used"] == "Single"
 
 
