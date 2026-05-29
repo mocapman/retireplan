@@ -154,6 +154,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             target_spend = year1_lifestyle_spend  
             # Total_Spend: For Year 1, show the gross lifestyle spending (same as target)
             total_spend = year1_lifestyle_spend
+            aca_premium = Decimal(0)
 
             # Create Year 1 row
             row_data = {
@@ -164,9 +165,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Filing": (
                     "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
                 ),
+                "Target_Spend": round_dollar(target_spend),
+                "ACA_Premium": round_dollar(aca_premium),
                 "Total_Spend": round_dollar(total_spend),
                 "Taxes_Due": round_dollar(tax),
-                "Target_Spend": round_dollar(target_spend),
                 "Social_Security": round_dollar(ss_income),
                 "IRA_Draw": round_dollar(draw_ira),
                 "Brokerage_Draw": round_dollar(draw_broke),
@@ -351,7 +353,9 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             rmd = ira_end / Decimal(str(rmd_factor(rmd_age)))
 
         estimated_tax = Decimal(0)
+        estimated_aca_premium = Decimal(0)
         tax = Decimal(0)
+        aca_premium = Decimal(0)
         federal_tax = Decimal(0)
         taxable_income = Decimal(0)
         estimated_state_taxable_income = Decimal(0)
@@ -370,12 +374,13 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
         b1, r1, i1 = brokerage_end, roth_end, ira_end - rmd
         unmet = Decimal(0)
         tax_stable = False
+        aca_premium_stable = False
 
         # BUSINESS RULE: Taxes are part of the annual cash need.
         # Because taxes depend on draws, solve by bounded iteration from the same
         # pre-draw balances each pass and commit only the final pass.
         for _ in range(8):
-            annual_need = target_spend_lifestyle + estimated_tax
+            annual_need = target_spend_lifestyle + estimated_aca_premium + estimated_tax
             need_for_budget = max(Decimal(0), annual_need - ss_income - rmd)
 
             # Note: RMD amount is excluded from normal draw-order withdrawals.
@@ -456,6 +461,11 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 iter_magi,
             ) = tax_and_magi(iter_roth_conv)
             iter_estimated_state_tax = iter_tax - iter_federal_tax
+            iter_aca_premium = _estimated_aca_premium(
+                iter_magi,
+                yc,
+                cfg,
+            )
 
             draw_broke = iter_draw_broke
             draw_roth = iter_draw_roth
@@ -474,16 +484,26 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             estimated_state_taxable_income = iter_estimated_state_taxable_income
             estimated_state_tax = iter_estimated_state_tax
             magi = iter_magi
+            aca_premium = iter_aca_premium
 
-            if abs(tax - estimated_tax) <= Decimal("1.0") and tax_stable:
+            tax_delta = abs(tax - estimated_tax)
+            aca_premium_delta = abs(aca_premium - estimated_aca_premium)
+            if (
+                tax_delta <= Decimal("1.0")
+                and aca_premium_delta <= Decimal("1.0")
+                and tax_stable
+                and aca_premium_stable
+            ):
                 break
-            tax_stable = abs(tax - estimated_tax) <= Decimal("1.0")
+            tax_stable = tax_delta <= Decimal("1.0")
+            aca_premium_stable = aca_premium_delta <= Decimal("1.0")
             estimated_tax = tax
+            estimated_aca_premium = aca_premium
 
         # BUSINESS RULE: Surplus RMD handling
         # If RMD exceeds annual cash need (after SS), put surplus in brokerage
         # This ensures required distributions are taken but excess goes to taxable account
-        total_spend = target_spend_lifestyle + tax
+        total_spend = target_spend_lifestyle + aca_premium + tax
         need_after_ss = max(Decimal(0), total_spend - ss_income)
         rmd_surplus = max(Decimal(0), rmd - need_after_ss)
         rmd_used_for_spending = rmd - rmd_surplus
@@ -522,9 +542,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Person2_Age": round_year(yc.age_person2),
             "Lifestyle": yc.phase,
             "Filing": filing_status,
+            "Target_Spend": round_dollar(target_spend),
+            "ACA_Premium": round_dollar(aca_premium),
             "Total_Spend": round_dollar(total_spend),
             "Taxes_Due": round_dollar(tax),
-            "Target_Spend": round_dollar(target_spend),
             "Social_Security": round_dollar(ss_income),
             "IRA_Draw": round_dollar(draw_ira),
             "Brokerage_Draw": round_dollar(draw_broke),
@@ -649,6 +670,36 @@ def _estimated_state_tax(
     return state_taxable_income, state_taxable_income * max(
         Decimal(0), estimated_state_tax_rate
     )
+
+
+def _estimated_aca_premium(magi: Decimal, yc, cfg) -> Decimal:
+    """Estimate annual ACA premium from the configured MAGI-to-premium table."""
+    if yc.age_person1 >= cfg.aca_end_age:
+        return Decimal(0)
+    table = getattr(cfg, "aca_premium_by_magi", {}) or {}
+    if not table:
+        return Decimal(0)
+
+    points = sorted((Decimal(str(k)), Decimal(str(v))) for k, v in table.items())
+    full_monthly = Decimal(str(getattr(cfg, "aca_full_premium_monthly", 0)))
+
+    if magi <= points[0][0]:
+        return points[0][1] * Decimal(12)
+    if magi >= points[-1][0]:
+        return (full_monthly or points[-1][1]) * Decimal(12)
+
+    for (lower_magi, lower_premium), (upper_magi, upper_premium) in zip(
+        points, points[1:]
+    ):
+        if lower_magi <= magi <= upper_magi:
+            span = upper_magi - lower_magi
+            if span == Decimal(0):
+                return upper_premium * Decimal(12)
+            ratio = (magi - lower_magi) / span
+            monthly = lower_premium + (upper_premium - lower_premium) * ratio
+            return monthly * Decimal(12)
+
+    return Decimal(0)
 
 
 def _rmd_age_for_year(yc) -> int | None:

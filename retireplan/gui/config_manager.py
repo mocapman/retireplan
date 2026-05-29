@@ -114,6 +114,8 @@ class ConfigManager:
                 "estimated_state_tax_rate": cfg.estimated_state_tax_rate,
                 "rmd_start_age": cfg.rmd_start_age,
                 "aca_end_age": cfg.aca_end_age,
+                "aca_full_premium_monthly": cfg.aca_full_premium_monthly,
+                "aca_premium_by_magi": cfg.aca_premium_by_magi,
                 "magi_floor_base": cfg.magi_floor_base,
                 "magi_ceiling_base": cfg.magi_ceiling_base,
                 "medicare_magi_ceiling_base": cfg.medicare_magi_ceiling_base,

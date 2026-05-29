@@ -88,6 +88,7 @@ def round_count(value: Any) -> int:
 ROUNDING_RULES: Dict[str, Callable[[Any], Any]] = {
     # Dollar amounts
     "Total_Spend": round_dollar,
+    "ACA_Premium": round_dollar,
     "Taxes_Due": round_dollar,
     "Target_Spend": round_dollar,
     "Social_Security": round_dollar,

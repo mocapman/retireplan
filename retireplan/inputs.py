@@ -114,6 +114,8 @@ class Inputs:
     estimated_state_tax_rate: float
     rmd_start_age: int
     aca_end_age: int
+    aca_full_premium_monthly: float
+    aca_premium_by_magi: dict[int, float]
     magi_floor_base: float
     magi_ceiling_base: float
     medicare_magi_ceiling_base: float
@@ -287,6 +289,8 @@ def load_yaml(path: str) -> Inputs:
         estimated_state_tax_rate=th.get("estimated_state_tax_rate", 0.0875),
         rmd_start_age=th["rmd_start_age"],
         aca_end_age=th["aca_end_age"],
+        aca_full_premium_monthly=th.get("aca_full_premium_monthly", 0),
+        aca_premium_by_magi=_money_map(th.get("aca_premium_by_magi", {})),
         magi_floor_base=th.get("magi_floor_base", 0),
         magi_ceiling_base=th.get("magi_ceiling_base", 0),
         medicare_magi_ceiling_base=th.get(
@@ -302,6 +306,12 @@ def _monthly_benefit_map(raw: dict | None) -> dict[int, float]:
     if not raw:
         return {}
     return {int(age): float(amount) for age, amount in raw.items()}
+
+
+def _money_map(raw: dict | None) -> dict[int, float]:
+    if not raw:
+        return {}
+    return {int(amount): float(value) for amount, value in raw.items()}
 
 
 def validate(i: Inputs) -> None:

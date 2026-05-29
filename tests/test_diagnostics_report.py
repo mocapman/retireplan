@@ -15,6 +15,7 @@ def test_build_diagnostic_report_includes_current_math_fields():
         "Filing",
         "Lifestyle",
         "Target_Spend",
+        "ACA_Premium",
         "Total_Spend",
         "Social_Security",
         "IRA_Draw",
@@ -73,8 +74,8 @@ def test_build_diagnostic_report_includes_current_math_fields():
     ):
         assert field in report
 
-    assert "2025 | 60 | 59 | MFJ | GoGo | 1000 | 1000" in report
-    assert "2027 | 62 | 61 | MFJ | NoGo | 700 | 700" in report
+    assert "2025 | 60 | 59 | MFJ | GoGo | 1000 | 0 | 1000" in report
+    assert "2027 | 62 | 61 | MFJ | NoGo | 700 | 0 | 700" in report
 
 
 def test_build_diagnostic_report_omits_fields_that_are_not_present():

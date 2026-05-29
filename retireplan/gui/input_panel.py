@@ -963,6 +963,10 @@ class InputPanel(tb.Frame):
                 ),
                 "rmd_start_age": safe_int(self.variables["rmd_start_age"].get()),
                 "aca_end_age": safe_int(self.variables["aca_end_age"].get()),
+                "aca_full_premium_monthly": getattr(
+                    cfg, "aca_full_premium_monthly", 0
+                ),
+                "aca_premium_by_magi": getattr(cfg, "aca_premium_by_magi", {}),
                 "magi_floor_base": money_value("aca_magi_floor"),
                 "magi_ceiling_base": money_value("aca_magi_ceiling"),
                 "medicare_magi_ceiling_base": money_value("medicare_magi_ceiling"),

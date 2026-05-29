@@ -10,6 +10,7 @@ DIAGNOSTIC_FIELDS = [
     "Filing",
     "Lifestyle",
     "Target_Spend",
+    "ACA_Premium",
     "Total_Spend",
     "Social_Security",
     "IRA_Draw",

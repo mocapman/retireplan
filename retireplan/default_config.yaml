@@ -13,8 +13,10 @@ column_order:
 - Filing
 - Lifestyle
 - Target_Spend
+- ACA_Premium
 - Total_Spend
 - Taxes_Due
+- MAGI
 - Social_Security
 - IRA_Draw
 - Brokerage_Draw
@@ -119,6 +121,31 @@ spending:
   year1_roth_draw: 0.0
   year1_spend: 120000.0
 tax_health:
+  aca_full_premium_monthly: 2555.0
+  aca_premium_by_magi:
+    43000: 601
+    45000: 626
+    47000: 651
+    49000: 678
+    51000: 705
+    53000: 734
+    55000: 762
+    57000: 790
+    59000: 819
+    61000: 849
+    63000: 880
+    65000: 900
+    67000: 917
+    69000: 933
+    71000: 950
+    73000: 966
+    75000: 983
+    77000: 1000
+    79000: 1016
+    81000: 1033
+    83000: 1049
+    84000: 1058
+    85000: 2555
   aca_end_age: 65
   estimated_state_deduction: 5670.0
   estimated_state_tax_rate: 0.0875

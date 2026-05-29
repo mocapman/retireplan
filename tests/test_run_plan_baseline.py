@@ -102,6 +102,8 @@ def minimal_two_person_config() -> Inputs:
         estimated_state_tax_rate=0.0875,
         rmd_start_age=73,
         aca_end_age=65,
+        aca_full_premium_monthly=0,
+        aca_premium_by_magi={},
         magi_floor_base=0,
         magi_ceiling_base=1,
         medicare_magi_ceiling_base=1,
@@ -179,6 +181,7 @@ def test_run_plan_rows_include_current_schema_and_core_financial_fields():
     core_fields = {
         "Total_Spend",
         "Target_Spend",
+        "ACA_Premium",
         "Taxes_Due",
         "Brokerage_Cash_Used",
         "Brokerage_Holdings_Sold",
@@ -222,6 +225,7 @@ def test_run_plan_baseline_tax_magi_conversion_and_shortfall_outputs():
     rows = run_plan(minimal_two_person_config())
 
     assert [row["Taxes_Due"] for row in rows] == [0, 0, 0]
+    assert [row["ACA_Premium"] for row in rows] == [0, 0, 0]
     assert [row["MAGI"] for row in rows] == [0, 0, 0]
     assert [row["Roth_Conversion"] for row in rows] == [0, 0, 0]
     assert [row["Shortfall"] for row in rows] == [0, 0, 0]
@@ -333,6 +337,86 @@ def test_run_plan_estimated_state_tax_is_included_in_taxes_due_and_draws():
     )
     assert state_tax_row["IRA_Draw"] == state_tax_row["Total_Spend"]
     assert state_tax_row["Shortfall"] == 0
+
+
+def test_aca_premium_is_included_in_pre_medicare_total_spend_and_draws():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 100000
+    cfg.brokerage_cash = 100000
+    cfg.brokerage_cost_basis = 0
+    cfg.brokerage_unrealized_gain = 0
+    cfg.balances_roth = 0
+    cfg.balances_ira = 0
+    cfg.target_spend = 0
+    cfg.standard_deduction_base = 100000
+    cfg.estimated_state_tax_rate = 0
+    cfg.aca_end_age = 65
+    cfg.aca_full_premium_monthly = 2555
+    cfg.aca_premium_by_magi = {43000: 601, 85000: 2555}
+    set_aca_roth_planning(cfg, 0, 43000, 85000, 43000, 0, 0)
+
+    row = run_plan(cfg)[1]
+
+    assert row["Person1_Age"] == 61
+    assert row["MAGI"] == 43000
+    assert row["ACA_Premium"] == 7212
+    assert row["Taxes_Due"] == 0
+    assert row["Total_Spend"] == (
+        row["Target_Spend"] + row["ACA_Premium"] + row["Taxes_Due"]
+    )
+    assert row["Brokerage_Draw"] == row["Total_Spend"]
+    assert row["Shortfall"] == 0
+
+
+def test_aca_premium_uses_full_premium_at_or_above_cliff():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 100000
+    cfg.brokerage_cash = 100000
+    cfg.brokerage_cost_basis = 0
+    cfg.brokerage_unrealized_gain = 0
+    cfg.balances_roth = 0
+    cfg.balances_ira = 0
+    cfg.target_spend = 0
+    cfg.standard_deduction_base = 100000
+    cfg.estimated_state_tax_rate = 0
+    cfg.aca_end_age = 65
+    cfg.aca_full_premium_monthly = 2555
+    cfg.aca_premium_by_magi = {43000: 601, 85000: 2555}
+    set_aca_roth_planning(cfg, 0, 85000, 85000, 85000, 0, 0)
+
+    row = run_plan(cfg)[1]
+
+    assert row["MAGI"] == 85000
+    assert row["ACA_Premium"] == 30660
+    assert row["Total_Spend"] == 30660
+
+
+def test_aca_premium_is_zero_at_medicare_age_and_later():
+    cfg = minimal_two_person_config()
+    cfg.year1_spend = 0
+    cfg.year1_brokerage_draw = 0
+    cfg.balances_brokerage = 100000
+    cfg.brokerage_cash = 100000
+    cfg.balances_roth = 0
+    cfg.balances_ira = 0
+    cfg.target_spend = 0
+    cfg.standard_deduction_base = 100000
+    cfg.estimated_state_tax_rate = 0
+    cfg.aca_end_age = 61
+    cfg.aca_full_premium_monthly = 2555
+    cfg.aca_premium_by_magi = {43000: 601, 85000: 2555}
+    set_medicare_roth_planning(cfg, 0, 43000, 85000, 43000, 0, 0)
+
+    row = run_plan(cfg)[1]
+
+    assert row["Person1_Age"] == 61
+    assert row["MAGI"] == 43000
+    assert row["ACA_Premium"] == 0
+    assert row["Total_Spend"] == 0
 
 
 def test_federal_tax_audit_columns_show_mfj_standard_deduction_and_brackets():

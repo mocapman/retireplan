@@ -21,6 +21,7 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
     row.update(
         {
             "Year": 2025,
+            "ACA_Premium": 7212,
             "Brokerage_Cash_Used": 500,
             "Brokerage_Holdings_Sold": 300,
             "Brokerage_Basis_Used": 237,
@@ -97,6 +98,7 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
 
     assert rows[0] == schema.labels()
     assert "Brokerage_Capital_Gains" in rows[0]
+    assert "ACA_Premium" in rows[0]
     assert "Brokerage_MAGI_Income" not in rows[0]
     assert "Federal_Tax" in rows[0]
     assert "Filing_Status_Used" in rows[0]
