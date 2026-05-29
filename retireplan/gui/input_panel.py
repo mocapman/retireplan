@@ -66,12 +66,12 @@ class InputPanel(tb.Frame):
         tb.Label(
             self,
             text="Update Inputs Below",
-            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE + 2, "bold"),
             foreground=palette.TEXT_PRIMARY,
-        ).pack(fill=tk.X, padx=10, pady=(8, 4), anchor=tk.W)
+        ).pack(fill=tk.X, padx=12, pady=(8, 22), anchor=tk.W)
 
         tk.Frame(self, height=1, bg=palette.BORDER).pack(
-            fill=tk.X, padx=10, pady=(0, 5)
+            fill=tk.X, padx=12, pady=(8, 14)
         )
 
         body_frame = tb.Frame(self)
