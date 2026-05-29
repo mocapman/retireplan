@@ -1,6 +1,7 @@
 from retireplan import schema
 from retireplan.engine.core import run_plan
 from retireplan.inputs import load_yaml
+from retireplan.projections import to_2d_for_table
 from tests.test_run_plan_baseline import minimal_two_person_config
 
 
@@ -79,7 +80,6 @@ def test_tax_diagnostic_fields_are_schema_export_fields_not_gui_default():
 
 def test_magi_guardrail_fields_are_schema_export_fields_not_gui_default():
     diagnostic_fields = {
-        "MAGI",
         "MAGI_Floor",
         "Target_MAGI",
         "MAGI_Ceiling",
@@ -90,3 +90,17 @@ def test_magi_guardrail_fields_are_schema_export_fields_not_gui_default():
 
     assert diagnostic_fields.issubset(set(schema.keys()))
     assert diagnostic_fields.isdisjoint(set(schema.visible_keys()))
+
+
+def test_magi_is_visible_but_magi_guardrails_are_hidden_from_projection_table():
+    rows = run_plan(minimal_two_person_config())
+    headers, _data = to_2d_for_table(rows)
+
+    assert "MAGI" in schema.visible_keys()
+    assert "MAGI" in headers
+    assert "MAGI_Ceiling" in schema.keys()
+    assert "MAGI_Status" in schema.keys()
+    assert "MAGI_Ceiling" not in schema.visible_keys()
+    assert "MAGI_Status" not in schema.visible_keys()
+    assert "MAGI_Ceiling" not in headers
+    assert "MAGI_Status" not in headers

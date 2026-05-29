@@ -62,7 +62,7 @@ COLUMNS: List[Dict[str, Any]] = [
         "label": "Brokerage_Capital_Gains",
         "visible": False,
     },
-    {"key": "MAGI", "label": "MAGI", "visible": False},
+    {"key": "MAGI", "label": "MAGI", "visible": True},
     {"key": "MAGI_Floor", "label": "MAGI_Floor", "visible": False},
     {"key": "Target_MAGI", "label": "Target_MAGI", "visible": False},
     {"key": "MAGI_Ceiling", "label": "MAGI_Ceiling", "visible": False},
