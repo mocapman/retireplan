@@ -84,21 +84,21 @@ class InputPanel(tb.Frame):
         body_frame = tb.Frame(self)
         body_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        nav_frame = tb.Frame(body_frame, width=160)
-        nav_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 8))
+        nav_frame = tb.Frame(body_frame)
+        nav_frame.pack(fill=tk.X, padx=0, pady=(0, 8))
 
         content_frame = tb.Frame(body_frame)
-        content_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        content_frame.pack(fill=tk.BOTH, expand=True)
         content_frame.rowconfigure(0, weight=1)
         content_frame.columnconfigure(0, weight=1)
 
         sections = (
             ("Personal", self.create_personal_section),
             ("Accounts", self.create_accounts_section),
-            ("Spending", self.create_spending_section),
-            ("Roth Planning", self.create_magi_planning_section),
             ("Rates", self.create_rates_section),
             ("Tax", self.create_tax_section),
+            ("Spending", self.create_spending_section),
+            ("Roth Planning", self.create_magi_planning_section),
         )
 
         self.section_frames = {}
@@ -115,9 +115,10 @@ class InputPanel(tb.Frame):
                 command=lambda name=label: self.show_section(name),
                 bootstyle=SECONDARY,
             )
-            button.grid(row=row, column=0, sticky=(tk.W, tk.E), padx=5, pady=2)
+            button.grid(row=0, column=row, sticky=(tk.W, tk.E), padx=(0, 5), pady=2)
             self.nav_buttons[label] = button
-        nav_frame.columnconfigure(0, weight=1)
+        for col in range(len(sections)):
+            nav_frame.columnconfigure(col, weight=1)
         self.show_section("Personal")
 
     def show_section(self, name):
@@ -176,9 +177,9 @@ class InputPanel(tb.Frame):
 
     def create_currency_cell(self, parent, key, row, col):
         var = self.variables.setdefault(key, tk.StringVar(value=""))
-        entry = tb.Entry(parent, textvariable=var, font=INPUT_FONT)
+        entry = tb.Entry(parent, textvariable=var, font=INPUT_FONT, width=11)
         entry.grid(row=row, column=col, sticky=(tk.W, tk.E), padx=5, pady=2)
-        parent.columnconfigure(col, weight=1, minsize=150)
+        parent.columnconfigure(col, weight=1, minsize=95)
 
         def on_focus_in(event):
             var.set(strip_currency(var.get()))
@@ -194,6 +195,14 @@ class InputPanel(tb.Frame):
         entry.bind("<FocusIn>", on_focus_in)
         entry.bind("<FocusOut>", on_focus_out)
         return var
+
+    def create_display_cell(self, parent, var, row, col):
+        entry = tb.Entry(
+            parent, textvariable=var, font=INPUT_FONT, state="readonly", width=11
+        )
+        entry.grid(row=row, column=col, sticky=(tk.W, tk.E), padx=5, pady=2)
+        parent.columnconfigure(col, weight=1, minsize=95)
+        return entry
 
     def create_percent_field(self, parent, label, key, default, row, col=0):
         tb.Label(parent, text=label).grid(
@@ -410,6 +419,7 @@ class InputPanel(tb.Frame):
             self.magi_summary_projected.set(format_currency(projected_magi))
             self.magi_summary_remaining.set(format_currency(magi_remaining))
             self.magi_summary_active_ceiling.set(format_currency(magi_ceiling))
+            self.roth_year1_active_ceiling.set(format_currency(magi_ceiling))
             self.magi_summary_remaining_to_ceiling.set(
                 format_currency(magi_remaining_to_ceiling)
             )
@@ -513,7 +523,6 @@ class InputPanel(tb.Frame):
 
         inputs_frame = tb.Frame(parent)
         inputs_frame.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=2)
-        inputs_frame.columnconfigure(1, weight=1, minsize=180)
 
         summary_frame = tb.Frame(parent)
         summary_frame.grid(row=1, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=(16, 2))
@@ -523,75 +532,82 @@ class InputPanel(tb.Frame):
             inputs_frame,
             text="Roth Planning",
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
-        ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
+        ).grid(row=0, column=0, sticky=tk.W, padx=5, pady=(0, 8))
 
-        self.create_currency_field(
-            inputs_frame, "MAGI Floor", "magi_floor_base", "", 1
-        )
-        self.create_currency_field(
-            inputs_frame, "MAGI Target", "magi_target_base", "", 2
-        )
-        self.create_currency_field(
-            inputs_frame, "ACA MAGI Ceiling", "magi_ceiling_base", "", 3
-        )
-        self.create_currency_field(
-            inputs_frame,
-            "Medicare MAGI Ceiling",
-            "medicare_magi_ceiling_base",
-            "",
-            4,
-        )
-        self.create_input_field(inputs_frame, "Medicare Age", "aca_end_age", "", 5)
-        self.create_linked_currency_field(
-            inputs_frame, "Year 1 MAGI Income", "year1_magi_income", 6
-        )
-        self.create_linked_currency_field(
-            inputs_frame, "Year 1 MAGI Loss", "year1_magi_losses", 7
-        )
-        self.create_linked_currency_field(
-            inputs_frame, "Year 1 Roth Conversion", "year1_roth_conversion", 8
-        )
+        phase_frame = tb.Frame(inputs_frame)
+        phase_frame.grid(row=1, column=0, sticky=(tk.N, tk.W, tk.E), padx=0, pady=2)
+        phase_frame.columnconfigure(0, weight=0, minsize=140)
+        for col in (1, 2, 3):
+            phase_frame.columnconfigure(col, weight=1, minsize=95)
 
-        annual_frame = tb.Frame(inputs_frame)
-        annual_frame.grid(
-            row=9, column=0, columnspan=2, sticky=(tk.N, tk.W, tk.E), padx=0, pady=(16, 0)
-        )
-        annual_frame.columnconfigure(1, weight=1, minsize=150)
-        annual_frame.columnconfigure(2, weight=1, minsize=150)
         tb.Label(
-            annual_frame,
-            text="Annual Inputs",
+            phase_frame,
+            text="Phase Inputs",
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
         ).grid(row=0, column=0, sticky=tk.W, padx=5, pady=(0, 4))
-        tb.Label(annual_frame, text="ACA").grid(
+        tb.Label(phase_frame, text="Year 1 Manual").grid(
             row=0, column=1, sticky=tk.W, padx=5, pady=(0, 4)
         )
-        tb.Label(annual_frame, text="Medicare").grid(
+        tb.Label(phase_frame, text="ACA Years").grid(
             row=0, column=2, sticky=tk.W, padx=5, pady=(0, 4)
         )
-        annual_rows = (
+        tb.Label(phase_frame, text="Medicare Years").grid(
+            row=0, column=3, sticky=tk.W, padx=5, pady=(0, 4)
+        )
+
+        self.roth_year1_active_ceiling = tk.StringVar(value="$0")
+        phase_rows = (
             (
-                "Annual Income",
+                "MAGI Floor",
+                "magi_floor_base",
+                "magi_floor_base",
+                "magi_floor_base",
+            ),
+            (
+                "MAGI Target",
+                "magi_target_base",
+                "magi_target_base",
+                "magi_target_base",
+            ),
+            (
+                "MAGI Ceiling",
+                None,
+                "magi_ceiling_base",
+                "medicare_magi_ceiling_base",
+            ),
+            (
+                "Extra MAGI Income",
+                "year1_magi_income",
                 "aca_annual_magi_income",
                 "medicare_annual_magi_income",
             ),
             (
-                "Annual Loss",
+                "MAGI Loss Offset",
+                "year1_magi_losses",
                 "aca_annual_magi_loss",
                 "medicare_annual_magi_loss",
             ),
             (
-                "Annual Conversion",
+                "Planned Roth Conversion",
+                "year1_roth_conversion",
                 "aca_annual_roth_conversion",
                 "medicare_annual_roth_conversion",
             ),
         )
-        for row, (label, aca_key, medicare_key) in enumerate(annual_rows, start=1):
-            tb.Label(annual_frame, text=label).grid(
+        for row, (label, year1_key, aca_key, medicare_key) in enumerate(
+            phase_rows, start=1
+        ):
+            tb.Label(phase_frame, text=label).grid(
                 row=row, column=0, sticky=tk.W, padx=5, pady=2
             )
-            self.create_currency_cell(annual_frame, aca_key, row, 1)
-            self.create_currency_cell(annual_frame, medicare_key, row, 2)
+            if year1_key is None:
+                self.create_display_cell(
+                    phase_frame, self.roth_year1_active_ceiling, row, 1
+                )
+            else:
+                self.create_currency_cell(phase_frame, year1_key, row, 1)
+            self.create_currency_cell(phase_frame, aca_key, row, 2)
+            self.create_currency_cell(phase_frame, medicare_key, row, 3)
 
         for key in (
             "magi_floor_base",
@@ -612,7 +628,7 @@ class InputPanel(tb.Frame):
         summary_row = 0
         tb.Label(
             summary_frame,
-            text="MAGI Summary",
+            text="Year 1 MAGI Summary",
             font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
         ).grid(row=summary_row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(0, 4))
 
@@ -623,9 +639,9 @@ class InputPanel(tb.Frame):
         self.magi_summary_status = tk.StringVar(value="")
         summary_rows = (
             ("Projected MAGI", self.magi_summary_projected),
-            ("MAGI Remaining", self.magi_summary_remaining),
+            ("Remaining to Target", self.magi_summary_remaining),
             ("Active MAGI Ceiling", self.magi_summary_active_ceiling),
-            ("MAGI Remaining To Ceiling", self.magi_summary_remaining_to_ceiling),
+            ("Remaining to Ceiling", self.magi_summary_remaining_to_ceiling),
             ("MAGI Status", self.magi_summary_status),
         )
         for offset, (label, var) in enumerate(summary_rows, start=1):
@@ -741,6 +757,7 @@ class InputPanel(tb.Frame):
             parent, "Standard Deduction", "standard_deduction_base", "", 3
         )
         self.create_input_field(parent, "RMD Start Age", "rmd_start_age", "", 4)
+        self.create_input_field(parent, "Medicare Age", "aca_end_age", "", 5)
 
     def apply_changes(self):
         if self.on_change_callback:
