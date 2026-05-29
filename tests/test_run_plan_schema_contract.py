@@ -104,3 +104,26 @@ def test_magi_is_visible_but_magi_guardrails_are_hidden_from_projection_table():
     assert "MAGI_Status" not in schema.visible_keys()
     assert "MAGI_Ceiling" not in headers
     assert "MAGI_Status" not in headers
+
+
+def test_projection_table_uses_compact_gui_headers_without_changing_schema_labels():
+    rows = run_plan(minimal_two_person_config())
+    headers, _data = to_2d_for_table(rows)
+
+    assert "Age1" in headers
+    assert "Age2" in headers
+    assert "Spend" in headers
+    assert "ACA Prem" in headers
+    assert "Total" in headers
+    assert "Taxes" in headers
+    assert "MAGI" in headers
+    assert "SS" in headers
+    assert "Brkg Draw" in headers
+    assert "Brkg Bal" in headers
+    assert "Assets" in headers
+    assert "Person1_Age" not in headers
+    assert "Target_Spend" not in headers
+    assert "Brokerage_Balance" not in headers
+    assert "Person1_Age" in schema.labels()
+    assert "Target_Spend" in schema.labels()
+    assert "Brokerage_Balance" in schema.labels()

@@ -167,6 +167,31 @@ def labels() -> List[str]:
     return [c["label"] for c in COLUMNS]
 
 
+GUI_LABELS = {
+    "Person1_Age": "Age1",
+    "Person2_Age": "Age2",
+    "Lifestyle": "Phase",
+    "Target_Spend": "Spend",
+    "ACA_Premium": "ACA Prem",
+    "Total_Spend": "Total",
+    "Taxes_Due": "Taxes",
+    "Social_Security": "SS",
+    "IRA_Draw": "IRA Draw",
+    "Brokerage_Draw": "Brkg Draw",
+    "Roth_Draw": "Roth Draw",
+    "Roth_Conversion": "Roth Conv",
+    "IRA_Balance": "IRA Bal",
+    "Brokerage_Balance": "Brkg Bal",
+    "Roth_Balance": "Roth Bal",
+    "Total_Assets": "Assets",
+}
+
+
+def gui_label(key: str) -> str:
+    """Compact label for the visible GUI table only."""
+    return GUI_LABELS.get(key, key)
+
+
 def visible_keys() -> List[str]:
     """Keys that default to visible in the GUI."""
     return [c["key"] for c in COLUMNS if c.get("visible", True)]
