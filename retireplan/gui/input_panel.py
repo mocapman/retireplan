@@ -358,28 +358,43 @@ class InputPanel(tb.Frame):
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
         self.create_input_field(parent, "Start Year", "start_year", "", 0)
+
+        tb.Label(
+            parent,
+            text="Year 1",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(12, 4))
         self.create_currency_field(
             parent,
             "Year 1 Remaining Spend",
             "year1_spend",
             "",
-            1,
+            2,
         )
         self.create_currency_field(
-            parent, "Year 1 Brokerage Draw", "year1_brokerage_draw", "", 2
+            parent, "Year 1 Brokerage Draw", "year1_brokerage_draw", "", 3
         )
-        self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 3)
-        self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 4)
+        self.create_currency_field(parent, "Year 1 IRA Draw", "year1_ira_draw", "", 4)
+        self.create_currency_field(parent, "Year 1 Roth Draw", "year1_roth_draw", "", 5)
         self.create_currency_field(
-            parent, "Target Spend (today's $)", "target_spend", "", 5
+            parent, "Year 1 Roth Conversion", "year1_roth_conversion", "", 6
         )
-        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 6)
-        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 7)
-        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 8)
-        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 9)
-        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 10)
+
+        tb.Label(
+            parent,
+            text="Projections",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=7, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(16, 4))
+        self.create_currency_field(
+            parent, "Target Spend (today's $)", "target_spend", "", 8
+        )
+        self.create_percent_field(parent, "GoGo Phase %", "gogo_percent", 100, 9)
+        self.create_percent_field(parent, "SlowGo Phase %", "slow_percent", 80, 10)
+        self.create_percent_field(parent, "NoGo Phase %", "nogo_percent", 70, 11)
+        self.create_input_field(parent, "GoGo Years", "gogo_years", "", 12)
+        self.create_input_field(parent, "SlowGo Years", "slow_years", "", 13)
         self.create_percent_field(
-            parent, "Survivor Spending %", "survivor_percent", "", 11
+            parent, "Survivor Spending %", "survivor_percent", "", 14
         )
 
     def create_magi_planning_section(self, parent):
@@ -396,7 +411,8 @@ class InputPanel(tb.Frame):
             "year1_capital_losses_to_date",
             "year1_projected_capital_losses",
         ):
-            self.variables[key] = tk.StringVar(value="")
+            if key not in self.variables:
+                self.variables[key] = tk.StringVar(value="")
 
         grid_frame = tb.Frame(parent)
         grid_frame.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E), padx=5, pady=2)
@@ -519,19 +535,71 @@ class InputPanel(tb.Frame):
             )
 
     def create_ss_section(self, parent):
+        parent.columnconfigure(0, weight=0)
         parent.columnconfigure(1, weight=1)
-        self.create_input_field(
-            parent, "Person 1 Start Age", "ss_person1_start_age", "", 0
+        parent.columnconfigure(2, weight=1)
+
+        person1_start = tk.StringVar(value="")
+        person2_start = tk.StringVar(value="")
+        person1_annual = tk.StringVar(value="")
+        person2_annual = tk.StringVar(value="")
+        self.variables["ss_person1_start_age"] = person1_start
+        self.variables["ss_person2_start_age"] = person2_start
+        self.variables["ss_person1_annual_at_start"] = person1_annual
+        self.variables["ss_person2_annual_at_start"] = person2_annual
+
+        tb.Label(
+            parent,
+            text="Person 1",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=0, column=1, sticky=tk.W, padx=5, pady=(0, 4))
+        tb.Label(
+            parent,
+            text="Person 2",
+            font=(INPUT_FONT_FAMILY, INPUT_FONT_SIZE, "bold"),
+        ).grid(row=0, column=2, sticky=tk.W, padx=5, pady=(0, 4))
+
+        for row, label in ((1, "Start Age"), (2, "Annual")):
+            tb.Label(parent, text=label).grid(
+                row=row, column=0, sticky=tk.W, padx=5, pady=2
+            )
+
+        tb.Entry(parent, textvariable=person1_start, font=INPUT_FONT).grid(
+            row=1, column=1, sticky=(tk.W, tk.E), padx=5, pady=2
         )
-        self.create_currency_field(
-            parent, "Person 1 Annual", "ss_person1_annual_at_start", "", 1
+        tb.Entry(parent, textvariable=person2_start, font=INPUT_FONT).grid(
+            row=1, column=2, sticky=(tk.W, tk.E), padx=5, pady=2
         )
-        self.create_input_field(
-            parent, "Person 2 Start Age", "ss_person2_start_age", "", 2
+        person1_annual_entry = tb.Entry(
+            parent, textvariable=person1_annual, font=INPUT_FONT
         )
-        self.create_currency_field(
-            parent, "Person 2 Annual", "ss_person2_annual_at_start", "", 3
+        person1_annual_entry.grid(
+            row=2, column=1, sticky=(tk.W, tk.E), padx=5, pady=2
         )
+        person2_annual_entry = tb.Entry(
+            parent, textvariable=person2_annual, font=INPUT_FONT
+        )
+        person2_annual_entry.grid(
+            row=2, column=2, sticky=(tk.W, tk.E), padx=5, pady=2
+        )
+
+        def bind_currency(entry, var):
+            def on_focus_in(_event):
+                var.set(strip_currency(var.get()))
+
+            def on_focus_out(_event):
+                v = var.get()
+                try:
+                    n = int(float(strip_currency(v)))
+                    var.set(format_currency(n) if v.strip() else "")
+                except Exception:
+                    var.set("")
+
+            entry.bind("<FocusIn>", on_focus_in)
+            entry.bind("<FocusOut>", on_focus_out)
+
+        bind_currency(person1_annual_entry, person1_annual)
+        bind_currency(person2_annual_entry, person2_annual)
 
     def create_rates_section(self, parent):
         parent.columnconfigure(1, weight=1)
