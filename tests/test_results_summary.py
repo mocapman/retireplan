@@ -67,6 +67,51 @@ def test_format_currency_uses_whole_dollar_formatting():
     assert format_currency(1234.5) == "$1,234"
 
 
+def test_projection_column_order_accepts_keys_or_gui_labels_without_duplicates():
+    display = ResultsDisplay.__new__(ResultsDisplay)
+    headers = ["Year", "Age1", "Age2", "Filing", "MAGI", "Assets"]
+    keys = [
+        "Year",
+        "Person1_Age",
+        "Person2_Age",
+        "Filing",
+        "MAGI",
+        "Total_Assets",
+    ]
+
+    order = ["Year", "MAGI", "MAGI", "Age1", "Person2_Age"]
+
+    indices = display._resolve_column_order(order, headers, keys)
+
+    assert indices == [0, 4, 1, 2, 3, 5]
+
+
+def test_projection_money_columns_are_identified_by_schema_key():
+    display = ResultsDisplay.__new__(ResultsDisplay)
+
+    assert not display._is_money_column("Year")
+    assert not display._is_money_column("Person1_Age")
+    assert not display._is_money_column("Filing")
+    assert display._is_money_column("MAGI")
+    assert display._is_money_column("Total_Assets")
+
+
+def test_saved_projection_column_order_uses_schema_keys():
+    class FakeSheet:
+        def headers(self):
+            return ["Year", "Age1", "MAGI", "Assets"]
+
+    display = ResultsDisplay.__new__(ResultsDisplay)
+    display.sheet = FakeSheet()
+
+    assert display.get_current_column_order() == [
+        "Year",
+        "Person1_Age",
+        "MAGI",
+        "Total_Assets",
+    ]
+
+
 def test_format_input_snapshot_includes_key_scenario_inputs():
     cfg = SimpleNamespace(
         final_age_person1=75,

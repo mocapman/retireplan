@@ -6,10 +6,13 @@ from ttkbootstrap.constants import *
 from tksheet import Sheet
 from typing import Any, List
 
+from retireplan import schema
 from retireplan.projections import to_2d_for_table
 
 
 APP_GEOMETRY = "2525x1150"
+MONEY_COLUMN_WIDTH = 104
+NON_MONEY_TABLE_KEYS = {"Year", "Person1_Age", "Person2_Age", "Filing", "Lifestyle"}
 
 SUMMARY_FIELDS = (
     ("Federal Tax", "Federal_Tax", "#0f172a", "#e0f2fe"),
@@ -193,6 +196,7 @@ class ResultsDisplay(tb.Frame):
         super().__init__(parent)
         self.app = app
         self.current_rows: List[dict] = []
+        self.current_column_keys: List[str] = []
         self.summary_var = tk.StringVar(value=self.format_summary_text({}))
         self.summary_vars: dict[str, tk.StringVar] = {}
         self._history_lines: list[str] = []
@@ -310,6 +314,7 @@ class ResultsDisplay(tb.Frame):
 
     def load_results(self, rows: List[dict]):
         headers, data = to_2d_for_table(rows)
+        keys = schema.visible_keys()
         self.current_rows = rows
 
         # Apply column order from current config if present
@@ -320,29 +325,18 @@ class ResultsDisplay(tb.Frame):
             if column_order is None and isinstance(config, dict):
                 column_order = config.get("column_order", None)
         if column_order:
-            header_idx = {h: i for i, h in enumerate(headers)}
-            new_indices = [header_idx[h] for h in column_order if h in header_idx]
-            # Add any missing columns at the end in their original order
-            missing_indices = [
-                i for i, h in enumerate(headers) if h not in column_order
-            ]
-            ordered_indices = new_indices + missing_indices
+            ordered_indices = self._resolve_column_order(column_order, headers, keys)
             headers = [headers[i] for i in ordered_indices]
             data = [[row[i] for i in ordered_indices] for row in data]
+            keys = [keys[i] for i in ordered_indices]
 
-        # First 5 columns are not currency, everything else is currency
-        col_types = []
-        for i, _ in enumerate(headers):
-            if i < 5:
-                col_types.append("default")
-            else:
-                col_types.append("currency")
+        self.current_column_keys = keys
 
         formatted_data = []
         for row in data:
             formatted_row = []
             for i, val in enumerate(row):
-                if col_types[i] == "currency":
+                if self._is_money_column(keys[i]):
                     formatted_row.append(format_currency(val))
                 else:
                     formatted_row.append(val)
@@ -358,6 +352,26 @@ class ResultsDisplay(tb.Frame):
         self.apply_alternate_row_colors()
         self.autosize()
         self.update_summary(calculate_results_summary(rows))
+
+    def _resolve_column_order(self, column_order, headers, keys):
+        header_to_index = {h: i for i, h in enumerate(headers)}
+        key_to_index = {k: i for i, k in enumerate(keys)}
+        ordered_indices = []
+        seen_indices = set()
+
+        for item in column_order:
+            idx = key_to_index.get(item)
+            if idx is None:
+                idx = header_to_index.get(item)
+            if idx is not None and idx not in seen_indices:
+                ordered_indices.append(idx)
+                seen_indices.add(idx)
+
+        ordered_indices.extend(i for i in range(len(keys)) if i not in seen_indices)
+        return ordered_indices
+
+    def _is_money_column(self, key: str) -> bool:
+        return key not in NON_MONEY_TABLE_KEYS
 
     def format_summary_text(self, summary: dict[str, float]) -> str:
         summary = summary or {}
@@ -410,6 +424,10 @@ class ResultsDisplay(tb.Frame):
     def autosize(self):
         try:
             self.sheet.set_all_column_widths()
+            for idx, key in enumerate(self.current_column_keys):
+                if self._is_money_column(key):
+                    self.sheet.column_width(idx, width=MONEY_COLUMN_WIDTH, redraw=False)
+            self.sheet.redraw()
             root = self.winfo_toplevel()
             root.geometry(APP_GEOMETRY)
         except Exception as e:
@@ -425,4 +443,13 @@ class ResultsDisplay(tb.Frame):
         return self.current_rows
 
     def get_current_column_order(self):
-        return self.sheet.headers()
+        header_to_key = {schema.gui_label(k): k for k in schema.visible_keys()}
+        header_to_key.update({k: k for k in schema.visible_keys()})
+        ordered_keys = []
+        seen = set()
+        for header in self.sheet.headers():
+            key = header_to_key.get(header)
+            if key is not None and key not in seen:
+                ordered_keys.append(key)
+                seen.add(key)
+        return ordered_keys
