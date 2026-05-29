@@ -385,26 +385,24 @@ class InputPanel(tb.Frame):
         if not all(
             key in self.variables
             for key in (
-                "year1_magi_income",
-                "year1_magi_losses",
-                "year1_roth_conversion",
-                "magi_floor_base",
-                "magi_target_base",
-                "magi_ceiling_base",
-                "medicare_magi_ceiling_base",
-                "aca_end_age",
+                "year1_extra_magi_income",
+                "year1_magi_loss_offset",
+                "year1_planned_roth_conversion",
+                "year1_magi_floor",
+                "year1_magi_target",
+                "year1_magi_ceiling",
             )
         ):
             return
 
         projected_magi = (
-            self.magi_planning_amount("year1_magi_income")
-            - self.magi_planning_amount("year1_magi_losses")
-            + self.magi_planning_amount("year1_roth_conversion")
+            self.magi_planning_amount("year1_extra_magi_income")
+            - self.magi_planning_amount("year1_magi_loss_offset")
+            + self.magi_planning_amount("year1_planned_roth_conversion")
         )
-        magi_floor = self.magi_planning_amount("magi_floor_base")
-        magi_target = self.magi_planning_amount("magi_target_base")
-        magi_ceiling = self.active_magi_ceiling()
+        magi_floor = self.magi_planning_amount("year1_magi_floor")
+        magi_target = self.magi_planning_amount("year1_magi_target")
+        magi_ceiling = self.magi_planning_amount("year1_magi_ceiling")
         magi_remaining = magi_target - projected_magi
         magi_remaining_to_ceiling = magi_ceiling - projected_magi
         if projected_magi > magi_ceiling:
@@ -419,29 +417,10 @@ class InputPanel(tb.Frame):
             self.magi_summary_projected.set(format_currency(projected_magi))
             self.magi_summary_remaining.set(format_currency(magi_remaining))
             self.magi_summary_active_ceiling.set(format_currency(magi_ceiling))
-            self.roth_year1_active_ceiling.set(format_currency(magi_ceiling))
             self.magi_summary_remaining_to_ceiling.set(
                 format_currency(magi_remaining_to_ceiling)
             )
             self.magi_summary_status.set(magi_status)
-
-    def active_magi_ceiling(self):
-        try:
-            start_year = int(float(self.variables["start_year"].get()))
-            birth_year = int(float(self.variables["birth_year_person1"].get()))
-            person1_age = start_year - birth_year
-        except Exception:
-            person1_age = 0
-        try:
-            medicare_age = int(float(self.variables["aca_end_age"].get()))
-        except Exception:
-            medicare_age = 65
-        key = (
-            "magi_ceiling_base"
-            if person1_age < medicare_age
-            else "medicare_magi_ceiling_base"
-        )
-        return self.magi_planning_amount(key)
 
     def create_spending_section(self, parent):
         parent.columnconfigure(1, weight=1)
@@ -555,43 +534,42 @@ class InputPanel(tb.Frame):
             row=0, column=3, sticky=tk.W, padx=5, pady=(0, 4)
         )
 
-        self.roth_year1_active_ceiling = tk.StringVar(value="$0")
         phase_rows = (
             (
                 "MAGI Floor",
-                "magi_floor_base",
-                "magi_floor_base",
-                "magi_floor_base",
+                "year1_magi_floor",
+                "aca_magi_floor",
+                "medicare_magi_floor",
             ),
             (
                 "MAGI Target",
-                "magi_target_base",
-                "magi_target_base",
-                "magi_target_base",
+                "year1_magi_target",
+                "aca_magi_target",
+                "medicare_magi_target",
             ),
             (
                 "MAGI Ceiling",
-                None,
-                "magi_ceiling_base",
-                "medicare_magi_ceiling_base",
+                "year1_magi_ceiling",
+                "aca_magi_ceiling",
+                "medicare_magi_ceiling",
             ),
             (
                 "Extra MAGI Income",
-                "year1_magi_income",
-                "aca_annual_magi_income",
-                "medicare_annual_magi_income",
+                "year1_extra_magi_income",
+                "aca_extra_magi_income",
+                "medicare_extra_magi_income",
             ),
             (
                 "MAGI Loss Offset",
-                "year1_magi_losses",
-                "aca_annual_magi_loss",
-                "medicare_annual_magi_loss",
+                "year1_magi_loss_offset",
+                "aca_magi_loss_offset",
+                "medicare_magi_loss_offset",
             ),
             (
                 "Planned Roth Conversion",
-                "year1_roth_conversion",
-                "aca_annual_roth_conversion",
-                "medicare_annual_roth_conversion",
+                "year1_planned_roth_conversion",
+                "aca_planned_roth_conversion",
+                "medicare_planned_roth_conversion",
             ),
         )
         for row, (label, year1_key, aca_key, medicare_key) in enumerate(
@@ -600,26 +578,17 @@ class InputPanel(tb.Frame):
             tb.Label(phase_frame, text=label).grid(
                 row=row, column=0, sticky=tk.W, padx=5, pady=2
             )
-            if year1_key is None:
-                self.create_display_cell(
-                    phase_frame, self.roth_year1_active_ceiling, row, 1
-                )
-            else:
-                self.create_currency_cell(phase_frame, year1_key, row, 1)
+            self.create_currency_cell(phase_frame, year1_key, row, 1)
             self.create_currency_cell(phase_frame, aca_key, row, 2)
             self.create_currency_cell(phase_frame, medicare_key, row, 3)
 
         for key in (
-            "magi_floor_base",
-            "magi_target_base",
-            "magi_ceiling_base",
-            "medicare_magi_ceiling_base",
-            "aca_end_age",
-            "year1_magi_income",
-            "year1_magi_losses",
-            "year1_roth_conversion",
-            "start_year",
-            "birth_year_person1",
+            "year1_magi_floor",
+            "year1_magi_target",
+            "year1_magi_ceiling",
+            "year1_extra_magi_income",
+            "year1_magi_loss_offset",
+            "year1_planned_roth_conversion",
         ):
             self.variables[key].trace_add(
                 "write", lambda *_: self.update_magi_planning_display()
@@ -784,6 +753,9 @@ class InputPanel(tb.Frame):
             except Exception:
                 return 0.0
 
+        def money_value(key):
+            return safe_float(strip_currency(self.variables[key].get()))
+
         config = {
             "birth_year_person1": safe_int(self.variables["birth_year_person1"].get()),
             "birth_year_person2": safe_int(self.variables["birth_year_person2"].get()),
@@ -819,15 +791,17 @@ class InputPanel(tb.Frame):
                 "year1_roth_draw": safe_float(
                     strip_currency(self.variables["year1_roth_draw"].get())
                 ),
-                "year1_magi_income": safe_float(
-                    strip_currency(self.variables["year1_magi_income"].get())
+                "year1_magi_floor": money_value("year1_magi_floor"),
+                "year1_magi_target": money_value("year1_magi_target"),
+                "year1_magi_ceiling": money_value("year1_magi_ceiling"),
+                "year1_extra_magi_income": money_value("year1_extra_magi_income"),
+                "year1_magi_loss_offset": money_value("year1_magi_loss_offset"),
+                "year1_planned_roth_conversion": money_value(
+                    "year1_planned_roth_conversion"
                 ),
-                "year1_magi_losses": safe_float(
-                    strip_currency(self.variables["year1_magi_losses"].get())
-                ),
-                "year1_roth_conversion": safe_float(
-                    strip_currency(self.variables["year1_roth_conversion"].get())
-                ),
+                "year1_magi_income": money_value("year1_extra_magi_income"),
+                "year1_magi_losses": money_value("year1_magi_loss_offset"),
+                "year1_roth_conversion": money_value("year1_planned_roth_conversion"),
                 "year1_income_to_date": safe_float(
                     strip_currency(self.variables["year1_income_to_date"].get())
                 ),
@@ -854,31 +828,39 @@ class InputPanel(tb.Frame):
                         self.variables["year1_projected_capital_losses"].get()
                     )
                 ),
-                "aca_annual_magi_income": safe_float(
-                    strip_currency(self.variables["aca_annual_magi_income"].get())
+                "aca_magi_floor": money_value("aca_magi_floor"),
+                "aca_magi_target": money_value("aca_magi_target"),
+                "aca_magi_ceiling": money_value("aca_magi_ceiling"),
+                "aca_extra_magi_income": money_value("aca_extra_magi_income"),
+                "aca_magi_loss_offset": money_value("aca_magi_loss_offset"),
+                "aca_planned_roth_conversion": money_value(
+                    "aca_planned_roth_conversion"
                 ),
-                "aca_annual_magi_loss": safe_float(
-                    strip_currency(self.variables["aca_annual_magi_loss"].get())
+                "aca_annual_magi_income": money_value("aca_extra_magi_income"),
+                "aca_annual_magi_loss": money_value("aca_magi_loss_offset"),
+                "aca_annual_roth_conversion": money_value(
+                    "aca_planned_roth_conversion"
                 ),
-                "aca_annual_roth_conversion": safe_float(
-                    strip_currency(
-                        self.variables["aca_annual_roth_conversion"].get()
-                    )
+                "medicare_magi_floor": money_value("medicare_magi_floor"),
+                "medicare_magi_target": money_value("medicare_magi_target"),
+                "medicare_magi_ceiling": money_value("medicare_magi_ceiling"),
+                "medicare_extra_magi_income": money_value(
+                    "medicare_extra_magi_income"
                 ),
-                "medicare_annual_magi_income": safe_float(
-                    strip_currency(
-                        self.variables["medicare_annual_magi_income"].get()
-                    )
+                "medicare_magi_loss_offset": money_value(
+                    "medicare_magi_loss_offset"
                 ),
-                "medicare_annual_magi_loss": safe_float(
-                    strip_currency(
-                        self.variables["medicare_annual_magi_loss"].get()
-                    )
+                "medicare_planned_roth_conversion": money_value(
+                    "medicare_planned_roth_conversion"
                 ),
-                "medicare_annual_roth_conversion": safe_float(
-                    strip_currency(
-                        self.variables["medicare_annual_roth_conversion"].get()
-                    )
+                "medicare_annual_magi_income": money_value(
+                    "medicare_extra_magi_income"
+                ),
+                "medicare_annual_magi_loss": money_value(
+                    "medicare_magi_loss_offset"
+                ),
+                "medicare_annual_roth_conversion": money_value(
+                    "medicare_planned_roth_conversion"
                 ),
                 "magi_income_ytd": safe_float(
                     strip_currency(self.variables["magi_income_ytd"].get())
@@ -961,9 +943,7 @@ class InputPanel(tb.Frame):
                 "ira_growth": percent_to_float(self.variables["ira_growth"].get()),
             },
             "tax_health": {
-                "magi_target_base": safe_float(
-                    strip_currency(self.variables["magi_target_base"].get())
-                ),
+                "magi_target_base": money_value("aca_magi_target"),
                 "standard_deduction_base": safe_float(
                     strip_currency(self.variables["standard_deduction_base"].get())
                 ),
@@ -975,17 +955,9 @@ class InputPanel(tb.Frame):
                 ),
                 "rmd_start_age": safe_int(self.variables["rmd_start_age"].get()),
                 "aca_end_age": safe_int(self.variables["aca_end_age"].get()),
-                "magi_floor_base": safe_float(
-                    strip_currency(self.variables["magi_floor_base"].get())
-                ),
-                "magi_ceiling_base": safe_float(
-                    strip_currency(self.variables["magi_ceiling_base"].get())
-                ),
-                "medicare_magi_ceiling_base": safe_float(
-                    strip_currency(
-                        self.variables["medicare_magi_ceiling_base"].get()
-                    )
-                ),
+                "magi_floor_base": money_value("aca_magi_floor"),
+                "magi_ceiling_base": money_value("aca_magi_ceiling"),
+                "medicare_magi_ceiling_base": money_value("medicare_magi_ceiling"),
             },
             "draw_order": self.variables["draw_order"].get(),
         }
@@ -1026,6 +998,36 @@ class InputPanel(tb.Frame):
             "year1_brokerage_draw": format_currency(s.get("year1_brokerage_draw", "")),
             "year1_ira_draw": format_currency(s.get("year1_ira_draw", "")),
             "year1_roth_draw": format_currency(s.get("year1_roth_draw", "")),
+            "year1_magi_floor": format_currency(
+                s.get(
+                    "year1_magi_floor",
+                    config.get("tax_health", {}).get("magi_floor_base", ""),
+                )
+            ),
+            "year1_magi_target": format_currency(
+                s.get(
+                    "year1_magi_target",
+                    config.get("tax_health", {}).get("magi_target_base", ""),
+                )
+            ),
+            "year1_magi_ceiling": format_currency(
+                s.get(
+                    "year1_magi_ceiling",
+                    config.get("tax_health", {}).get("magi_ceiling_base", ""),
+                )
+            ),
+            "year1_extra_magi_income": format_currency(
+                s.get("year1_extra_magi_income", s.get("year1_magi_income", ""))
+            ),
+            "year1_magi_loss_offset": format_currency(
+                s.get("year1_magi_loss_offset", s.get("year1_magi_losses", ""))
+            ),
+            "year1_planned_roth_conversion": format_currency(
+                s.get(
+                    "year1_planned_roth_conversion",
+                    s.get("year1_roth_conversion", ""),
+                )
+            ),
             "year1_magi_income": format_currency(s.get("year1_magi_income", "")),
             "year1_magi_losses": format_currency(s.get("year1_magi_losses", "")),
             "year1_roth_conversion": format_currency(
@@ -1047,6 +1049,36 @@ class InputPanel(tb.Frame):
             "year1_projected_capital_losses": format_currency(
                 s.get("year1_projected_capital_losses", "")
             ),
+            "aca_magi_floor": format_currency(
+                s.get(
+                    "aca_magi_floor",
+                    config.get("tax_health", {}).get("magi_floor_base", ""),
+                )
+            ),
+            "aca_magi_target": format_currency(
+                s.get(
+                    "aca_magi_target",
+                    config.get("tax_health", {}).get("magi_target_base", ""),
+                )
+            ),
+            "aca_magi_ceiling": format_currency(
+                s.get(
+                    "aca_magi_ceiling",
+                    config.get("tax_health", {}).get("magi_ceiling_base", ""),
+                )
+            ),
+            "aca_extra_magi_income": format_currency(
+                s.get("aca_extra_magi_income", s.get("aca_annual_magi_income", ""))
+            ),
+            "aca_magi_loss_offset": format_currency(
+                s.get("aca_magi_loss_offset", s.get("aca_annual_magi_loss", ""))
+            ),
+            "aca_planned_roth_conversion": format_currency(
+                s.get(
+                    "aca_planned_roth_conversion",
+                    s.get("aca_annual_roth_conversion", ""),
+                )
+            ),
             "aca_annual_magi_income": format_currency(
                 s.get("aca_annual_magi_income", "")
             ),
@@ -1055,6 +1087,48 @@ class InputPanel(tb.Frame):
             ),
             "aca_annual_roth_conversion": format_currency(
                 s.get("aca_annual_roth_conversion", "")
+            ),
+            "medicare_magi_floor": format_currency(
+                s.get(
+                    "medicare_magi_floor",
+                    config.get("tax_health", {}).get("magi_floor_base", ""),
+                )
+            ),
+            "medicare_magi_target": format_currency(
+                s.get(
+                    "medicare_magi_target",
+                    config.get("tax_health", {}).get(
+                        "medicare_magi_ceiling_base",
+                        config.get("tax_health", {}).get("magi_target_base", ""),
+                    ),
+                )
+            ),
+            "medicare_magi_ceiling": format_currency(
+                s.get(
+                    "medicare_magi_ceiling",
+                    config.get("tax_health", {}).get(
+                        "medicare_magi_ceiling_base",
+                        config.get("tax_health", {}).get("magi_ceiling_base", ""),
+                    ),
+                )
+            ),
+            "medicare_extra_magi_income": format_currency(
+                s.get(
+                    "medicare_extra_magi_income",
+                    s.get("medicare_annual_magi_income", ""),
+                )
+            ),
+            "medicare_magi_loss_offset": format_currency(
+                s.get(
+                    "medicare_magi_loss_offset",
+                    s.get("medicare_annual_magi_loss", ""),
+                )
+            ),
+            "medicare_planned_roth_conversion": format_currency(
+                s.get(
+                    "medicare_planned_roth_conversion",
+                    s.get("medicare_annual_roth_conversion", ""),
+                )
             ),
             "medicare_annual_magi_income": format_currency(
                 s.get("medicare_annual_magi_income", "")

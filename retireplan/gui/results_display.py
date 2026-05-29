@@ -94,50 +94,64 @@ def _input_snapshot_items(cfg: Any) -> tuple[tuple[str, str], ...]:
         ("Person 1 Final Age", _format_number(getattr(cfg, "final_age_person1", 0))),
         ("Person 2 Final Age", _format_number(getattr(cfg, "final_age_person2", 0))),
         ("Target Spend", format_currency(getattr(cfg, "target_spend", 0))),
-        ("MAGI Floor", format_currency(getattr(cfg, "magi_floor_base", 0))),
-        ("MAGI Target", format_currency(getattr(cfg, "magi_target_base", 0))),
-        ("ACA MAGI Ceiling", format_currency(getattr(cfg, "magi_ceiling_base", 0))),
+        ("Year 1 MAGI Floor", format_currency(getattr(cfg, "year1_magi_floor", 0))),
+        ("Year 1 MAGI Target", format_currency(getattr(cfg, "year1_magi_target", 0))),
+        (
+            "Year 1 MAGI Ceiling",
+            format_currency(getattr(cfg, "year1_magi_ceiling", 0)),
+        ),
+        (
+            "Year 1 Extra MAGI Income",
+            format_currency(getattr(cfg, "year1_extra_magi_income", 0)),
+        ),
+        (
+            "Year 1 MAGI Loss Offset",
+            format_currency(getattr(cfg, "year1_magi_loss_offset", 0)),
+        ),
+        (
+            "Year 1 Planned Roth Conversion",
+            format_currency(getattr(cfg, "year1_planned_roth_conversion", 0)),
+        ),
+        ("ACA MAGI Floor", format_currency(getattr(cfg, "aca_magi_floor", 0))),
+        ("ACA MAGI Target", format_currency(getattr(cfg, "aca_magi_target", 0))),
+        ("ACA MAGI Ceiling", format_currency(getattr(cfg, "aca_magi_ceiling", 0))),
+        (
+            "ACA Extra MAGI Income",
+            format_currency(getattr(cfg, "aca_extra_magi_income", 0)),
+        ),
+        (
+            "ACA MAGI Loss Offset",
+            format_currency(getattr(cfg, "aca_magi_loss_offset", 0)),
+        ),
+        (
+            "ACA Planned Roth Conversion",
+            format_currency(getattr(cfg, "aca_planned_roth_conversion", 0)),
+        ),
+        (
+            "Medicare MAGI Floor",
+            format_currency(getattr(cfg, "medicare_magi_floor", 0)),
+        ),
+        (
+            "Medicare MAGI Target",
+            format_currency(getattr(cfg, "medicare_magi_target", 0)),
+        ),
         (
             "Medicare MAGI Ceiling",
-            format_currency(getattr(cfg, "medicare_magi_ceiling_base", 0)),
+            format_currency(getattr(cfg, "medicare_magi_ceiling", 0)),
+        ),
+        (
+            "Medicare Extra MAGI Income",
+            format_currency(getattr(cfg, "medicare_extra_magi_income", 0)),
+        ),
+        (
+            "Medicare MAGI Loss Offset",
+            format_currency(getattr(cfg, "medicare_magi_loss_offset", 0)),
+        ),
+        (
+            "Medicare Planned Roth Conversion",
+            format_currency(getattr(cfg, "medicare_planned_roth_conversion", 0)),
         ),
         ("Medicare Age", _format_number(getattr(cfg, "aca_end_age", 0))),
-        (
-            "Year 1 MAGI Income",
-            format_currency(getattr(cfg, "year1_magi_income", 0)),
-        ),
-        (
-            "Year 1 MAGI Loss",
-            format_currency(getattr(cfg, "year1_magi_losses", 0)),
-        ),
-        (
-            "Year 1 Roth Conversion",
-            format_currency(getattr(cfg, "year1_roth_conversion", 0)),
-        ),
-        (
-            "ACA Annual Income",
-            format_currency(getattr(cfg, "aca_annual_magi_income", 0)),
-        ),
-        (
-            "ACA Annual Loss",
-            format_currency(getattr(cfg, "aca_annual_magi_loss", 0)),
-        ),
-        (
-            "ACA Annual Conversion",
-            format_currency(getattr(cfg, "aca_annual_roth_conversion", 0)),
-        ),
-        (
-            "Medicare Annual Income",
-            format_currency(getattr(cfg, "medicare_annual_magi_income", 0)),
-        ),
-        (
-            "Medicare Annual Loss",
-            format_currency(getattr(cfg, "medicare_annual_magi_loss", 0)),
-        ),
-        (
-            "Medicare Annual Conversion",
-            format_currency(getattr(cfg, "medicare_annual_roth_conversion", 0)),
-        ),
         (
             "GoGo Years",
             f"{_format_number(getattr(cfg, 'gogo_years', 0))}/"

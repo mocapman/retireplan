@@ -28,6 +28,12 @@ class ConfigManager:
                 "year1_brokerage_draw": cfg.year1_brokerage_draw,
                 "year1_ira_draw": cfg.year1_ira_draw,
                 "year1_roth_draw": cfg.year1_roth_draw,
+                "year1_magi_floor": cfg.year1_magi_floor,
+                "year1_magi_target": cfg.year1_magi_target,
+                "year1_magi_ceiling": cfg.year1_magi_ceiling,
+                "year1_extra_magi_income": cfg.year1_extra_magi_income,
+                "year1_magi_loss_offset": cfg.year1_magi_loss_offset,
+                "year1_planned_roth_conversion": cfg.year1_planned_roth_conversion,
                 "year1_magi_income": cfg.year1_magi_income,
                 "year1_magi_losses": cfg.year1_magi_losses,
                 "year1_roth_conversion": cfg.year1_roth_conversion,
@@ -41,9 +47,23 @@ class ConfigManager:
                 "year1_projected_capital_losses": (
                     cfg.year1_projected_capital_losses
                 ),
+                "aca_magi_floor": cfg.aca_magi_floor,
+                "aca_magi_target": cfg.aca_magi_target,
+                "aca_magi_ceiling": cfg.aca_magi_ceiling,
+                "aca_extra_magi_income": cfg.aca_extra_magi_income,
+                "aca_magi_loss_offset": cfg.aca_magi_loss_offset,
+                "aca_planned_roth_conversion": cfg.aca_planned_roth_conversion,
                 "aca_annual_magi_income": cfg.aca_annual_magi_income,
                 "aca_annual_magi_loss": cfg.aca_annual_magi_loss,
                 "aca_annual_roth_conversion": cfg.aca_annual_roth_conversion,
+                "medicare_magi_floor": cfg.medicare_magi_floor,
+                "medicare_magi_target": cfg.medicare_magi_target,
+                "medicare_magi_ceiling": cfg.medicare_magi_ceiling,
+                "medicare_extra_magi_income": cfg.medicare_extra_magi_income,
+                "medicare_magi_loss_offset": cfg.medicare_magi_loss_offset,
+                "medicare_planned_roth_conversion": (
+                    cfg.medicare_planned_roth_conversion
+                ),
                 "medicare_annual_magi_income": cfg.medicare_annual_magi_income,
                 "medicare_annual_magi_loss": cfg.medicare_annual_magi_loss,
                 "medicare_annual_roth_conversion": (

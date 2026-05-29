@@ -102,15 +102,15 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             year1_lifestyle_spend = Decimal(str(cfg.year1_spend))
             ss_income = Decimal(0)  # Not in config, or set if you wish
             tax = Decimal(0)  # Not in config, or set if you wish
-            roth_conv = Decimal(str(cfg.year1_roth_conversion))
+            roth_conv = Decimal(str(cfg.year1_planned_roth_conversion))
             magi = (
-                Decimal(str(cfg.year1_magi_income))
-                - Decimal(str(cfg.year1_magi_losses))
+                Decimal(str(cfg.year1_extra_magi_income))
+                - Decimal(str(cfg.year1_magi_loss_offset))
                 + roth_conv
             )
-            target_magi = Decimal(str(cfg.magi_target_base))
-            magi_floor = Decimal(str(cfg.magi_floor_base))
-            magi_ceiling = _active_magi_ceiling(yc, cfg, Decimal(1))
+            target_magi = Decimal(str(cfg.year1_magi_target))
+            magi_floor = Decimal(str(cfg.year1_magi_floor))
+            magi_ceiling = Decimal(str(cfg.year1_magi_ceiling))
             magi_remaining = target_magi - magi
             magi_remaining_to_ceiling = magi_ceiling - magi
             magi_status = _magi_status(
@@ -257,17 +257,18 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             base_ded = base_ded / 2
         std_ded = base_ded * infl
 
-        # BUSINESS RULE: Roth conversion MAGI targeting
-        # ACA ceiling applies before Medicare age; Medicare ceiling applies after.
         (
+            magi_floor_base,
+            target_magi_base,
+            magi_ceiling_base,
             planning_magi_income,
             planning_magi_loss,
             requested_roth_conversion,
-        ) = _annual_roth_planning_inputs(yc, cfg)
+        ) = _roth_planning_profile(yc, cfg)
         planning_magi_net_income = planning_magi_income - planning_magi_loss
-        target_magi = Decimal(str(cfg.magi_target_base)) * infl
-        magi_floor = Decimal(str(cfg.magi_floor_base)) * infl
-        magi_ceiling = _active_magi_ceiling(yc, cfg, infl)
+        target_magi = target_magi_base * infl
+        magi_floor = magi_floor_base * infl
+        magi_ceiling = magi_ceiling_base * infl
         conversion_target_magi = target_magi
 
         # Calculate inflation-adjusted lifestyle spending target based on lifecycle phase
@@ -553,7 +554,7 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 target_magi - magi if target_magi > Decimal(0) else Decimal(0)
             ),
             "MAGI_Remaining_To_Ceiling": round_dollar(
-                magi_ceiling - magi if magi_ceiling > Decimal(0) else Decimal(0)
+                magi_ceiling - magi
             ),
             "MAGI_Status": _magi_status(magi, magi_floor, magi_ceiling),
             "Survivor_Year": survivor_year,
@@ -605,28 +606,26 @@ def _magi_status(magi: Decimal, floor: Decimal, ceiling: Decimal) -> str:
     return "Good"
 
 
-def _active_magi_ceiling(yc, cfg, infl: Decimal) -> Decimal:
-    """Select the ACA or Medicare MAGI ceiling for this projection year."""
-    base = (
-        cfg.magi_ceiling_base
-        if yc.age_person1 < cfg.aca_end_age
-        else cfg.medicare_magi_ceiling_base
-    )
-    return Decimal(str(base)) * infl
-
-
-def _annual_roth_planning_inputs(yc, cfg) -> tuple[Decimal, Decimal, Decimal]:
-    """Return annual Roth Planning assumptions for ACA or Medicare years."""
+def _roth_planning_profile(
+    yc, cfg
+) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal, Decimal]:
+    """Return phase-specific Roth Planning assumptions for this projection year."""
     if yc.age_person1 < cfg.aca_end_age:
         return (
-            Decimal(str(cfg.aca_annual_magi_income)),
-            Decimal(str(cfg.aca_annual_magi_loss)),
-            Decimal(str(cfg.aca_annual_roth_conversion)),
+            Decimal(str(cfg.aca_magi_floor)),
+            Decimal(str(cfg.aca_magi_target)),
+            Decimal(str(cfg.aca_magi_ceiling)),
+            Decimal(str(cfg.aca_extra_magi_income)),
+            Decimal(str(cfg.aca_magi_loss_offset)),
+            Decimal(str(cfg.aca_planned_roth_conversion)),
         )
     return (
-        Decimal(str(cfg.medicare_annual_magi_income)),
-        Decimal(str(cfg.medicare_annual_magi_loss)),
-        Decimal(str(cfg.medicare_annual_roth_conversion)),
+        Decimal(str(cfg.medicare_magi_floor)),
+        Decimal(str(cfg.medicare_magi_target)),
+        Decimal(str(cfg.medicare_magi_ceiling)),
+        Decimal(str(cfg.medicare_extra_magi_income)),
+        Decimal(str(cfg.medicare_magi_loss_offset)),
+        Decimal(str(cfg.medicare_planned_roth_conversion)),
     )
 
 

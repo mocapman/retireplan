@@ -30,6 +30,12 @@ def minimal_two_person_config() -> Inputs:
         year1_brokerage_draw=1000,
         year1_ira_draw=0,
         year1_roth_draw=0,
+        year1_magi_floor=0,
+        year1_magi_target=0,
+        year1_magi_ceiling=1,
+        year1_extra_magi_income=0,
+        year1_magi_loss_offset=0,
+        year1_planned_roth_conversion=0,
         year1_roth_conversion=0,
         year1_magi_income=0,
         year1_magi_losses=0,
@@ -39,9 +45,21 @@ def minimal_two_person_config() -> Inputs:
         year1_projected_capital_gains=0,
         year1_capital_losses_to_date=0,
         year1_projected_capital_losses=0,
+        aca_magi_floor=0,
+        aca_magi_target=0,
+        aca_magi_ceiling=1,
+        aca_extra_magi_income=0,
+        aca_magi_loss_offset=0,
+        aca_planned_roth_conversion=0,
         aca_annual_magi_income=0,
         aca_annual_magi_loss=0,
         aca_annual_roth_conversion=0,
+        medicare_magi_floor=0,
+        medicare_magi_target=1,
+        medicare_magi_ceiling=1,
+        medicare_extra_magi_income=0,
+        medicare_magi_loss_offset=0,
+        medicare_planned_roth_conversion=0,
         medicare_annual_magi_income=0,
         medicare_annual_magi_loss=0,
         medicare_annual_roth_conversion=0,
@@ -87,6 +105,55 @@ def minimal_two_person_config() -> Inputs:
         medicare_magi_ceiling_base=1,
         draw_order="Brokerage, Roth, IRA",
     )
+
+
+def set_year1_roth_planning(
+    cfg: Inputs, floor: float, target: float, ceiling: float, income: float, loss: float, conversion: float
+) -> None:
+    cfg.year1_magi_floor = floor
+    cfg.year1_magi_target = target
+    cfg.year1_magi_ceiling = ceiling
+    cfg.year1_extra_magi_income = income
+    cfg.year1_magi_loss_offset = loss
+    cfg.year1_planned_roth_conversion = conversion
+    cfg.magi_floor_base = floor
+    cfg.magi_target_base = target
+    cfg.magi_ceiling_base = ceiling
+    cfg.year1_magi_income = income
+    cfg.year1_magi_losses = loss
+    cfg.year1_roth_conversion = conversion
+
+
+def set_aca_roth_planning(
+    cfg: Inputs, floor: float, target: float, ceiling: float, income: float, loss: float, conversion: float
+) -> None:
+    cfg.aca_magi_floor = floor
+    cfg.aca_magi_target = target
+    cfg.aca_magi_ceiling = ceiling
+    cfg.aca_extra_magi_income = income
+    cfg.aca_magi_loss_offset = loss
+    cfg.aca_planned_roth_conversion = conversion
+    cfg.magi_floor_base = floor
+    cfg.magi_target_base = target
+    cfg.magi_ceiling_base = ceiling
+    cfg.aca_annual_magi_income = income
+    cfg.aca_annual_magi_loss = loss
+    cfg.aca_annual_roth_conversion = conversion
+
+
+def set_medicare_roth_planning(
+    cfg: Inputs, floor: float, target: float, ceiling: float, income: float, loss: float, conversion: float
+) -> None:
+    cfg.medicare_magi_floor = floor
+    cfg.medicare_magi_target = target
+    cfg.medicare_magi_ceiling = ceiling
+    cfg.medicare_extra_magi_income = income
+    cfg.medicare_magi_loss_offset = loss
+    cfg.medicare_planned_roth_conversion = conversion
+    cfg.medicare_magi_ceiling_base = ceiling
+    cfg.medicare_annual_magi_income = income
+    cfg.medicare_annual_magi_loss = loss
+    cfg.medicare_annual_roth_conversion = conversion
 
 
 def test_run_plan_minimal_two_person_scenario_runs_three_years():
@@ -363,10 +430,7 @@ def test_tax_and_magi_audit_components_reconcile_to_summary_fields():
     cfg.brokerage_cash = 1000
     cfg.balances_ira = 100000
     cfg.target_spend = 0
-    cfg.magi_target_base = 10000
-    cfg.magi_floor_base = 0
-    cfg.magi_ceiling_base = 10000
-    cfg.aca_annual_roth_conversion = 10000
+    set_aca_roth_planning(cfg, 0, 10000, 10000, 0, 0, 10000)
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 
@@ -607,12 +671,8 @@ def test_rmd_age_is_none_when_neither_person_is_alive():
 
 def test_run_plan_year1_magi_guardrail_outputs_are_user_driven():
     cfg = minimal_two_person_config()
-    cfg.year1_roth_conversion = 5000
-    cfg.year1_magi_income = 42000
-    cfg.year1_magi_losses = 2000
-    cfg.magi_target_base = 85000
-    cfg.magi_floor_base = 43000
-    cfg.magi_ceiling_base = 85000
+    set_year1_roth_planning(cfg, 43000, 85000, 85000, 42000, 2000, 5000)
+    set_aca_roth_planning(cfg, 43000, 85000, 85000, 0, 0, 0)
 
     rows = run_plan(cfg)
 
@@ -644,9 +704,7 @@ def test_run_plan_year2_magi_target_outputs_reflect_projected_magi():
     cfg.brokerage_unrealized_gain = 5000
     cfg.balances_ira = 0
     cfg.target_spend = 1000
-    cfg.magi_target_base = 10000
-    cfg.magi_floor_base = 0
-    cfg.magi_ceiling_base = 10000
+    set_aca_roth_planning(cfg, 0, 10000, 10000, 0, 0, 0)
 
     rows = run_plan(cfg)
     year2_row = rows[1]
@@ -672,11 +730,8 @@ def test_roth_conversion_reports_aca_magi_ceiling_before_medicare_age():
     cfg.balances_roth = 0
     cfg.balances_ira = 100000
     cfg.target_spend = 0
-    cfg.magi_floor_base = 0
-    cfg.magi_target_base = 50000
-    cfg.magi_ceiling_base = 10000
-    cfg.medicare_magi_ceiling_base = 50000
-    cfg.aca_annual_roth_conversion = 50000
+    set_aca_roth_planning(cfg, 0, 50000, 10000, 0, 0, 50000)
+    set_medicare_roth_planning(cfg, 0, 50000, 50000, 0, 0, 50000)
     cfg.aca_end_age = 65
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
@@ -700,12 +755,7 @@ def test_year2_before_medicare_uses_aca_annual_roth_planning_values():
     cfg.balances_roth = 0
     cfg.balances_ira = 100000
     cfg.target_spend = 0
-    cfg.magi_floor_base = 0
-    cfg.magi_target_base = 50000
-    cfg.magi_ceiling_base = 50000
-    cfg.aca_annual_magi_income = 3000
-    cfg.aca_annual_magi_loss = 500
-    cfg.aca_annual_roth_conversion = 7000
+    set_aca_roth_planning(cfg, 0, 50000, 50000, 3000, 500, 7000)
     cfg.standard_deduction_base = 100000
     cfg.estimated_state_tax_rate = 0
 
@@ -726,11 +776,8 @@ def test_roth_conversion_reports_medicare_magi_ceiling_at_medicare_age():
     cfg.balances_roth = 0
     cfg.balances_ira = 100000
     cfg.target_spend = 0
-    cfg.magi_floor_base = 0
-    cfg.magi_target_base = 50000
-    cfg.magi_ceiling_base = 10000
-    cfg.medicare_magi_ceiling_base = 50000
-    cfg.medicare_annual_roth_conversion = 50000
+    set_aca_roth_planning(cfg, 0, 50000, 10000, 0, 0, 0)
+    set_medicare_roth_planning(cfg, 0, 50000, 50000, 0, 0, 50000)
     cfg.aca_end_age = 61
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
@@ -752,14 +799,9 @@ def test_medicare_age_year_uses_medicare_annual_roth_planning_values():
     cfg.balances_roth = 0
     cfg.balances_ira = 100000
     cfg.target_spend = 0
-    cfg.magi_floor_base = 0
-    cfg.magi_target_base = 50000
-    cfg.magi_ceiling_base = 10000
-    cfg.medicare_magi_ceiling_base = 50000
+    set_aca_roth_planning(cfg, 0, 50000, 10000, 0, 0, 0)
     cfg.aca_end_age = 61
-    cfg.medicare_annual_magi_income = 4000
-    cfg.medicare_annual_magi_loss = 1000
-    cfg.medicare_annual_roth_conversion = 8000
+    set_medicare_roth_planning(cfg, 0, 50000, 50000, 4000, 1000, 8000)
     cfg.standard_deduction_base = 100000
     cfg.estimated_state_tax_rate = 0
 
@@ -782,11 +824,8 @@ def test_roth_conversion_is_zero_when_ira_draws_exceed_magi_target():
     cfg.balances_ira = 100000
     cfg.draw_order = "IRA, Brokerage, Roth"
     cfg.target_spend = 60000
-    cfg.magi_floor_base = 0
-    cfg.magi_target_base = 50000
-    cfg.magi_ceiling_base = 10000
-    cfg.medicare_magi_ceiling_base = 10000
-    cfg.aca_annual_roth_conversion = 50000
+    set_aca_roth_planning(cfg, 0, 50000, 10000, 0, 0, 50000)
+    set_medicare_roth_planning(cfg, 0, 50000, 10000, 0, 0, 50000)
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 
@@ -806,10 +845,7 @@ def test_roth_conversion_is_not_capped_by_magi_ceiling_when_target_is_higher():
     cfg.balances_roth = 0
     cfg.balances_ira = 100000
     cfg.target_spend = 0
-    cfg.magi_floor_base = 0
-    cfg.magi_target_base = 50000
-    cfg.magi_ceiling_base = 10000
-    cfg.aca_annual_roth_conversion = 50000
+    set_aca_roth_planning(cfg, 0, 50000, 10000, 0, 0, 50000)
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 

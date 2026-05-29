@@ -7,7 +7,11 @@ from retireplan.engine.taxes import (
     progressive_tax,
     ss_taxable_amount,
 )
-from tests.test_run_plan_baseline import minimal_two_person_config, rmd_survivor_config
+from tests.test_run_plan_baseline import (
+    minimal_two_person_config,
+    rmd_survivor_config,
+    set_aca_roth_planning,
+)
 
 
 def test_federal_tax_zero_income():
@@ -138,9 +142,7 @@ def test_ira_draws_rmds_and_roth_conversions_are_ordinary_taxable_magi_income():
     cfg = rmd_survivor_config()
     cfg.balances_ira = 1_000_000
     cfg.target_spend = 50_000
-    cfg.magi_target_base = 80_000
-    cfg.magi_floor_base = 0
-    cfg.magi_ceiling_base = 80_000
+    set_aca_roth_planning(cfg, 0, 80_000, 80_000, 0, 0, 0)
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 
@@ -166,10 +168,7 @@ def test_roth_conversion_taxable_but_not_spending():
     cfg.balances_roth = 0
     cfg.balances_ira = 100_000
     cfg.target_spend = 0
-    cfg.magi_target_base = 10_000
-    cfg.magi_floor_base = 0
-    cfg.magi_ceiling_base = 10_000
-    cfg.aca_annual_roth_conversion = 10_000
+    set_aca_roth_planning(cfg, 0, 10_000, 10_000, 0, 0, 10_000)
     cfg.standard_deduction_base = 0
     cfg.estimated_state_tax_rate = 0
 

@@ -36,6 +36,12 @@ class Inputs:
     year1_brokerage_draw: float
     year1_ira_draw: float
     year1_roth_draw: float
+    year1_magi_floor: float
+    year1_magi_target: float
+    year1_magi_ceiling: float
+    year1_extra_magi_income: float
+    year1_magi_loss_offset: float
+    year1_planned_roth_conversion: float
     year1_roth_conversion: float
     year1_magi_income: float
     year1_magi_losses: float
@@ -45,9 +51,21 @@ class Inputs:
     year1_projected_capital_gains: float
     year1_capital_losses_to_date: float
     year1_projected_capital_losses: float
+    aca_magi_floor: float
+    aca_magi_target: float
+    aca_magi_ceiling: float
+    aca_extra_magi_income: float
+    aca_magi_loss_offset: float
+    aca_planned_roth_conversion: float
     aca_annual_magi_income: float
     aca_annual_magi_loss: float
     aca_annual_roth_conversion: float
+    medicare_magi_floor: float
+    medicare_magi_target: float
+    medicare_magi_ceiling: float
+    medicare_extra_magi_income: float
+    medicare_magi_loss_offset: float
+    medicare_planned_roth_conversion: float
     medicare_annual_magi_income: float
     medicare_annual_magi_loss: float
     medicare_annual_roth_conversion: float
@@ -147,22 +165,82 @@ def load_yaml(path: str) -> Inputs:
         year1_brokerage_draw=s.get("year1_brokerage_draw", 0),
         year1_ira_draw=s.get("year1_ira_draw", 0),
         year1_roth_draw=s.get("year1_roth_draw", 0),
-        year1_roth_conversion=s.get("year1_roth_conversion", 0),
-        year1_magi_income=s.get("year1_magi_income", 0),
-        year1_magi_losses=s.get("year1_magi_losses", 0),
+        year1_magi_floor=s.get("year1_magi_floor", th.get("magi_floor_base", 0)),
+        year1_magi_target=s.get("year1_magi_target", th.get("magi_target_base", 0)),
+        year1_magi_ceiling=s.get("year1_magi_ceiling", th.get("magi_ceiling_base", 0)),
+        year1_extra_magi_income=s.get(
+            "year1_extra_magi_income", s.get("year1_magi_income", 0)
+        ),
+        year1_magi_loss_offset=s.get(
+            "year1_magi_loss_offset", s.get("year1_magi_losses", 0)
+        ),
+        year1_planned_roth_conversion=s.get(
+            "year1_planned_roth_conversion", s.get("year1_roth_conversion", 0)
+        ),
+        year1_roth_conversion=s.get(
+            "year1_roth_conversion", s.get("year1_planned_roth_conversion", 0)
+        ),
+        year1_magi_income=s.get(
+            "year1_magi_income", s.get("year1_extra_magi_income", 0)
+        ),
+        year1_magi_losses=s.get(
+            "year1_magi_losses", s.get("year1_magi_loss_offset", 0)
+        ),
         year1_income_to_date=s.get("year1_income_to_date", 0),
         year1_projected_income=s.get("year1_projected_income", 0),
         year1_capital_gains_to_date=s.get("year1_capital_gains_to_date", 0),
         year1_projected_capital_gains=s.get("year1_projected_capital_gains", 0),
         year1_capital_losses_to_date=s.get("year1_capital_losses_to_date", 0),
         year1_projected_capital_losses=s.get("year1_projected_capital_losses", 0),
-        aca_annual_magi_income=s.get("aca_annual_magi_income", 0),
-        aca_annual_magi_loss=s.get("aca_annual_magi_loss", 0),
-        aca_annual_roth_conversion=s.get("aca_annual_roth_conversion", 0),
-        medicare_annual_magi_income=s.get("medicare_annual_magi_income", 0),
-        medicare_annual_magi_loss=s.get("medicare_annual_magi_loss", 0),
+        aca_magi_floor=s.get("aca_magi_floor", th.get("magi_floor_base", 0)),
+        aca_magi_target=s.get("aca_magi_target", th.get("magi_target_base", 0)),
+        aca_magi_ceiling=s.get("aca_magi_ceiling", th.get("magi_ceiling_base", 0)),
+        aca_extra_magi_income=s.get(
+            "aca_extra_magi_income", s.get("aca_annual_magi_income", 0)
+        ),
+        aca_magi_loss_offset=s.get(
+            "aca_magi_loss_offset", s.get("aca_annual_magi_loss", 0)
+        ),
+        aca_planned_roth_conversion=s.get(
+            "aca_planned_roth_conversion", s.get("aca_annual_roth_conversion", 0)
+        ),
+        aca_annual_magi_income=s.get(
+            "aca_annual_magi_income", s.get("aca_extra_magi_income", 0)
+        ),
+        aca_annual_magi_loss=s.get(
+            "aca_annual_magi_loss", s.get("aca_magi_loss_offset", 0)
+        ),
+        aca_annual_roth_conversion=s.get(
+            "aca_annual_roth_conversion", s.get("aca_planned_roth_conversion", 0)
+        ),
+        medicare_magi_floor=s.get("medicare_magi_floor", th.get("magi_floor_base", 0)),
+        medicare_magi_target=s.get(
+            "medicare_magi_target",
+            th.get("medicare_magi_ceiling_base", th.get("magi_target_base", 0)),
+        ),
+        medicare_magi_ceiling=s.get(
+            "medicare_magi_ceiling",
+            th.get("medicare_magi_ceiling_base", th.get("magi_ceiling_base", 0)),
+        ),
+        medicare_extra_magi_income=s.get(
+            "medicare_extra_magi_income", s.get("medicare_annual_magi_income", 0)
+        ),
+        medicare_magi_loss_offset=s.get(
+            "medicare_magi_loss_offset", s.get("medicare_annual_magi_loss", 0)
+        ),
+        medicare_planned_roth_conversion=s.get(
+            "medicare_planned_roth_conversion",
+            s.get("medicare_annual_roth_conversion", 0),
+        ),
+        medicare_annual_magi_income=s.get(
+            "medicare_annual_magi_income", s.get("medicare_extra_magi_income", 0)
+        ),
+        medicare_annual_magi_loss=s.get(
+            "medicare_annual_magi_loss", s.get("medicare_magi_loss_offset", 0)
+        ),
         medicare_annual_roth_conversion=s.get(
-            "medicare_annual_roth_conversion", 0
+            "medicare_annual_roth_conversion",
+            s.get("medicare_planned_roth_conversion", 0),
         ),
         magi_income_ytd=s.get("magi_income_ytd", 0),
         magi_income_projected=s.get("magi_income_projected", 0),
