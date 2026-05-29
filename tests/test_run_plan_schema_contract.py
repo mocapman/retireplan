@@ -75,3 +75,18 @@ def test_tax_diagnostic_fields_are_schema_export_fields_not_gui_default():
 
     assert diagnostic_fields.issubset(set(schema.keys()))
     assert diagnostic_fields.isdisjoint(set(schema.visible_keys()))
+
+
+def test_magi_guardrail_fields_are_schema_export_fields_not_gui_default():
+    diagnostic_fields = {
+        "MAGI",
+        "MAGI_Floor",
+        "Target_MAGI",
+        "MAGI_Ceiling",
+        "MAGI_Remaining",
+        "MAGI_Remaining_To_Ceiling",
+        "MAGI_Status",
+    }
+
+    assert diagnostic_fields.issubset(set(schema.keys()))
+    assert diagnostic_fields.isdisjoint(set(schema.visible_keys()))

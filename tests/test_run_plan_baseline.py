@@ -721,6 +721,74 @@ def test_run_plan_year2_magi_target_outputs_reflect_projected_magi():
     assert year2_row["MAGI_Status"] == "Good"
 
 
+def test_magi_guardrail_status_reports_below_between_and_above_without_changing_math():
+    low_cfg = minimal_two_person_config()
+    low_cfg.year1_spend = 0
+    low_cfg.year1_brokerage_draw = 0
+    low_cfg.balances_brokerage = 0
+    low_cfg.brokerage_cash = 0
+    low_cfg.balances_roth = 0
+    low_cfg.balances_ira = 100000
+    low_cfg.target_spend = 0
+    low_cfg.standard_deduction_base = 0
+    low_cfg.estimated_state_tax_rate = 0
+    set_aca_roth_planning(low_cfg, 10000, 50000, 85000, 0, 0, 0)
+
+    ok_cfg = minimal_two_person_config()
+    ok_cfg.year1_spend = 0
+    ok_cfg.year1_brokerage_draw = 0
+    ok_cfg.balances_brokerage = 0
+    ok_cfg.brokerage_cash = 0
+    ok_cfg.balances_roth = 0
+    ok_cfg.balances_ira = 100000
+    ok_cfg.target_spend = 0
+    ok_cfg.standard_deduction_base = 0
+    ok_cfg.estimated_state_tax_rate = 0
+    set_aca_roth_planning(ok_cfg, 10000, 50000, 85000, 0, 0, 25000)
+
+    high_cfg = minimal_two_person_config()
+    high_cfg.year1_spend = 0
+    high_cfg.year1_brokerage_draw = 0
+    high_cfg.balances_brokerage = 0
+    high_cfg.brokerage_cash = 0
+    high_cfg.balances_roth = 0
+    high_cfg.balances_ira = 100000
+    high_cfg.target_spend = 0
+    high_cfg.standard_deduction_base = 0
+    high_cfg.estimated_state_tax_rate = 0
+    set_aca_roth_planning(high_cfg, 0, 50000, 10000, 0, 0, 50000)
+
+    low_row = run_plan(low_cfg)[1]
+    ok_row = run_plan(ok_cfg)[1]
+    high_row = run_plan(high_cfg)[1]
+
+    assert low_row["MAGI_Status"] == "Low"
+    assert ok_row["MAGI_Status"] == "Good"
+    assert high_row["MAGI_Status"] == "FAIL"
+    assert high_row["MAGI_Remaining_To_Ceiling"] < 0
+
+    ceiling_only_cfg = minimal_two_person_config()
+    ceiling_only_cfg.year1_spend = 0
+    ceiling_only_cfg.year1_brokerage_draw = 0
+    ceiling_only_cfg.balances_brokerage = 0
+    ceiling_only_cfg.brokerage_cash = 0
+    ceiling_only_cfg.balances_roth = 0
+    ceiling_only_cfg.balances_ira = 100000
+    ceiling_only_cfg.target_spend = 0
+    ceiling_only_cfg.standard_deduction_base = 0
+    ceiling_only_cfg.estimated_state_tax_rate = 0
+    set_aca_roth_planning(ceiling_only_cfg, 0, 50000, 200000, 0, 0, 50000)
+
+    ceiling_only_row = run_plan(ceiling_only_cfg)[1]
+
+    assert ceiling_only_row["Roth_Conversion"] == high_row["Roth_Conversion"]
+    assert ceiling_only_row["Taxes_Due"] == high_row["Taxes_Due"]
+    assert ceiling_only_row["IRA_Balance"] == high_row["IRA_Balance"]
+    assert ceiling_only_row["Roth_Balance"] == high_row["Roth_Balance"]
+    assert ceiling_only_row["Total_Assets"] == high_row["Total_Assets"]
+    assert ceiling_only_row["MAGI_Status"] == "Good"
+
+
 def test_roth_conversion_reports_aca_magi_ceiling_before_medicare_age():
     cfg = minimal_two_person_config()
     cfg.year1_spend = 0

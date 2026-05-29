@@ -34,6 +34,13 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
             "Federal_Taxable_Income_After_Deduction": 988,
             "Estimated_State_Taxable_Income": 888,
             "Estimated_State_Tax": 89,
+            "MAGI": 45000,
+            "MAGI_Floor": 43000,
+            "Target_MAGI": 80000,
+            "MAGI_Ceiling": 85000,
+            "MAGI_Remaining": 35000,
+            "MAGI_Remaining_To_Ceiling": 40000,
+            "MAGI_Status": "Good",
             "SS_Taxable_Amount": 0,
             "Roth_Conversion_Taxable_Income": 0,
             "IRA_Taxable_Income": 1000,
@@ -106,6 +113,13 @@ def test_export_csv_writes_projection_rows_only_under_output(monkeypatch, tmp_pa
     assert "IRA_Balance_End_Of_Year" in rows[0]
     assert "Estimated_State_Taxable_Income" in rows[0]
     assert "Estimated_State_Tax" in rows[0]
+    assert "MAGI" in rows[0]
+    assert "MAGI_Floor" in rows[0]
+    assert "Target_MAGI" in rows[0]
+    assert "MAGI_Ceiling" in rows[0]
+    assert "MAGI_Remaining" in rows[0]
+    assert "MAGI_Remaining_To_Ceiling" in rows[0]
+    assert "MAGI_Status" in rows[0]
     assert len(rows) == 2
     assert ["# Config Settings"] not in rows
     assert not any(row and row[0].startswith("tax_health.") for row in rows)
