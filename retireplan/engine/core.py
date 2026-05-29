@@ -181,18 +181,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Federal_Tax_Bracket_Set_Used": (
                     "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
                 ),
-                "Taxable_Income": round_dollar(0),
-                "Ordinary_Income_Taxable": round_dollar(roth_conv),
-                "Capital_Gains_Taxable": round_dollar(brokerage_sale.capital_gain),
-                "Total_Taxable_Income_Before_Deduction": round_dollar(
-                    roth_conv + brokerage_sale.capital_gain
-                ),
-                "Total_Taxable_Income_After_Deduction": round_dollar(0),
                 "Federal_Taxable_Income_Before_Deduction": round_dollar(
                     roth_conv + brokerage_sale.capital_gain
                 ),
                 "Federal_Taxable_Income_After_Deduction": round_dollar(0),
-                "Federal_Tax_On_Ordinary_Income": round_dollar(0),
                 "Estimated_State_Taxable_Income": round_dollar(0),
                 "Estimated_State_Tax": round_dollar(0),
                 "Brokerage_Cash_Used": round_dollar(brokerage_sale.cash_used),
@@ -204,10 +196,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 "Brokerage_Capital_Gains": round_dollar(
                     brokerage_sale.capital_gain
                 ),
-                "Brokerage_MAGI_Income": round_dollar(brokerage_sale.capital_gain),
-                "Brokerage_Taxable_Income": round_dollar(
-                    brokerage_sale.capital_gain
-                ),
                 "MAGI": round_dollar(magi),
                 "MAGI_Floor": round_dollar(magi_floor),
                 "Target_MAGI": round_dollar(target_magi),
@@ -217,12 +205,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     magi_remaining_to_ceiling
                 ),
                 "MAGI_Status": magi_status,
-                "MAGI_IRA_Draws": round_dollar(0),
-                "MAGI_RMD": round_dollar(0),
-                "MAGI_Roth_Conversions": round_dollar(roth_conv),
-                "MAGI_Brokerage_Gains": round_dollar(0),
-                "MAGI_Social_Security": round_dollar(0),
-                "Std_Deduction": round_dollar(0),  # Not calculated for Year 1
                 "Survivor_Year": survivor_year,
                 "Living_Person": living_person,
                 "Widow_Tax_Mode": "Single survivor" if survivor_year else "",
@@ -237,23 +219,18 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                     ira_balance_start_of_year
                 ),
                 "IRA_Taxable_Income": round_dollar(0),
-                "IRA_Draw_Taxable_Income": round_dollar(0),
                 "IRA_RMD_Taxable_Income": round_dollar(0),
                 "IRA_Extra_Draw_Taxable_Income": round_dollar(0),
-                "IRA_Total_Taxable_Income": round_dollar(0),
                 "IRA_Balance_End_Of_Year": round_dollar(ira_end),
                 "RMD_Gross": round_dollar(0),
                 "RMD_Used_For_Spending": round_dollar(0),
                 "RMD_Surplus_To_Brokerage": round_dollar(0),
-                "Roth_Conversion_Gross": round_dollar(roth_conv),
                 "Roth_Conversion_Taxable_Income": round_dollar(roth_conv),
-                "Roth_Conversion_MAGI_Income": round_dollar(roth_conv),
                 "SS_Person1_Gross": round_dollar(0),
                 "SS_Person2_Gross": round_dollar(0),
                 "SS_Total_Gross": round_dollar(0),
                 "SS_Taxable_Amount": round_dollar(0),
                 "SS_Nontaxable_Amount": round_dollar(0),
-                "SS_Included_In_MAGI": round_dollar(0),
                 "SS_Survivor_Adjustment": round_dollar(0),
                 "SS_Filing_Status_Used": (
                     "MFJ" if (yc.person1_alive and yc.person2_alive) else "Single"
@@ -563,18 +540,10 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Filing_Status_Used": filing_status,
             "Federal_Standard_Deduction_Used": round_dollar(std_ded),
             "Federal_Tax_Bracket_Set_Used": filing_status,
-            "Taxable_Income": round_dollar(taxable_income),
-            "Ordinary_Income_Taxable": round_dollar(ordinary_income_taxable),
-            "Capital_Gains_Taxable": round_dollar(brokerage_capital_gains),
-            "Total_Taxable_Income_Before_Deduction": round_dollar(
-                total_taxable_income_before_deduction
-            ),
-            "Total_Taxable_Income_After_Deduction": round_dollar(taxable_income),
             "Federal_Taxable_Income_Before_Deduction": round_dollar(
                 total_taxable_income_before_deduction
             ),
             "Federal_Taxable_Income_After_Deduction": round_dollar(taxable_income),
-            "Federal_Tax_On_Ordinary_Income": round_dollar(federal_tax),
             "Estimated_State_Taxable_Income": round_dollar(
                 estimated_state_taxable_income
             ),
@@ -584,8 +553,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             "Brokerage_Basis_Used": round_dollar(brokerage_sale.basis_used),
             "Brokerage_Gain_Ratio": round_percent(brokerage_sale.gain_ratio),
             "Brokerage_Capital_Gains": round_dollar(brokerage_capital_gains),
-            "Brokerage_MAGI_Income": round_dollar(brokerage_capital_gains),
-            "Brokerage_Taxable_Income": round_dollar(brokerage_capital_gains),
             "MAGI": round_dollar(magi),
             "MAGI_Floor": round_dollar(magi_floor),
             "Target_MAGI": round_dollar(target_magi),
@@ -601,12 +568,6 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
                 if magi_guardrail_active
                 else ""
             ),
-            "MAGI_IRA_Draws": round_dollar(draw_ira),
-            "MAGI_RMD": round_dollar(rmd),
-            "MAGI_Roth_Conversions": round_dollar(roth_conv),
-            "MAGI_Brokerage_Gains": round_dollar(brokerage_capital_gains),
-            "MAGI_Social_Security": round_dollar(ss_taxable),
-            "Std_Deduction": round_dollar(std_ded),
             "Survivor_Year": survivor_year,
             "Living_Person": living_person,
             "Widow_Tax_Mode": "Single survivor" if survivor_year else "",
@@ -619,23 +580,18 @@ def run_plan(cfg, events: Iterable[dict] | None = None) -> list[dict]:
             ),
             "IRA_Balance_Start_Of_Year": round_dollar(ira_balance_start_of_year),
             "IRA_Taxable_Income": round_dollar(ira_taxable_income),
-            "IRA_Draw_Taxable_Income": round_dollar(draw_ira),
             "IRA_RMD_Taxable_Income": round_dollar(rmd),
             "IRA_Extra_Draw_Taxable_Income": round_dollar(draw_ira),
-            "IRA_Total_Taxable_Income": round_dollar(ira_taxable_income),
             "IRA_Balance_End_Of_Year": round_dollar(ira_bal),
             "RMD_Gross": round_dollar(rmd),
             "RMD_Used_For_Spending": round_dollar(rmd_used_for_spending),
             "RMD_Surplus_To_Brokerage": round_dollar(rmd_surplus),
-            "Roth_Conversion_Gross": round_dollar(roth_conv),
             "Roth_Conversion_Taxable_Income": round_dollar(roth_conv),
-            "Roth_Conversion_MAGI_Income": round_dollar(roth_conv),
             "SS_Person1_Gross": round_dollar(ss_person1_gross),
             "SS_Person2_Gross": round_dollar(ss_person2_gross),
             "SS_Total_Gross": round_dollar(ss_income),
             "SS_Taxable_Amount": round_dollar(ss_taxable),
             "SS_Nontaxable_Amount": round_dollar(ss_income - ss_taxable),
-            "SS_Included_In_MAGI": round_dollar(ss_taxable),
             "SS_Survivor_Adjustment": round_dollar(ss_survivor_adjustment),
             "SS_Filing_Status_Used": filing_status,
             "IRA_Balance": round_dollar(ira_bal),

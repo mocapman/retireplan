@@ -147,17 +147,13 @@ def test_ira_draws_rmds_and_roth_conversions_are_ordinary_taxable_magi_income():
     row = run_plan(cfg)[1]
 
     assert row["IRA_Taxable_Income"] == (
-        row["IRA_Draw_Taxable_Income"] + row["IRA_RMD_Taxable_Income"]
-    )
-    assert row["Ordinary_Income_Taxable"] == (
-        row["IRA_Taxable_Income"] + row["Roth_Conversion_Taxable_Income"]
+        row["IRA_Extra_Draw_Taxable_Income"] + row["IRA_RMD_Taxable_Income"]
     )
     assert row["MAGI"] == (
-        row["MAGI_IRA_Draws"]
-        + row["MAGI_RMD"]
-        + row["MAGI_Roth_Conversions"]
-        + row["MAGI_Brokerage_Gains"]
-        + row["MAGI_Social_Security"]
+        row["IRA_Taxable_Income"]
+        + row["Roth_Conversion_Taxable_Income"]
+        + row["Brokerage_Capital_Gains"]
+        + row["SS_Taxable_Amount"]
     )
 
 
@@ -180,6 +176,5 @@ def test_roth_conversion_taxable_but_not_spending():
 
     assert row["Roth_Conversion"] > 0
     assert row["Roth_Conversion_Taxable_Income"] == row["Roth_Conversion"]
-    assert row["Roth_Conversion_MAGI_Income"] == row["Roth_Conversion"]
     assert row["Target_Spend"] == 0
     assert row["Total_Spend"] == row["Taxes_Due"]

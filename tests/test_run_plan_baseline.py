@@ -109,7 +109,6 @@ def test_run_plan_rows_include_current_schema_and_core_financial_fields():
         "Brokerage_Basis_Used",
         "Brokerage_Gain_Ratio",
         "Brokerage_Capital_Gains",
-        "Brokerage_MAGI_Income",
         "MAGI",
         "MAGI_Floor",
         "Target_MAGI",
@@ -171,7 +170,6 @@ def test_run_plan_brokerage_draw_within_cash_does_not_increase_magi():
     assert rows[1]["Brokerage_Basis_Used"] == 0
     assert rows[1]["Brokerage_Gain_Ratio"] == 0.0
     assert rows[1]["Brokerage_Capital_Gains"] == 0
-    assert rows[1]["Brokerage_MAGI_Income"] == 0
     assert rows[1]["MAGI"] == 0
 
 
@@ -194,10 +192,6 @@ def test_run_plan_brokerage_draw_beyond_cash_increases_magi_by_estimated_gain():
     assert rows[1]["Brokerage_Basis_Used"] == 242
     assert rows[1]["Brokerage_Gain_Ratio"] == 0.2105
     assert rows[1]["Brokerage_Capital_Gains"] == 64
-    assert rows[1]["Brokerage_MAGI_Income"] == 64
-    assert rows[1]["Brokerage_Taxable_Income"] == 64
-    assert rows[1]["Capital_Gains_Taxable"] == 64
-    assert rows[1]["MAGI_Brokerage_Gains"] == 64
     assert rows[1]["MAGI"] == 64
     assert rows[1]["Taxes_Due"] > 0
     assert rows[1]["Total_Spend"] == (
@@ -250,8 +244,7 @@ def test_run_plan_estimated_state_tax_is_included_in_taxes_due_and_draws():
     rows = run_plan(cfg)
     state_tax_row = rows[1]
 
-    assert state_tax_row["Taxable_Income"] == 988
-    assert state_tax_row["Total_Taxable_Income_After_Deduction"] == 988
+    assert state_tax_row["Federal_Taxable_Income_After_Deduction"] == 988
     assert state_tax_row["Estimated_State_Taxable_Income"] == 888
     assert state_tax_row["Estimated_State_Tax"] == 89
     assert state_tax_row["Federal_Tax"] == 99
@@ -286,8 +279,9 @@ def test_federal_tax_audit_columns_show_mfj_standard_deduction_and_brackets():
     assert row["Federal_Tax_Bracket_Set_Used"] == "MFJ"
     assert row["Federal_Standard_Deduction_Used"] == 30000
     assert row["Federal_Taxable_Income_Before_Deduction"] == (
-        row["Ordinary_Income_Taxable"]
-        + row["Capital_Gains_Taxable"]
+        row["IRA_Taxable_Income"]
+        + row["Roth_Conversion_Taxable_Income"]
+        + row["Brokerage_Capital_Gains"]
         + row["SS_Taxable_Amount"]
     )
     assert row["Federal_Taxable_Income_After_Deduction"] == max(
@@ -295,7 +289,6 @@ def test_federal_tax_audit_columns_show_mfj_standard_deduction_and_brackets():
         row["Federal_Taxable_Income_Before_Deduction"]
         - row["Federal_Standard_Deduction_Used"],
     )
-    assert row["Federal_Tax_On_Ordinary_Income"] == row["Federal_Tax"]
     assert row["Taxes_Due"] == row["Federal_Tax"] + row["Estimated_State_Tax"]
 
 
@@ -320,7 +313,6 @@ def test_survivor_tax_audit_columns_show_single_deduction_and_brackets():
     assert survivor_row["Survivor_Standard_Deduction_Used"] == 15750
     assert survivor_row["IRA_Balance_Start_Of_Year"] == 1000000
     assert survivor_row["IRA_RMD_Taxable_Income"] == survivor_row["RMD"]
-    assert survivor_row["IRA_Total_Taxable_Income"] == survivor_row["IRA_Taxable_Income"]
     assert survivor_row["IRA_Balance_End_Of_Year"] < survivor_row[
         "IRA_Balance_Start_Of_Year"
     ]
@@ -373,26 +365,21 @@ def test_tax_and_magi_audit_components_reconcile_to_summary_fields():
     row = run_plan(cfg)[1]
 
     assert row["Roth_Conversion"] > 0
-    assert row["Roth_Conversion_Gross"] == row["Roth_Conversion"]
     assert row["Roth_Conversion_Taxable_Income"] == row["Roth_Conversion"]
-    assert row["Roth_Conversion_MAGI_Income"] == row["Roth_Conversion"]
     assert row["IRA_Taxable_Income"] == (
-        row["IRA_Draw_Taxable_Income"] + row["IRA_RMD_Taxable_Income"]
+        row["IRA_Extra_Draw_Taxable_Income"] + row["IRA_RMD_Taxable_Income"]
     )
-    assert row["Ordinary_Income_Taxable"] == (
-        row["IRA_Taxable_Income"] + row["Roth_Conversion_Taxable_Income"]
-    )
-    assert row["Total_Taxable_Income_Before_Deduction"] == (
-        row["Ordinary_Income_Taxable"]
-        + row["Capital_Gains_Taxable"]
+    assert row["Federal_Taxable_Income_Before_Deduction"] == (
+        row["IRA_Taxable_Income"]
+        + row["Roth_Conversion_Taxable_Income"]
+        + row["Brokerage_Capital_Gains"]
         + row["SS_Taxable_Amount"]
     )
     assert row["MAGI"] == (
-        row["MAGI_IRA_Draws"]
-        + row["MAGI_RMD"]
-        + row["MAGI_Roth_Conversions"]
-        + row["MAGI_Brokerage_Gains"]
-        + row["MAGI_Social_Security"]
+        row["IRA_Taxable_Income"]
+        + row["Roth_Conversion_Taxable_Income"]
+        + row["Brokerage_Capital_Gains"]
+        + row["SS_Taxable_Amount"]
     )
 
 
@@ -504,7 +491,6 @@ def test_rmd_still_occurs_when_person1_is_alive_at_rmd_age():
     assert rows[1]["MAGI"] == rows[1]["RMD"]
     assert rows[1]["RMD_Gross"] == rows[1]["RMD"]
     assert rows[1]["IRA_RMD_Taxable_Income"] == rows[1]["RMD"]
-    assert rows[1]["MAGI_RMD"] == rows[1]["RMD"]
     assert (
         rows[1]["RMD_Used_For_Spending"] + rows[1]["RMD_Surplus_To_Brokerage"]
         == rows[1]["RMD"]

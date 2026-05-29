@@ -33,27 +33,6 @@ COLUMNS: List[Dict[str, Any]] = [
         "label": "Federal_Tax_Bracket_Set_Used",
         "visible": False,
     },
-    {"key": "Taxable_Income", "label": "Taxable_Income", "visible": False},
-    {
-        "key": "Ordinary_Income_Taxable",
-        "label": "Ordinary_Income_Taxable",
-        "visible": False,
-    },
-    {
-        "key": "Capital_Gains_Taxable",
-        "label": "Capital_Gains_Taxable",
-        "visible": False,
-    },
-    {
-        "key": "Total_Taxable_Income_Before_Deduction",
-        "label": "Total_Taxable_Income_Before_Deduction",
-        "visible": False,
-    },
-    {
-        "key": "Total_Taxable_Income_After_Deduction",
-        "label": "Total_Taxable_Income_After_Deduction",
-        "visible": False,
-    },
     {
         "key": "Federal_Taxable_Income_Before_Deduction",
         "label": "Federal_Taxable_Income_Before_Deduction",
@@ -62,11 +41,6 @@ COLUMNS: List[Dict[str, Any]] = [
     {
         "key": "Federal_Taxable_Income_After_Deduction",
         "label": "Federal_Taxable_Income_After_Deduction",
-        "visible": False,
-    },
-    {
-        "key": "Federal_Tax_On_Ordinary_Income",
-        "label": "Federal_Tax_On_Ordinary_Income",
         "visible": False,
     },
     {
@@ -88,16 +62,6 @@ COLUMNS: List[Dict[str, Any]] = [
         "label": "Brokerage_Capital_Gains",
         "visible": False,
     },
-    {
-        "key": "Brokerage_MAGI_Income",
-        "label": "Brokerage_MAGI_Income",
-        "visible": False,
-    },
-    {
-        "key": "Brokerage_Taxable_Income",
-        "label": "Brokerage_Taxable_Income",
-        "visible": False,
-    },
     {"key": "MAGI", "label": "MAGI", "visible": False},
     {"key": "MAGI_Floor", "label": "MAGI_Floor", "visible": False},
     {"key": "Target_MAGI", "label": "Target_MAGI", "visible": False},
@@ -109,24 +73,6 @@ COLUMNS: List[Dict[str, Any]] = [
         "visible": False,
     },
     {"key": "MAGI_Status", "label": "MAGI_Status", "visible": False},
-    {"key": "MAGI_IRA_Draws", "label": "MAGI_IRA_Draws", "visible": False},
-    {"key": "MAGI_RMD", "label": "MAGI_RMD", "visible": False},
-    {
-        "key": "MAGI_Roth_Conversions",
-        "label": "MAGI_Roth_Conversions",
-        "visible": False,
-    },
-    {
-        "key": "MAGI_Brokerage_Gains",
-        "label": "MAGI_Brokerage_Gains",
-        "visible": False,
-    },
-    {
-        "key": "MAGI_Social_Security",
-        "label": "MAGI_Social_Security",
-        "visible": False,
-    },
-    {"key": "Std_Deduction", "label": "Std_Deduction", "visible": False},
     {"key": "Survivor_Year", "label": "Survivor_Year", "visible": False},
     {"key": "Living_Person", "label": "Living_Person", "visible": False},
     {"key": "Widow_Tax_Mode", "label": "Widow_Tax_Mode", "visible": False},
@@ -152,11 +98,6 @@ COLUMNS: List[Dict[str, Any]] = [
     },
     {"key": "IRA_Taxable_Income", "label": "IRA_Taxable_Income", "visible": False},
     {
-        "key": "IRA_Draw_Taxable_Income",
-        "label": "IRA_Draw_Taxable_Income",
-        "visible": False,
-    },
-    {
         "key": "IRA_RMD_Taxable_Income",
         "label": "IRA_RMD_Taxable_Income",
         "visible": False,
@@ -164,11 +105,6 @@ COLUMNS: List[Dict[str, Any]] = [
     {
         "key": "IRA_Extra_Draw_Taxable_Income",
         "label": "IRA_Extra_Draw_Taxable_Income",
-        "visible": False,
-    },
-    {
-        "key": "IRA_Total_Taxable_Income",
-        "label": "IRA_Total_Taxable_Income",
         "visible": False,
     },
     {
@@ -188,18 +124,8 @@ COLUMNS: List[Dict[str, Any]] = [
         "visible": False,
     },
     {
-        "key": "Roth_Conversion_Gross",
-        "label": "Roth_Conversion_Gross",
-        "visible": False,
-    },
-    {
         "key": "Roth_Conversion_Taxable_Income",
         "label": "Roth_Conversion_Taxable_Income",
-        "visible": False,
-    },
-    {
-        "key": "Roth_Conversion_MAGI_Income",
-        "label": "Roth_Conversion_MAGI_Income",
         "visible": False,
     },
     {"key": "SS_Person1_Gross", "label": "SS_Person1_Gross", "visible": False},
@@ -209,11 +135,6 @@ COLUMNS: List[Dict[str, Any]] = [
     {
         "key": "SS_Nontaxable_Amount",
         "label": "SS_Nontaxable_Amount",
-        "visible": False,
-    },
-    {
-        "key": "SS_Included_In_MAGI",
-        "label": "SS_Included_In_MAGI",
         "visible": False,
     },
     {
